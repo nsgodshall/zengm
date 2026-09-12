@@ -795,6 +795,108 @@ export const generateJsonSchema = (sport: Sport | "test") => {
 							},
 						],
 					},
+					// International Soccer Zen GM mod (Epic 1) - see Country, Division, and PromotionRelegationLink in common/types.ts
+					competitionDivisions: {
+						type: "array",
+						minItems: 1,
+						items: {
+							type: "object",
+							properties: {
+								abbrev: {
+									type: "string",
+								},
+								countryId: {
+									type: "integer",
+									minimum: 0,
+								},
+								divisionId: {
+									type: "integer",
+									minimum: 0,
+								},
+								name: {
+									type: "string",
+								},
+								tier: {
+									type: "integer",
+									minimum: 1,
+								},
+							},
+							required: ["countryId", "divisionId", "name", "tier"],
+						},
+					},
+					countries: {
+						type: "array",
+						minItems: 1,
+						items: {
+							type: "object",
+							properties: {
+								abbrev: {
+									type: "string",
+								},
+								countryId: {
+									type: "integer",
+									minimum: 0,
+								},
+								flag: {
+									type: "string",
+								},
+								name: {
+									type: "string",
+								},
+							},
+							required: ["countryId", "name"],
+						},
+					},
+					promotionRelegationLinks: {
+						type: "array",
+						items: {
+							type: "object",
+							properties: {
+								id: {
+									type: "integer",
+									minimum: 0,
+								},
+								countryId: {
+									type: "integer",
+									minimum: 0,
+								},
+								upperDivisionId: {
+									type: "integer",
+									minimum: 0,
+								},
+								lowerDivisionId: {
+									type: "integer",
+									minimum: 0,
+								},
+								numAutoPromoted: {
+									type: "integer",
+									minimum: 0,
+								},
+								numAutoRelegated: {
+									type: "integer",
+									minimum: 0,
+								},
+								numPromotionPlayoffTeams: {
+									type: "integer",
+									minimum: 0,
+								},
+								numPromotionPlayoffSpots: {
+									type: "integer",
+									minimum: 0,
+								},
+							},
+							required: [
+								"id",
+								"countryId",
+								"upperDivisionId",
+								"lowerDivisionId",
+								"numAutoPromoted",
+								"numAutoRelegated",
+								"numPromotionPlayoffTeams",
+								"numPromotionPlayoffSpots",
+							],
+						},
+					},
 					confs: wrap({
 						type: "array",
 						minItems: 1,
@@ -2242,6 +2344,11 @@ export const generateJsonSchema = (sport: Sport | "test") => {
 						did: {
 							type: "integer",
 						},
+						// International Soccer Zen GM mod (Epic 1)
+						divisionId: {
+							type: "integer",
+							minimum: 0,
+						},
 						region: {
 							type: "string",
 						},
@@ -2407,6 +2514,10 @@ export const generateJsonSchema = (sport: Sport | "test") => {
 									},
 									did: {
 										type: "integer",
+									},
+									divisionId: {
+										type: "integer",
+										minimum: 0,
 									},
 									region: {
 										type: "string",

@@ -1,5 +1,6 @@
 export { default as GameSim } from "./GameSim.ts";
 export { default as allStar } from "./allStar/index.ts";
+export { default as competition } from "./competition/index.ts";
 export { default as contractNegotiation } from "./contractNegotiation/index.ts";
 export { default as draft } from "./draft/index.ts";
 export { default as expansionDraft } from "./expansionDraft/index.ts";

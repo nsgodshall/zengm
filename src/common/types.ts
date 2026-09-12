@@ -532,6 +532,61 @@ export type NamesLegacy = {
 export type Conf = { cid: number; name: string; abbrev?: string };
 export type Div = { cid: number; did: number; name: string; abbrev?: string };
 
+// --- International Soccer Zen GM mod: competition engine (Epic 1) ---
+//
+// These types are additive for now — nothing removes `Conf`/`Div` or the
+// `cid`/`did` fields on Team/TeamSeason yet. They introduce the new
+// "Country -> Division (tier) -> Club" model that will replace the single
+// global conf/div structure as the scheduler (Epic 2) and season flow
+// (Epic 3) get rebuilt. See ROADMAP.md for the full plan.
+//
+// Deliberately sport-agnostic: nothing here assumes basketball. A club is
+// just a `tid`, same as today.
+
+/** One nation in the World. Has its own league pyramid (a stack of Divisions by tier). */
+export type Country = {
+	countryId: number;
+	name: string;
+	/** Short code for display, e.g. in a compact standings header. Not necessarily ISO. */
+	abbrev?: string;
+	/** Suffix for the `flag-icons` CSS classes already bundled (e.g. "gb-eng", "es"). */
+	flag?: string;
+};
+
+/**
+ * One tier of one Country's pyramid — e.g. "England Tier 1". This is the actual
+ * competition: a set of Clubs that play a round-robin schedule and produce a
+ * table. Every country's tier-1 Division running at once is what makes the
+ * World have "simultaneous top leagues."
+ */
+export type Division = {
+	divisionId: number;
+	countryId: number;
+	/** 1 = top flight, 2 = second tier, etc. Used to order a Country's pyramid and to find PromotionRelegationLinks. */
+	tier: number;
+	name: string;
+	abbrev?: string;
+};
+
+/**
+ * Binds two Divisions in the same Country's pyramid, one tier apart, describing
+ * how clubs move between them at the end of a season. `numPromotionPlayoffTeams`
+ * is how many of the lower Division's near-miss clubs (ranked immediately below
+ * the auto-promotion cutoff) enter a playoff for the remaining
+ * `numPromotionPlayoffSpots` promotion spot(s); 0 disables the playoff entirely
+ * (pure table-based promotion/relegation).
+ */
+export type PromotionRelegationLink = {
+	id: number;
+	countryId: number;
+	upperDivisionId: number;
+	lowerDivisionId: number;
+	numAutoPromoted: number;
+	numAutoRelegated: number;
+	numPromotionPlayoffTeams: number;
+	numPromotionPlayoffSpots: number;
+};
+
 export type InjuriesSetting = {
 	name: string;
 	frequency: number;
@@ -590,6 +645,14 @@ export type GameAttributesLeague = {
 	challengeThanosMode: number;
 	thanosCooldownEnd: number | undefined;
 	confs: NonEmptyArray<Conf>;
+	// International Soccer Zen GM mod (Epic 1, additive — see Country/Division/
+	// PromotionRelegationLink above): the World's countries and their league
+	// pyramids. Optional until Epic 2/3 wire the scheduler and season flow to
+	// them; once that lands these become the source of truth and confs/divs
+	// are retired for this mod.
+	countries?: NonEmptyArray<Country>;
+	competitionDivisions?: NonEmptyArray<Division>;
+	promotionRelegationLinks?: PromotionRelegationLink[];
 	daysLeft: number;
 	defaultStadiumCapacity: number;
 	dh: "all" | "none" | number[];
@@ -1563,6 +1626,10 @@ export type Team = {
 	tid: number;
 	cid: number;
 	did: number;
+	// International Soccer Zen GM mod (Epic 1, additive): which Division (see
+	// above) this club currently plays in. Optional until Epic 2/3 make it the
+	// source of truth in place of cid/did for this mod.
+	divisionId?: number;
 	region: string;
 	name: string;
 	abbrev: string;
@@ -1723,6 +1790,8 @@ export type TeamBasic = {
 	tid: number;
 	cid: number;
 	did: number;
+	// International Soccer Zen GM mod (Epic 1): see Team.divisionId
+	divisionId?: number;
 	region: string;
 	name: string;
 	abbrev: string;
@@ -1816,6 +1885,10 @@ export type TeamSeasonWithoutKey = {
 	// Copied over from Team
 	cid: number;
 	did: number;
+	// International Soccer Zen GM mod (Epic 1, additive): copied from Team the
+	// same way cid/did are, so history is preserved even after a club is later
+	// promoted/relegated to a different Division.
+	divisionId?: number;
 	region: string;
 	name: string;
 	abbrev: string;

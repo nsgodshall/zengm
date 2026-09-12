@@ -80,6 +80,7 @@ const processSeasonAttrs = async <
 	const copyFromTeamIfUndefined = [
 		"cid",
 		"did",
+		"divisionId",
 		"region",
 		"name",
 		"abbrev",

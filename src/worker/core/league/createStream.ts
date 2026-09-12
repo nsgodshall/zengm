@@ -888,6 +888,7 @@ const processTeamInfos = async ({
 					// For upgrades, or manually edited league files
 					"cid",
 					"did",
+					"divisionId",
 					"region",
 					"name",
 					"abbrev",

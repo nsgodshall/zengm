@@ -27,3 +27,21 @@ globalThis.fetch = async (url: Parameters<typeof fetch>[0]) => {
 (globalThis as any).window = globalThis;
 (globalThis as any).location = {};
 globalThis.addEventListener = () => {};
+
+// promise-worker-bi (used by worker/util/promiseWorker.ts) coordinates
+// multiple worker instances via the Web Locks API (navigator.locks). Node's
+// built-in `navigator` global doesn't implement it (this isn't a Node
+// version gap we can fix by upgrading — Web Locks is a browser API, not a
+// Node one), so tests never actually run in more than one instance anyway.
+// This is a minimal shim: it just runs the callback immediately without any
+// real locking semantics, which is fine since unit tests aren't exercising
+// cross-worker coordination.
+if (!(globalThis as any).navigator) {
+	(globalThis as any).navigator = {};
+}
+if (!(globalThis as any).navigator.locks) {
+	(globalThis as any).navigator.locks = {
+		request: (name: string, callback: (lock: unknown) => unknown) =>
+			Promise.resolve(callback({ name, mode: "exclusive" })),
+	};
+}

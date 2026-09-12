@@ -9,6 +9,7 @@ import {
 import type { GameAttributesLeague } from "../../../common/types.ts";
 import { gameAttributeHasHistory } from "../../../common/gameAttributeHasHistory.ts";
 import { unwrapGameAttribute } from "../../../common/unwrapGameAttribute.ts";
+import ensureCompetitionStructure from "../competition/ensureCompetitionStructure.ts";
 
 export const ALWAYS_WRAP = [
 	"confs",
@@ -100,6 +101,10 @@ const loadGameAttributes = async () => {
 	if ((g.get("draftType") as any) === "nba") {
 		g.setWithoutSavingToDB("draftType", "nba2019");
 	}
+
+	// International Soccer Zen GM mod (Epic 1): older saves have no competition
+	// structure or divisionIds yet
+	await ensureCompetitionStructure();
 
 	await gameAttributesToUI(g as any);
 };

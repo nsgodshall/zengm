@@ -7,10 +7,17 @@ import { draft, league } from "../index.ts";
 import { idb } from "../../db/index.ts";
 import { PHASE } from "../../../common/constants.ts";
 import { last } from "../../../common/utils.ts";
+import {
+	getDivisionIdForNewClub,
+	getLegacyConfsDivs,
+	isSingleDivision,
+} from "../competition/competitionStructure.ts";
+import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
 
 const addNewTeamToExistingLeague = async (
 	teamInfo: {
 		did: number;
+		divisionId?: number;
 		region: string;
 		name: string;
 		abbrev: string;
@@ -34,7 +41,18 @@ const addNewTeamToExistingLeague = async (
 	}
 
 	const div = divs.find((d) => d.did === teamInfo.did) ?? last(divs);
-	const cid = div.cid;
+	let cid = div.cid;
+	let did = teamInfo.did;
+
+	// International Soccer Zen GM mod (Epic 1): new clubs need a Division too.
+	// In a multi-Division World confs/divs mirror the structure, so cid/did
+	// follow the Division rather than the other way around.
+	const structure = getCompetitionStructure();
+	const divisionId = getDivisionIdForNewClub(structure, teamInfo);
+	if (!isSingleDivision(structure)) {
+		({ cid, did } =
+			getLegacyConfsDivs(structure).confDivByDivisionId.get(divisionId)!);
+	}
 
 	const prevT =
 		teamInfo.tid !== undefined
@@ -61,12 +79,16 @@ const addNewTeamToExistingLeague = async (
 				...prevT,
 				cid,
 				...teamInfo,
+				did,
+				divisionId,
 				disabled: false,
 			}
 		: generate({
 				...teamInfo,
 				tid: g.get("numTeams"),
 				cid,
+				did,
+				divisionId,
 				popRank,
 			});
 	await idb.cache.teams.put(t);

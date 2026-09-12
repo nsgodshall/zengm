@@ -42,7 +42,13 @@ export const gameAttributesKeysGameState: GameAttributeKey[] = [
 	"autoExpand",
 	"tradeProposalsSeed",
 ];
-export const gameAttributesKeysTeams: GameAttributeKey[] = ["confs", "divs"];
+export const gameAttributesKeysTeams: GameAttributeKey[] = [
+	"confs",
+	"divs",
+	"countries",
+	"competitionDivisions",
+	"promotionRelegationLinks",
+];
 export const gameAttributesCache: GameAttributeKey[] = [
 	"numTeams",
 	"numActiveTeams",

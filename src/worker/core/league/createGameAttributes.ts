@@ -19,6 +19,11 @@ import {
 	wrapFromStart,
 } from "../../../common/defaultGameAttributes.ts";
 import { last } from "../../../common/utils.ts";
+import {
+	getLegacyConfsDivs,
+	getNewLeagueCompetition,
+	isSingleDivision,
+} from "../competition/competitionStructure.ts";
 
 const createGameAttributes = async (
 	{
@@ -289,6 +294,45 @@ const createGameAttributes = async (
 
 	if (gameAttributes.numDraftRounds < 0) {
 		throw new Error("numDraftRounds must be a positive number");
+	}
+
+	// International Soccer Zen GM mod (Epic 1): every league gets a competition
+	// structure and every team a Division. A multi-Division World also drives
+	// confs/divs, so standings and scheduling group clubs correctly until they
+	// read divisionId directly. Needs to happen before numGamesDiv/numGamesConf
+	// are checked below, since that looks at divs and each team's did.
+	{
+		const { structure, divisionIdByTid } = getNewLeagueCompetition(
+			{
+				countries: gameAttributes.countries,
+				competitionDivisions: gameAttributes.competitionDivisions,
+				promotionRelegationLinks: gameAttributes.promotionRelegationLinks,
+			},
+			teamInfos,
+		);
+
+		gameAttributes.countries = structure.countries;
+		gameAttributes.competitionDivisions = structure.competitionDivisions;
+		gameAttributes.promotionRelegationLinks =
+			structure.promotionRelegationLinks;
+
+		const legacy = isSingleDivision(structure)
+			? undefined
+			: getLegacyConfsDivs(structure);
+		if (legacy) {
+			gameAttributes.confs = wrapFromStart(legacy.confs);
+			gameAttributes.divs = wrapFromStart(legacy.divs);
+		}
+
+		for (const t of teamInfos) {
+			const divisionId = divisionIdByTid.get(t.tid)!;
+			t.divisionId = divisionId;
+			if (legacy) {
+				const { cid, did } = legacy.confDivByDivisionId.get(divisionId)!;
+				t.cid = cid;
+				t.did = did;
+			}
+		}
 	}
 
 	{

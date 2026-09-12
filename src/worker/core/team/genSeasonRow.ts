@@ -92,6 +92,10 @@ const genSeasonRow = (
 		newSeason.imgURLSmall = t.imgURLSmall;
 	}
 
+	if (t.divisionId !== undefined) {
+		newSeason.divisionId = t.divisionId;
+	}
+
 	// @ts-expect-error
 	if (typeof t.stadiumCapacity === "number") {
 		// @ts-expect-error
