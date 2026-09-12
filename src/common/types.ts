@@ -566,6 +566,12 @@ export type Division = {
 	tier: number;
 	name: string;
 	abbrev?: string;
+	/** Games each club plays in a regular season. Defaults to the league-wide numGames setting. See worldSchedule.ts. */
+	numGames?: number;
+	/** Table points for a win, tie, and loss. Default 3/1/0, see computeDivisionTable. */
+	winPoints?: number;
+	tiePoints?: number;
+	lossPoints?: number;
 };
 
 /**

@@ -2,7 +2,8 @@ import { idb } from "../db/index.ts";
 import { g, helpers } from "../util/index.ts";
 import type { ByConf, UpdateEvents, ViewInput } from "../../common/types.ts";
 import { getTiebreakers, orderTeams } from "../util/orderTeams.ts";
-import { season } from "../core/index.ts";
+import { competition, season } from "../core/index.ts";
+import { orderBy } from "../../common/utils.ts";
 
 export const getMaxPlayoffSeed = async (
 	playoffSeason: number,
@@ -143,6 +144,22 @@ const updateStandings = async (
 				),
 			),
 		};
+
+		// International Soccer Zen GM mod (Epic 2): in a World with more than one
+		// Division, each div is a Division, ranked by its table (points, then
+		// point differential) rather than win percentage and tiebreakers
+		if (!competition.isSingleDivision(competition.getCompetitionStructure())) {
+			const tables = await competition.getDivisionTables(inputs.season);
+			const tableRankByTid = new Map<number, number>();
+			for (const table of Object.values(tables)) {
+				for (const row of table) {
+					tableRankByTid.set(row.tid, row.rank);
+				}
+			}
+			rankingGroups.div = rankingGroups.div.map((group) =>
+				orderBy(group, (t) => tableRankByTid.get(t.tid) ?? Infinity),
+			);
+		}
 
 		for (const type of helpers.keys(rankingGroups)) {
 			for (const group of rankingGroups[type]) {

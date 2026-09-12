@@ -115,6 +115,19 @@ export const validateCompetitionStructure = (
 				`Division ${division.divisionId}: tier must be an integer >= 1, got ${division.tier}`,
 			);
 		}
+		for (const key of [
+			"numGames",
+			"winPoints",
+			"tiePoints",
+			"lossPoints",
+		] as const) {
+			const value = division[key];
+			if (value !== undefined && (!Number.isInteger(value) || value < 0)) {
+				throw new Error(
+					`Division ${division.divisionId}: ${key} must be a non-negative integer, got ${value}`,
+				);
+			}
+		}
 
 		let tiers = tiersByCountryId.get(division.countryId);
 		if (!tiers) {

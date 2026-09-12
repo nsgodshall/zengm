@@ -3218,7 +3218,7 @@ const regenerateSchedule = async (param: unknown, conditions: Conditions) => {
 	const teams = await idb.getCopies.teamsPlus(
 		{
 			attrs: ["tid"],
-			seasonAttrs: ["cid", "did", "abbrev"],
+			seasonAttrs: ["cid", "did", "divisionId", "abbrev"],
 			season: g.get("season"),
 			active: true,
 		},
@@ -4110,6 +4110,7 @@ const updateGameAttributesGodMode = async (
 				seasonAttrs: {
 					cid: t.cid,
 					did: t.did,
+					divisionId: t.divisionId,
 				},
 			})),
 			conditions,

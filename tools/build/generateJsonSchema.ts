@@ -820,6 +820,22 @@ export const generateJsonSchema = (sport: Sport | "test") => {
 									type: "integer",
 									minimum: 1,
 								},
+								numGames: {
+									type: "integer",
+									minimum: 0,
+								},
+								winPoints: {
+									type: "integer",
+									minimum: 0,
+								},
+								tiePoints: {
+									type: "integer",
+									minimum: 0,
+								},
+								lossPoints: {
+									type: "integer",
+									minimum: 0,
+								},
 							},
 							required: ["countryId", "divisionId", "name", "tier"],
 						},

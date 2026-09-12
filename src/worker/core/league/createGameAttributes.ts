@@ -335,7 +335,9 @@ const createGameAttributes = async (
 		}
 	}
 
-	{
+	// A multi-Division World schedules each Division as its own round robin
+	// (see competition/worldSchedule.ts), which ignores numGamesDiv/numGamesConf
+	if (gameAttributes.competitionDivisions!.length === 1) {
 		const info = getInitialNumGamesConfDivSettings(teamInfos, {
 			divs: unwrapGameAttribute(gameAttributes, "divs"),
 			numGames: unwrapGameAttribute(gameAttributes, "numGames"),

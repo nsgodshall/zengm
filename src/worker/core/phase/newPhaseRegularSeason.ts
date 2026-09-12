@@ -142,7 +142,7 @@ const newPhaseRegularSeason = async (
 	const teams = await idb.getCopies.teamsPlus(
 		{
 			attrs: ["tid"],
-			seasonAttrs: ["cid", "did"],
+			seasonAttrs: ["cid", "did", "divisionId"],
 			season: g.get("season"),
 			active: true,
 		},

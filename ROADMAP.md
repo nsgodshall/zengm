@@ -73,12 +73,23 @@ Decisions:
 
 ### Epic 2 — Schedule generation across independent competitions
 
-- Rework `newScheduleGood.ts` to generate a schedule **per Division**, independently — a Division's clubs play a home/away round robin against only their own Division's other clubs (this is simpler than the current conf/div weighting, since soccer leagues don't nest conferences inside a division).
-- Merge all Divisions' fixtures into one World-wide calendar (shared match days/weeks) so every country's Tier 1 plays out concurrently.
-- Handle uneven Division sizes (a 2-country/2-tier pilot could still have different club counts per tier) and byes if a Division has an odd number of clubs.
-- Update standings (`getSchedule.ts`, `getSeasonLeaders.ts`, and friends) to compute one table per Division rather than one global table.
-- Parameterize games-per-opponent/season length off `GameAttributes` (as today) rather than hardcoding basketball's numbers, so the same generator works unchanged if it's ever compiled into a football/hockey/baseball flavor.
-- The existing generator has exactly one sport-specific branch (`isSport("football")`, for football's real-schedule import). Don't add more scattered `isSport` checks to the new Division-based generator — isolate any sport-specific pacing quirks (e.g. hockey back-to-backs) behind a single hook/strategy function so the core per-Division round-robin logic stays sport-agnostic.
+**Status: scheduling and tables done.** Playoffs and the league table page stay with Epics 3 and 6 (see "Still open").
+
+What landed:
+
+- **Per-Division round robins** (`competition/worldSchedule.ts`): `getRoundRobinRounds` builds one round robin with the circle method. Every pair meets once, each club plays at most once a round (one club rests each round when a Division has an odd number), and home/away is balanced to within one game (exactly even with an odd number of clubs). `getDivisionRounds` repeats round robins with home and away swapped each time, so a season of 2 × (clubs − 1) games is a soccer double round robin. Leftover games come from the start of another round robin: exact with an even number of clubs, but with an odd number the clubs resting in those extra rounds end up a game short.
+- **One World calendar** (`mergeRoundsIntoDays`): the Division with the most rounds plays every day, and shorter Divisions are spread evenly over the same days, so every Division starts on the first day and finishes on the last.
+- **Season length per Division:** optional `Division.numGames`, falling back to the league-wide `numGames`. There's no separate games-per-opponent setting, since a double round robin is just `numGames` = 2 × (clubs − 1). Divisions also get optional `winPoints`/`tiePoints`/`lossPoints` for their table.
+- **Wired in** (`season/newSchedule.ts`): a World with more than one Division uses `newWorldSchedule`, with the trade deadline and All-Star Game placed between days. Single-Division leagues keep the upstream generator untouched, including football's real schedules. The schedule callers pass `divisionId`, and new-league setup skips the `numGamesDiv`/`numGamesConf` check, which doesn't apply.
+- **Tables** (`competition/divisionTables.ts`): `getDivisionTables(season)` builds one table per Division from each club's regular season record, with points for/against (every sport's team stats have `pts`/`oppPts`) standing in for goals. In a multi-Division World, the standings page ranks each Division by its table.
+- **Sport-specific pacing:** `newWorldSchedule` takes an optional `pacing` hook applied to the finished calendar, so the generator itself has no `isSport` checks. No sport needs a hook yet.
+
+Still open:
+
+- Playoffs in a multi-Division World still follow ZenGM's conference-based playoff settings. Epic 3 decides per-Division playoffs, or none.
+- The standings page puts each Division in table order but still shows ZenGM's columns (W/L/%/GB), not points. Epic 6's league table page shows the table itself.
+- A Division without its own `numGames` inherits the league-wide setting, which is 82 for basketball. Epic 7's pilot content should set each Division's season length.
+- The calendar only guarantees a club never plays twice in a day. Nothing yet prevents long runs of home or away games, or the same two clubs meeting back to back where one round robin ends and the next begins.
 
 ### Epic 3 — Season flow & promotion/relegation engine
 

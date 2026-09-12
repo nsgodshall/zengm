@@ -8,9 +8,16 @@ import {
 	validateClubDivisions,
 	validateCompetitionStructure,
 } from "./competitionStructure.ts";
+import { buildDivisionTables, getDivisionTables } from "./divisionTables.ts";
 import ensureCompetitionStructure, {
 	getCompetitionStructure,
 } from "./ensureCompetitionStructure.ts";
+import {
+	getDivisionRounds,
+	getRoundRobinRounds,
+	mergeRoundsIntoDays,
+	newWorldSchedule,
+} from "./worldSchedule.ts";
 import resolvePromotionRelegation, {
 	flattenPromotionRelegationMoves,
 	validatePromotionRelegationLink,
@@ -24,15 +31,21 @@ import resolvePromotionRelegation, {
 // will call once the scheduler (Epic 2) and season flow (Epic 3) produce real
 // Division tables to feed them.
 export default {
+	buildDivisionTables,
 	computeDivisionTable,
 	ensureCompetitionStructure,
 	flattenPromotionRelegationMoves,
 	getCompetitionStructure,
 	getDefaultCompetitionStructure,
 	getDivisionIdForNewClub,
+	getDivisionRounds,
+	getDivisionTables,
 	getLegacyConfsDivs,
 	getNewLeagueCompetition,
+	getRoundRobinRounds,
 	isSingleDivision,
+	mergeRoundsIntoDays,
+	newWorldSchedule,
 	resolvePromotionRelegation,
 	validateClubDivisions,
 	validateCompetitionStructure,

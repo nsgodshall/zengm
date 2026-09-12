@@ -384,3 +384,37 @@ describe("getDivisionIdForNewClub", () => {
 		expect(getDivisionIdForNewClub(pilot, { did: 99 })).toBe(2);
 	});
 });
+
+describe("validateCompetitionStructure: Division settings", () => {
+	test("accepts a season length and table points", () => {
+		expect(() =>
+			validateCompetitionStructure({
+				...pilot,
+				competitionDivisions: pilot.competitionDivisions.map((division) => ({
+					...division,
+					numGames: 38,
+					winPoints: 3,
+					tiePoints: 1,
+					lossPoints: 0,
+				})) as CompetitionStructure["competitionDivisions"],
+			}),
+		).not.toThrow();
+	});
+
+	test.each(["numGames", "winPoints", "tiePoints", "lossPoints"] as const)(
+		"rejects a negative or fractional %s",
+		(key) => {
+			for (const value of [-1, 2.5]) {
+				expect(() =>
+					validateCompetitionStructure({
+						...pilot,
+						competitionDivisions: [
+							{ ...pilot.competitionDivisions[0], [key]: value },
+							...pilot.competitionDivisions.slice(1),
+						],
+					}),
+				).toThrow(`Division 1: ${key} must be a non-negative integer`);
+			}
+		},
+	);
+});
