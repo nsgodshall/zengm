@@ -3250,6 +3250,11 @@ const getUserAcademyPlayer = async (pid: number) => {
 	return p;
 };
 
+// International Soccer Zen GM mod (Epic 6): the transfer market page
+const makeTransferOffer = (params: { pid: number; fee: number }) => {
+	return competition.makeTransferOffer(params);
+};
+
 const promoteAcademyPlayer = async ({ pid }: { pid: number }) => {
 	const p = await getUserAcademyPlayer(pid);
 	if (typeof p === "string") {
@@ -5431,6 +5436,7 @@ export default {
 		realtimeUpdate,
 		regenerateDraftClass,
 		regenerateSchedule,
+		makeTransferOffer,
 		promoteAcademyPlayer,
 		releaseAcademyPlayer,
 		releasePlayer,

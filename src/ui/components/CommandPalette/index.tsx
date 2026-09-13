@@ -128,8 +128,8 @@ const getResultsGroupedDefault = ({
 		// International Soccer Zen GM mod (Epic 6)
 		if (
 			menuItem.type === "link" &&
-			menuItem.world &&
-			!isWorld(local.getState().competitionDivisions)
+			menuItem.world !== undefined &&
+			menuItem.world !== isWorld(local.getState().competitionDivisions)
 		) {
 			return false;
 		}

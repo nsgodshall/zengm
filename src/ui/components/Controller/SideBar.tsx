@@ -159,7 +159,10 @@ const MenuItem = ({
 		}
 
 		// International Soccer Zen GM mod (Epic 6)
-		if (menuItem.world && !isWorld(competitionDivisions)) {
+		if (
+			menuItem.world !== undefined &&
+			menuItem.world !== isWorld(competitionDivisions)
+		) {
 			return null;
 		}
 

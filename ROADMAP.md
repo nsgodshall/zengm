@@ -112,7 +112,7 @@ Still open:
 
 ### Epic 4 — Transfer market & wages (replacing the draft and salary cap)
 
-**Status: stages A (the AI transfer market) and B (wage budgets and market wages) done.** Stages C and D are still to do.
+**Status: stages A (the AI transfer market) and B (wage budgets and market wages) done, and the buying half of stage C.** Selling (AI offers for the user's players) and stage D are still to do.
 
 Approach: ZenGM already has settings for no draft (`draftType: "freeAgents"`, which turns each draft class into free agents) and no salary cap (`salaryCapType: "none"`). A World turns those on when it's created rather than deleting the draft and cap code, which keeps upstream merges clean (see the Epic 0 merge rule).
 
@@ -130,9 +130,16 @@ Stage B, landed. Decided: the wage budget is a limit set by the club's board, wi
 - **Board limit:** in a World, a club's wage budget stands in for the salary cap. Signing a free agent above the minimum contract is refused if it would take payroll over budget, both for the user (with a message from the board) and for AI clubs. Minimum contracts and re-signing a club's own players are still allowed, as with a soft cap. A trade can't increase a club's payroll past its budget.
 - **Market wages** (`competition/wageBudgets.ts`): there's no maximum contract, only the minimum. The ceiling on what a player can ask for or be offered is the most any club could ever afford (twice the salary cap), and in the free agent auction each club bids with what's left of its own wage budget. `maxContract` still sets the scale of ZenGM's contract formula, so wages don't inflate across the board. The auction only runs in basketball; the other sports still price contracts with that formula, capped at `maxContract`.
 
+Stage C, buying, landed. Decided: the user offers a fee against the club's asking price, the player keeps his contract, AI clubs will send the user offers for their players, and transfers replace ZenGM's trades in a World.
+
+- **Asking price** (`competition/transferMarket.ts`): the player's fee, raised by 10% of it for each point of value his club would lose beyond the 5 it can do without (the same threshold AI clubs sell at), up to 3 times the fee.
+- **Offers** (`competition/userTransfers.ts`): an offer at or above the asking price is accepted and paid, one of at least 70% gets a counter-offer at the asking price, and the rest are turned down. A club only hears a below-price offer for each player once a day, but the asking price can always be paid. The same limits as AI transfers apply: a free roster spot, the seller above the minimum roster, wages within the board's budget, and debt down to half the wage budget.
+- **No trades in a World:** trade proposals are refused (except in God Mode), and the Trade, Trading Block, and Trade Proposals menu links are hidden.
+- **Tested:** unit tests for the asking price, offer responses, the debt limit, and contract seasons left. The World test buys a player after a lowball offer is turned down and a second one the same day is refused, and checks the fee moves between the clubs.
+
 Still to do:
 
-- **Stage C — the user in the market:** listing players, bidding for other clubs' players, and accepting or rejecting offers, with the screens in Epic 6. Until then, the user's club only moves players through ZenGM's trade screen (inside a window) or when auto play runs it.
+- **Stage C, selling:** AI clubs send offers for the user's players during windows, with a notification, and the user accepts or rejects them before they expire. A transfer list makes offers for a player more likely.
 - **Stage D — loans:** sending a player to another club for a season.
 - **Tuning:** the AI's thresholds (the buyer must improve; the seller can't lose more than 5 value) and the fee formula are first guesses. In the multi-season World test (24 clubs, 10-game seasons) they gave about 10 transfers a season, averaging about $24M, with the biggest at $122M against a $150M salary cap. Almost all happened during free agency, the only offseason phase with days to simulate. The winter window only lasts a day or two in a season that short, and saw 1 transfer in 3 seasons. Check volume and fees again with real season lengths. Clubs also start with only $10M cash, which limits early spending.
 
@@ -168,7 +175,7 @@ Still open:
 
 ### Epic 6 — UI/UX rework
 
-**Status: league tables and the academy screen done.** Next, in the agreed order: the transfer market (which needs Epic 4 stage C first), a World calendar and results, then club and country identity.
+**Status: league tables, the academy screen, and buying on the transfer market done.** Next, in the agreed order: selling on the transfer market (with Epic 4 stage C), a World calendar and results, then club and country identity.
 
 Decided: soccer-style tables, every Division on one page grouped by Country with a Country filter, and the user's Division first. On the academy screen, the user decides on their graduates during re-signing, and promoting onto a full roster is allowed, like a draft pick.
 
@@ -178,7 +185,8 @@ What landed:
 - **Dashboard:** the mini standings show the user's Division table, with its zones.
 - **Academy screen** (`ui/views/Academy.tsx`, `worker/views/academy.ts`, under Team → Academy): any club's academy players with position, age, ratings (fuzzed by the user's scouting, like draft prospects), and the summer each has to leave, plus how the academy ranks for strength. On the user's own club, Promote moves a player to the first team on the academy contract, and Release makes him a free agent. Promoting onto a full roster is allowed; the user has to release someone before the next game, as with a draft pick.
 - **Graduates:** the summer academy step leaves the user's graduates in the academy and sends a notification. Re-signing no longer turns academy players into free agents or deletes them, so the user decides during re-signing, and graduates still in the academy when free agency starts become free agents (`releaseUndecidedGraduates`). Auto play and spectator mode still run the user's academy like the AI's.
-- **World-only menu items:** menu links can be marked `world`, and the top menu, sidebar, and command palette hide them outside a World. `competitionDivisions` is now synced to the UI for this.
+- **World-only menu items:** menu links can be marked `world`, and the top menu, sidebar, and command palette hide them outside a World. `competitionDivisions` is now synced to the UI for this. Links marked `world: false` are hidden inside a World instead.
+- **Transfer Market** (`ui/views/TransferMarket.tsx`, `worker/views/transferMarket.ts`, under Players, in place of Trade): every player at another club with his club, Division, contract, and fee at market value. Make offer asks for a fee in millions and shows the club's answer, with a button to pay the asking price after a counter-offer. The page also shows whether a window is open, and the user's cash, payroll, wage budget, and roster spots.
 - **Tested:** unit tests for zones, form, and Division order. The multi-season World test checks the tables against the season's results, the number of places in each zone against the links, and that the user's Division comes first.
 
 Still open for league tables:

@@ -114,6 +114,7 @@ export { default as TradeProposals } from "./TradeProposals.tsx";
 export { default as TradeSummary } from "./TradeSummary/index.tsx";
 export { default as TradingBlock } from "./TradingBlock/index.tsx";
 export { default as Transactions } from "./Transactions.tsx";
+export { default as TransferMarket } from "./TransferMarket.tsx";
 export { default as UpcomingFreeAgents } from "./UpcomingFreeAgents.tsx";
 export { default as Upgrade65 } from "./Upgrade65.tsx";
 export { default as WatchList } from "./WatchList.tsx";

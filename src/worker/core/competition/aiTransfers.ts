@@ -10,23 +10,18 @@ import { ValueChangeCalculator } from "../team/ValueChangeCalculator.ts";
 import isUntradable from "../trade/isUntradable.ts";
 import teamLink from "./teamLink.ts";
 import {
+	canAffordFee,
+	getContractSeasonsLeft,
 	getSeasonProgress,
 	getTransferFee,
 	getTransferWindow,
+	SELLER_MAX_VALUE_LOSS,
 } from "./transferMarket.ts";
 import { getWageBudgets } from "./wageBudgets.ts";
 
 // The buying club's value change (same scale as AI trades) has to be above
 // this, so it only buys players who make it better
 const BUYER_MIN_VALUE_CHANGE = 0;
-
-// The selling club's value change can't be below this, so it only sells
-// players it can do without. The fee isn't part of this: AI clubs don't sell
-// stars just because the price is right.
-const SELLER_MAX_VALUE_LOSS = -5;
-
-// A club can spend into debt, down to this fraction of its wage budget
-const MAX_DEBT_FRACTION_OF_WAGE_BUDGET = 0.5;
 
 /**
  * The transfer window open right now in the current league, if any (see
@@ -73,7 +68,11 @@ const getAITids = async () => {
 		.map((t) => t.tid);
 };
 
-const processTransfer = async ({
+/**
+ * Moves a player to the buying club, which pays the fee (thousands of dollars)
+ * to the selling club. He keeps his contract.
+ */
+export const processTransfer = async ({
 	p,
 	buyerTid,
 	sellerTid,
@@ -134,8 +133,13 @@ const processTransfer = async ({
 	});
 	await idb.cache.players.put(p);
 
-	await team.rosterAutoSort(buyerTid);
-	await team.rosterAutoSort(sellerTid);
+	// Like ZenGM trades, the user's rosters are only sorted if they asked for it
+	for (const tid of [buyerTid, sellerTid]) {
+		const t = await idb.cache.teams.get(tid);
+		if (!g.get("userTids").includes(tid) || t?.keepRosterSorted) {
+			await team.rosterAutoSort(tid);
+		}
+	}
 };
 
 /**
@@ -182,8 +186,11 @@ const attempt = async (
 	const sellerTid = p.tid;
 
 	const currentSeason = g.get("season");
-	const seasonsLeft =
-		p.contract.exp - currentSeason + (g.get("phase") <= PHASE.PLAYOFFS ? 1 : 0);
+	const seasonsLeft = getContractSeasonsLeft({
+		exp: p.contract.exp,
+		season: currentSeason,
+		phase: g.get("phase"),
+	});
 	if (seasonsLeft <= 0) {
 		return;
 	}
@@ -207,7 +214,7 @@ const attempt = async (
 		return;
 	}
 
-	if (buyerSeason.cash - fee < -MAX_DEBT_FRACTION_OF_WAGE_BUDGET * wageBudget) {
+	if (!canAffordFee({ cash: buyerSeason.cash, fee, wageBudget })) {
 		return;
 	}
 

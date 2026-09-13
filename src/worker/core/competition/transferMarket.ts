@@ -161,6 +161,99 @@ export const MAX_WAGE_BUDGET_CAP_MULTIPLE = 2;
  * minimum contract is always allowed, and so is re-signing one of the club's
  * own players. Like the salary cap checks, amounts within $1k are close enough.
  */
+/**
+ * Seasons left on a player's contract, counting the current one while it's
+ * still being played
+ */
+export const getContractSeasonsLeft = ({
+	exp,
+	season,
+	phase,
+}: {
+	exp: number;
+	season: number;
+	phase: Phase;
+}) => exp - season + (phase <= PHASE.PLAYOFFS ? 1 : 0);
+
+// A club can spend into debt, down to this fraction of its wage budget
+export const MAX_DEBT_FRACTION_OF_WAGE_BUDGET = 0.5;
+
+/**
+ * Whether a club can pay a transfer fee, going into debt down to
+ * MAX_DEBT_FRACTION_OF_WAGE_BUDGET of its wage budget. Thousands of dollars.
+ */
+export const canAffordFee = ({
+	cash,
+	fee,
+	wageBudget,
+}: {
+	cash: number;
+	fee: number;
+	wageBudget: number;
+}) => cash - fee >= -MAX_DEBT_FRACTION_OF_WAGE_BUDGET * wageBudget;
+
+// A club can do without a player if losing him costs it no more than this much
+// value (the same scale as AI trades). It sells a player like that at his plain
+// fee, and AI clubs only sell each other players like that.
+export const SELLER_MAX_VALUE_LOSS = -5;
+
+// For each point of value a club would lose beyond that, its asking price goes
+// up by this fraction of the fee, to at most MAX_ASKING_PRICE_MULTIPLE times it
+export const ASKING_PRICE_INCREASE_PER_VALUE = 0.1;
+export const MAX_ASKING_PRICE_MULTIPLE = 3;
+
+/**
+ * What a club wants for one of its players, in thousands of dollars: his fee
+ * (see getTransferFee), raised the more the club would miss him.
+ * `sellerValueChange` is the change in the club's value without him, so a loss
+ * is negative.
+ */
+export const getAskingPrice = ({
+	fee,
+	sellerValueChange,
+}: {
+	fee: number;
+	sellerValueChange: number;
+}) => {
+	const valueLostBeyondExpendable = Math.max(
+		0,
+		SELLER_MAX_VALUE_LOSS - sellerValueChange,
+	);
+	const multiple = Math.min(
+		MAX_ASKING_PRICE_MULTIPLE,
+		1 + ASKING_PRICE_INCREASE_PER_VALUE * valueLostBeyondExpendable,
+	);
+
+	// Round to the nearest $50k
+	return Math.round((fee * multiple) / 50) * 50;
+};
+
+// An offer below this fraction of the asking price is rejected without a
+// counter-offer
+export const MIN_COUNTERED_OFFER_FRACTION = 0.7;
+
+export type TransferOfferResponse = "accept" | "counter" | "reject";
+
+/**
+ * How a selling club answers an offer: it accepts its asking price or more,
+ * counters with its asking price when the offer is close, and rejects the rest
+ */
+export const respondToTransferOffer = ({
+	offer,
+	askingPrice,
+}: {
+	offer: number;
+	askingPrice: number;
+}): TransferOfferResponse => {
+	if (offer >= askingPrice) {
+		return "accept";
+	}
+	if (offer >= MIN_COUNTERED_OFFER_FRACTION * askingPrice) {
+		return "counter";
+	}
+	return "reject";
+};
+
 export const canSignWithinWageBudget = ({
 	payroll,
 	amount,

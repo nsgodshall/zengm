@@ -8,7 +8,7 @@ import {
 	getAcademyAges,
 	getAcademyIntakeSize,
 } from "../worker/core/competition/youthAcademy.ts";
-import { competition, league } from "../worker/core/index.ts";
+import { competition, league, player } from "../worker/core/index.ts";
 import createStreamFromLeagueObject from "../worker/core/league/create/createStreamFromLeagueObject.ts";
 import { idb } from "../worker/db/index.ts";
 import { g, helpers, local, lock } from "../worker/util/index.ts";
@@ -564,5 +564,85 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			assert.strictEqual(p4.tid, PLAYER.UNDRAFTED);
 			assert.strictEqual(p4.academyTid, userTid);
 		}
+	});
+
+	// Changes the league, so it goes last
+	test("the user buys a player by offering his club's asking price, after a lowball offer is turned down", async () => {
+		const season = g.get("season");
+		const userTid = g.get("userTid");
+
+		// Plenty of cash and wage budget and a small roster, so only the offer
+		// decides
+		const userSeason = (await idb.cache.teamSeasons.indexGet(
+			"teamSeasonsBySeasonTid",
+			[season, userTid],
+		))!;
+		userSeason.cash = 1e9;
+		await idb.cache.teamSeasons.put(userSeason);
+		for (const p of (
+			await idb.cache.players.indexGetAll("playersByTid", userTid)
+		).slice(5)) {
+			await player.addToFreeAgents(p, {});
+			await idb.cache.players.put(p);
+		}
+		for (const releasedPlayer of await idb.cache.releasedPlayers.indexGetAll(
+			"releasedPlayersByTid",
+			userTid,
+		)) {
+			await idb.cache.releasedPlayers.delete(releasedPlayer.rid);
+		}
+
+		const players = await idb.cache.players.indexGetAll("playersByTid", [
+			0,
+			Infinity,
+		]);
+		const rosterSizes = new Map<number, number>();
+		for (const p of players) {
+			rosterSizes.set(p.tid, (rosterSizes.get(p.tid) ?? 0) + 1);
+		}
+		const target = players
+			.filter(
+				(p) =>
+					p.tid !== userTid &&
+					p.contract.exp >= season &&
+					p.gamesUntilTradable === 0 &&
+					rosterSizes.get(p.tid)! > g.get("minRosterSize"),
+			)
+			.sort((a, b) => a.contract.amount - b.contract.amount)[0];
+		assert(target, "No player to buy");
+		const sellerTid = target.tid;
+
+		const lowball = await competition.makeTransferOffer({
+			pid: target.pid,
+			fee: 1,
+		});
+		assert.strictEqual(lowball.type, "reject", lowball.message);
+
+		const again = await competition.makeTransferOffer({
+			pid: target.pid,
+			fee: 1,
+		});
+		assert.strictEqual(again.type, "error", again.message);
+
+		// More than any club asks
+		const fee = 1e7;
+		const sellerCash = (await idb.cache.teamSeasons.indexGet(
+			"teamSeasonsBySeasonTid",
+			[season, sellerTid],
+		))!.cash;
+		const accepted = await competition.makeTransferOffer({
+			pid: target.pid,
+			fee,
+		});
+		assert.strictEqual(accepted.type, "accept", accepted.message);
+
+		assert.strictEqual((await idb.cache.players.get(target.pid))!.tid, userTid);
+		const cash = async (tid: number) =>
+			(await idb.cache.teamSeasons.indexGet("teamSeasonsBySeasonTid", [
+				season,
+				tid,
+			]))!.cash;
+		assert.strictEqual(await cash(userTid), 1e9 - fee);
+		assert.strictEqual(await cash(sellerTid), sellerCash + fee);
 	});
 });

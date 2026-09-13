@@ -61,6 +61,7 @@ export const routeInfos = {
 	// International Soccer Zen GM mod (Epic 6)
 	"/l/:lid/academy": "academy",
 	"/l/:lid/academy/:abbrev": "academy",
+	"/l/:lid/transfer_market": "transferMarket",
 	"/l/:lid/game_log": "gameLog",
 	"/l/:lid/game_log/:abbrev": "gameLog",
 	"/l/:lid/game_log/:abbrev/:season": "gameLog",

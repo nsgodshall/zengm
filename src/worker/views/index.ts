@@ -106,5 +106,6 @@ export { default as tradeSummary } from "./tradeSummary.ts";
 export { default as tradingBlock } from "./tradingBlock.ts";
 export { default as tragicDeaths } from "./tragicDeaths.ts";
 export { default as transactions } from "./transactions.ts";
+export { default as transferMarket } from "./transferMarket.ts";
 export { default as upcomingFreeAgents } from "./upcomingFreeAgents.ts";
 export { default as watchList } from "./watchList.ts";

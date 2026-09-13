@@ -8,6 +8,7 @@ import doAcademySummer, {
 } from "./academies.ts";
 import computeDivisionTable from "./computeDivisionTable.ts";
 import getWorldTables from "./worldTables.ts";
+import { makeTransferOffer } from "./userTransfers.ts";
 import {
 	getDefaultCompetitionStructure,
 	getDivisionIdForNewClub,
@@ -57,6 +58,7 @@ export default {
 	doAcademySummer,
 	doEndOfSeason,
 	getWorldTables,
+	makeTransferOffer,
 	ensureAcademies,
 	getAcademyClubs,
 	getAcademyPlayers,

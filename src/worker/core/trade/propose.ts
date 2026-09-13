@@ -8,7 +8,6 @@ import get from "./get.ts";
 import { idb } from "../../db/index.ts";
 import { hashSavedTrade } from "../../../common/hashSavedTrade.ts";
 import { ValueChangeCalculator } from "../team/ValueChangeCalculator.ts";
-import { getCurrentTransferWindow } from "../competition/aiTransfers.ts";
 import { isSingleDivision } from "../competition/competitionStructure.ts";
 import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
 
@@ -22,15 +21,13 @@ import { getCompetitionStructure } from "../competition/ensureCompetitionStructu
  * @return {Promise.<boolean, string>} Resolves to an array. The first argument is a boolean for whether the trade was accepted or not. The second argument is a string containing a message to be dispalyed to the user.
  */
 const propose = async (forceTrade: boolean = false) => {
-	// International Soccer Zen GM mod (Epic 4): in a World, trades are only
-	// allowed while a transfer window is open
-	if (
-		!isSingleDivision(getCompetitionStructure()) &&
-		!(await getCurrentTransferWindow())
-	) {
+	// International Soccer Zen GM mod (Epic 6): in a World, players move by
+	// transfer instead of trade
+	if (!isSingleDivision(getCompetitionStructure()) && !forceTrade) {
 		return {
 			accepted: false as const,
-			message: "Error! The transfer window is closed.",
+			message:
+				"Error! In a World, players move by transfer. Make an offer on the Transfer Market instead.",
 		};
 	}
 

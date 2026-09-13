@@ -1012,9 +1012,9 @@ export type Message = {
 
 export type MenuItemLink = {
 	type: "link";
-	// International Soccer Zen GM mod (Epic 6): only shown in a World, a league
-	// with more than one Division
-	world?: true;
+	// International Soccer Zen GM mod (Epic 6): true to only show in a World (a
+	// league with more than one Division), false to only show outside one
+	world?: boolean;
 	active?: (pageID?: string, pathname?: string) => boolean;
 	league?: true;
 	godMode?: true;
