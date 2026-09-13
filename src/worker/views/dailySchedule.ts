@@ -1,4 +1,4 @@
-import { season } from "../core/index.ts";
+import { competition, season } from "../core/index.ts";
 import { idb } from "../db/index.ts";
 import { g } from "../util/index.ts";
 import type { UpdateEvents, ViewInput } from "../../common/types.ts";
@@ -221,6 +221,9 @@ const updateDailySchedule = async (
 
 		return {
 			...info,
+			// International Soccer Zen GM mod (Epic 6): in a World, games are grouped
+			// by Division
+			worldDivisions: await competition.getScheduleDivisions(inputs.season),
 			elam: g.get("elam"),
 			elamASG: g.get("elamASG"),
 			season: inputs.season,

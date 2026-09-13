@@ -2,7 +2,12 @@ import "fake-indexeddb/auto";
 import { deleteDB } from "@dumbmatter/idb";
 import { afterAll, assert, beforeAll, describe, test } from "vitest";
 import { LEAGUE_DATABASE_VERSION, PHASE, PLAYER } from "../common/constants.ts";
-import type { EventBBGM, HeadToHead, Player } from "../common/types.ts";
+import type {
+	EventBBGM,
+	GameAttributesLeague,
+	HeadToHead,
+	Player,
+} from "../common/types.ts";
 import type { CompetitionStructure } from "../worker/core/competition/competitionStructure.ts";
 import {
 	getAcademyAges,
@@ -507,6 +512,37 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 				count("promotionPlayoff"),
 				lowerLink?.numPromotionPlayoffTeams ?? 0,
 			);
+		}
+	});
+
+	test("promotion playoff games are recorded and shown as brackets", async () => {
+		const results = (g as unknown as Partial<GameAttributesLeague>)
+			.promotionPlayoffResults;
+		assert(results, "No promotion playoff results");
+
+		for (const season of completedSeasons) {
+			// Southland's playoff has 4 clubs for 1 spot: 2 semifinals and a final
+			const games = results.filter((game) => game.season === season);
+			assert.strictEqual(games.length, 3, `${season}`);
+			for (const game of games) {
+				assert.strictEqual(game.linkId, 2);
+				assert([game.homeTid, game.awayTid].includes(game.winnerTid));
+			}
+
+			const brackets = await competition.getPromotionPlayoffBrackets(season);
+			assert(brackets);
+			assert.strictEqual(brackets.length, 1, `${season}`);
+			const bracket = brackets[0]!;
+			assert.strictEqual(bracket.participants.length, 4);
+			assert.deepStrictEqual(
+				bracket.rounds.map((round) => round.length),
+				[2, 1],
+				`${season}`,
+			);
+
+			// The final's winner went up
+			const after = await getDivisionIdByTid(season + 1);
+			assert.strictEqual(after.get(bracket.rounds[1]![0]!.winnerTid), 3);
 		}
 	});
 

@@ -863,6 +863,32 @@ export const generateJsonSchema = (sport: Sport | "test") => {
 							required: ["countryId", "name"],
 						},
 					},
+					promotionPlayoffResults: {
+						type: "array",
+						items: {
+							type: "object",
+							properties: {
+								season: { type: "integer" },
+								linkId: { type: "integer" },
+								round: { type: "integer", minimum: 0 },
+								homeTid: { type: "integer" },
+								awayTid: { type: "integer" },
+								homePts: { type: "number" },
+								awayPts: { type: "number" },
+								winnerTid: { type: "integer" },
+							},
+							required: [
+								"season",
+								"linkId",
+								"round",
+								"homeTid",
+								"awayTid",
+								"homePts",
+								"awayPts",
+								"winnerTid",
+							],
+						},
+					},
 					promotionRelegationLinks: {
 						type: "array",
 						items: {

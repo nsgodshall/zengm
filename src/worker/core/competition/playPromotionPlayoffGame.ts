@@ -6,11 +6,12 @@ import { g } from "../../util/index.ts";
 import loadTeams from "../game/loadTeams.ts";
 
 /**
- * Simulate one promotion playoff game and return the winner's tid.
+ * Simulate one promotion playoff game and return the winner's tid and the
+ * score.
  *
- * Nothing is saved - no box score, stats, or injuries - since the season is
- * over and only who goes up matters. The home side is the better seed, and if
- * the game ends tied, the better seed goes through.
+ * No box score, stats, or injuries are saved, since the season is over and
+ * only who goes up matters (the caller keeps the score). The home side is the
+ * better seed, and if the game ends tied, the better seed goes through.
  */
 const playPromotionPlayoffGame = async (
 	homeTid: number,
@@ -59,7 +60,11 @@ const playPromotionPlayoffGame = async (
 
 	const winner = getWinner([result.team[0].stat, result.team[1].stat]);
 
-	return winner === 1 ? awayTid : homeTid;
+	return {
+		winnerTid: winner === 1 ? awayTid : homeTid,
+		homePts: result.team[0].stat.pts as number,
+		awayPts: result.team[1].stat.pts as number,
+	};
 };
 
 export default playPromotionPlayoffGame;

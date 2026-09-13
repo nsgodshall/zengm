@@ -18,12 +18,17 @@ export type EndOfSeasonPlan = {
 /**
  * Work out how a World's season ends from its final Division tables: each
  * Division's champion, the winners of any promotion playoffs (each game played
- * with `playGame`), and every club moving up or down for next season.
+ * with `playGame`, which is told the link and round and returns the winner's
+ * tid), and every club moving up or down for next season.
  */
 const planEndOfSeason = async (
 	structure: CompetitionStructure,
 	tables: Record<number, DivisionTableRow[]>,
-	playGame: (homeTid: number, awayTid: number) => Promise<number>,
+	playGame: (
+		homeTid: number,
+		awayTid: number,
+		game: { linkId: number; round: number },
+	) => Promise<number>,
 ): Promise<EndOfSeasonPlan> => {
 	const champions: EndOfSeasonPlan["champions"] = [];
 	for (const division of structure.competitionDivisions) {
@@ -44,7 +49,8 @@ const planEndOfSeason = async (
 			playoffWinnersByLinkId[result.linkId] = await runPromotionPlayoff(
 				result.promotionPlayoffParticipants,
 				result.numPromotionPlayoffSpots,
-				playGame,
+				(homeTid, awayTid, round) =>
+					playGame(homeTid, awayTid, { linkId: result.linkId, round }),
 			);
 		}
 	}

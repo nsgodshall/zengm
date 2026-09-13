@@ -1,6 +1,10 @@
 import { idb } from "../../db/index.ts";
 import { g, helpers, logEvent } from "../../util/index.ts";
-import type { Conditions } from "../../../common/types.ts";
+import type {
+	Conditions,
+	GameAttributesLeague,
+} from "../../../common/types.ts";
+import { league } from "../index.ts";
 import {
 	type CompetitionStructure,
 	getLegacyConfsDivs,
@@ -114,6 +118,62 @@ const applyMoves = async (
 	}
 };
 
+type PromotionPlayoffGames = NonNullable<
+	GameAttributesLeague["promotionPlayoffResults"]
+>;
+
+// A news item for each promotion playoff game
+const reportPromotionPlayoffGames = (
+	structure: CompetitionStructure,
+	games: PromotionPlayoffGames,
+	conditions: Conditions,
+) => {
+	for (const game of games) {
+		const link = structure.promotionRelegationLinks.find(
+			(link) => link.id === game.linkId,
+		);
+		const division = structure.competitionDivisions.find(
+			(division) => division.divisionId === link?.lowerDivisionId,
+		);
+
+		const homeWon = game.winnerTid === game.homeTid;
+		const loserTid = homeWon ? game.awayTid : game.homeTid;
+		const winnerPts = homeWon ? game.homePts : game.awayPts;
+		const loserPts = homeWon ? game.awayPts : game.homePts;
+
+		const lastRound = Math.max(
+			...games
+				.filter((other) => other.linkId === game.linkId)
+				.map((other) => other.round),
+		);
+		const numLastRoundGames = games.filter(
+			(other) => other.linkId === game.linkId && other.round === lastRound,
+		).length;
+		const roundName =
+			game.round < lastRound
+				? `round ${game.round + 1}`
+				: numLastRoundGames === 1
+					? "the final"
+					: "the last round";
+
+		logEvent(
+			{
+				type: "playoffs",
+				text: `The ${teamLink(game.winnerTid)} beat the ${teamLink(
+					loserTid,
+				)} ${winnerPts}-${loserPts}${
+					winnerPts === loserPts ? ", going through as the higher seed," : ""
+				} in ${roundName} of the ${division?.name} promotion playoff.`,
+				showNotification: false,
+				hideInLiveGame: true,
+				tids: [game.winnerTid, loserTid],
+				score: 10,
+			},
+			conditions,
+		);
+	}
+};
+
 /**
  * International Soccer Zen GM mod (Epic 3): end the season in a World with
  * more than one Division. Crowns each Division's champion from its table,
@@ -129,10 +189,46 @@ const doEndOfSeason = async (conditions: Conditions) => {
 		return false;
 	}
 
-	const tables = await getDivisionTables(g.get("season"));
-	const plan = await planEndOfSeason(structure, tables, (homeTid, awayTid) =>
-		playPromotionPlayoffGame(homeTid, awayTid, conditions),
+	const season = g.get("season");
+	const tables = await getDivisionTables(season);
+
+	const games: PromotionPlayoffGames = [];
+	const plan = await planEndOfSeason(
+		structure,
+		tables,
+		async (homeTid, awayTid, { linkId, round }) => {
+			const { winnerTid, homePts, awayPts } = await playPromotionPlayoffGame(
+				homeTid,
+				awayTid,
+				conditions,
+			);
+			games.push({
+				season,
+				linkId,
+				round,
+				homeTid,
+				awayTid,
+				homePts,
+				awayPts,
+				winnerTid,
+			});
+			return winnerTid;
+		},
 	);
+
+	if (games.length > 0) {
+		reportPromotionPlayoffGames(structure, games, conditions);
+
+		const previous =
+			(g as unknown as Partial<GameAttributesLeague>).promotionPlayoffResults ??
+			[];
+		await league.setGameAttributes({
+			promotionPlayoffResults: [
+				...previous.filter((game) => game.season !== season),
+				...games,
+			],
+		});
+	}
 
 	await crownChampions(structure, plan.champions, conditions);
 	await applyMoves(structure, plan, conditions);

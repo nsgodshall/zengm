@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { MoreLinks } from "../components/MoreLinks.tsx";
 import useTitleBar from "../hooks/useTitleBar.tsx";
 import type { View } from "../../common/types.ts";
@@ -22,6 +23,7 @@ const DailySchedule = ({
 	ties,
 	topPlayers,
 	upcoming,
+	worldDivisions,
 }: View<"dailySchedule">) => {
 	useTitleBar({
 		title: DAILY_SCHEDULE,
@@ -72,6 +74,47 @@ const DailySchedule = ({
 		);
 	}
 
+	// International Soccer Zen GM mod (Epic 6): in a World, games are grouped by
+	// Division, the user's first, each with a heading before its first game
+	const getDivisionId = (game: { teams: { tid: number }[] }) =>
+		worldDivisions?.divisionIdByTid[game.teams[0]!.tid];
+	const sortByDivision = <T extends { teams: { tid: number }[] }>(
+		games: T[],
+	) => {
+		if (!worldDivisions) {
+			return games;
+		}
+		const order = new Map(
+			worldDivisions.divisions.map((division, i) => [division.divisionId, i]),
+		);
+		const index = (game: T) => {
+			const divisionId = getDivisionId(game);
+			return (
+				(divisionId === undefined ? undefined : order.get(divisionId)) ??
+				Infinity
+			);
+		};
+		return [...games].sort((a, b) => index(a) - index(b));
+	};
+	const divisionHeading = <T extends { teams: { tid: number }[] }>(
+		game: T,
+		i: number,
+		games: T[],
+	) => {
+		const divisionId = getDivisionId(game);
+		if (
+			!worldDivisions ||
+			divisionId === undefined ||
+			(i > 0 && getDivisionId(games[i - 1]!) === divisionId)
+		) {
+			return null;
+		}
+		const division = worldDivisions.divisions.find(
+			(division) => division.divisionId === divisionId,
+		);
+		return <h3 className="w-100 mb-0">{division?.name}</h3>;
+	};
+
 	return (
 		<>
 			<MoreLinks type="schedule" page="daily_schedule" />
@@ -93,7 +136,7 @@ const DailySchedule = ({
 						<>
 							{upcomingAndCompleted ? <h2>Upcoming Games</h2> : null}
 							<div className="d-flex flex-wrap" style={{ gap: "1rem 2rem" }}>
-								{upcoming.map((game) => {
+								{sortByDivision(upcoming).map((game, i, games) => {
 									const actions =
 										isToday && !tradeDeadline
 											? [
@@ -153,24 +196,23 @@ const DailySchedule = ({
 									}
 
 									return (
-										<div
-											className="flex-grow-1"
-											key={game.gid}
-											style={{ maxWidth: 510 }}
-										>
-											<ScoreBox
-												game={{
-													// Leave out forceTie, since ScoreBox wants the value for finished games
-													finals: game.finals,
-													gid: game.gid,
-													season: game.season,
-													teams: game.teams,
-												}}
-												playersUpcoming={playersUpcoming}
-												actions={actions}
-											/>
-											<ForceWin allowTie={allowTie} game={game} />
-										</div>
+										<Fragment key={game.gid}>
+											{divisionHeading(game, i, games)}
+											<div className="flex-grow-1" style={{ maxWidth: 510 }}>
+												<ScoreBox
+													game={{
+														// Leave out forceTie, since ScoreBox wants the value for finished games
+														finals: game.finals,
+														gid: game.gid,
+														season: game.season,
+														teams: game.teams,
+													}}
+													playersUpcoming={playersUpcoming}
+													actions={actions}
+												/>
+												<ForceWin allowTie={allowTie} game={game} />
+											</div>
+										</Fragment>
 									);
 								})}
 							</div>
@@ -184,15 +226,14 @@ const DailySchedule = ({
 							) : null}
 
 							<div className="d-flex flex-wrap" style={{ gap: "1rem 2rem" }}>
-								{completed.map((game) => {
+								{sortByDivision(completed).map((game, i, games) => {
 									return (
-										<div
-											className="flex-grow-1"
-											key={game.gid}
-											style={{ maxWidth: 510 }}
-										>
-											<ScoreBox game={game} />
-										</div>
+										<Fragment key={game.gid}>
+											{divisionHeading(game, i, games)}
+											<div className="flex-grow-1" style={{ maxWidth: 510 }}>
+												<ScoreBox game={game} />
+											</div>
+										</Fragment>
 									);
 								})}
 							</div>

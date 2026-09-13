@@ -1,4 +1,4 @@
-import { season } from "../core/index.ts";
+import { competition, season } from "../core/index.ts";
 import { idb } from "../db/index.ts";
 import { g, helpers } from "../util/index.ts";
 import type {
@@ -76,6 +76,9 @@ const updatePlayoffs = async (
 				away?: SeriesTeam;
 			}[][];
 			teamsToEdit: TeamToEdit[];
+			promotionPlayoffs: Awaited<
+				ReturnType<typeof competition.getPromotionPlayoffBrackets>
+			>;
 	  }
 	| undefined
 > => {
@@ -263,6 +266,12 @@ const updatePlayoffs = async (
 			season: inputs.season,
 			series: series2,
 			teamsToEdit,
+
+			// International Soccer Zen GM mod (Epic 6): a World has promotion
+			// playoffs instead of ZenGM's playoffs
+			promotionPlayoffs: await competition.getPromotionPlayoffBrackets(
+				inputs.season,
+			),
 		};
 	}
 };

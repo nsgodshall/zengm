@@ -8,6 +8,7 @@ import clsx from "clsx";
 import { range } from "../../common/utils.ts";
 import { PlayoffMatchup } from "../components/PlayoffMatchup.tsx";
 import { useLocal } from "../util/local.ts";
+import { PromotionPlayoffs } from "../components/PromotionPlayoffs.tsx";
 
 type TeamToEdit = View<"playoffs">["teamsToEdit"][number];
 
@@ -23,9 +24,10 @@ const Playoffs = ({
 	season,
 	series,
 	teamsToEdit,
+	promotionPlayoffs,
 }: View<"playoffs">) => {
 	useTitleBar({
-		title: "Playoffs",
+		title: promotionPlayoffs ? "Promotion Playoffs" : "Playoffs",
 		jumpTo: true,
 		jumpToSeason: season,
 		dropdownView: "playoffs",
@@ -86,6 +88,18 @@ const Playoffs = ({
 				window.removeEventListener("optimizedResize", updateHeight);
 			};
 		}, [season, showingBanner]);
+	}
+
+	// International Soccer Zen GM mod (Epic 6): a World has promotion playoffs
+	// instead
+	if (promotionPlayoffs) {
+		return (
+			<PromotionPlayoffs
+				brackets={promotionPlayoffs}
+				season={season}
+				userTid={userTid}
+			/>
+		);
 	}
 
 	if (numRounds === 0) {

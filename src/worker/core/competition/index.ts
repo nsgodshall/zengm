@@ -8,6 +8,8 @@ import doAcademySummer, {
 } from "./academies.ts";
 import computeDivisionTable from "./computeDivisionTable.ts";
 import getWorldTables from "./worldTables.ts";
+import getPromotionPlayoffBrackets from "./promotionPlayoffBrackets.ts";
+import getScheduleDivisions from "./scheduleDivisions.ts";
 import { makeTransferOffer } from "./userTransfers.ts";
 import {
 	acceptAiTransferOffer,
@@ -65,6 +67,8 @@ export default {
 	doAcademySummer,
 	doEndOfSeason,
 	getWorldTables,
+	getPromotionPlayoffBrackets,
+	getScheduleDivisions,
 	makeTransferOffer,
 	acceptAiTransferOffer,
 	dailyTransferOffers,

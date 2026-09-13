@@ -105,7 +105,7 @@ What landed:
 Still open:
 
 - Several full seasons now run through the real game code in Epic 8's integration test (`src/test/worldSeasons.test.ts`), but nobody has played a World through the UI yet.
-- Promotion playoff games aren't visible anywhere: no box scores and no bracket page.
+- Promotion playoff games have scores and a bracket (Epic 6), but no box scores or player stats.
 - ZenGM's awards (MVP, All-League, and so on) still treat the whole World as one league, and conference-level awards are per Country.
 - The season summary page still describes a single league champion (Epic 6).
 - The settings page can still turn ZenGM's playoffs back on for a World, which would bracket clubs from different tiers together again.
@@ -183,7 +183,7 @@ Still open:
 
 ### Epic 6 — UI/UX rework
 
-**Status: league tables, the academy screen, and the transfer market done.** Next, in the agreed order: a World calendar and results, then club and country identity.
+**Status: league tables, the academy screen, the transfer market, and World results done.** Next, in the agreed order: club and country identity.
 
 Decided: soccer-style tables, every Division on one page grouped by Country with a Country filter, and the user's Division first. On the academy screen, the user decides on their graduates during re-signing, and promoting onto a full roster is allowed, like a draft pick.
 
@@ -195,6 +195,8 @@ What landed:
 - **Graduates:** the summer academy step leaves the user's graduates in the academy and sends a notification. Re-signing no longer turns academy players into free agents or deletes them, so the user decides during re-signing, and graduates still in the academy when free agency starts become free agents (`releaseUndecidedGraduates`). Auto play and spectator mode still run the user's academy like the AI's.
 - **World-only menu items:** menu links can be marked `world`, and the top menu, sidebar, and command palette hide them outside a World. `competitionDivisions` is now synced to the UI for this. Links marked `world: false` are hidden inside a World instead.
 - **Transfer Market** (`ui/views/TransferMarket.tsx`, `worker/views/transferMarket.ts`, under Players, in place of Trade): open offers for the user's players, with Accept and Reject; the user's own players, each with a button for the transfer list; and every player at another club with his club, Division, contract, and fee at market value. Make offer asks for a fee in millions and shows the club's answer, with a button to pay the asking price after a counter-offer. The page also shows whether a window is open, and the user's cash, payroll, wage budget, and roster spots.
+- **Promotion playoff results:** each game's score is saved for the season (`promotionPlayoffResults`, a game attribute, so no database migration), without box scores or player stats, and gets a news item. In a World the Playoffs page becomes Promotion Playoffs (`competition/promotionPlayoffBrackets.ts`, `ui/components/PromotionPlayoffs.tsx`): each playoff's clubs by seed before it's played, and its games round by round with scores after.
+- **Daily Schedule:** in a World, a day's games are grouped under Division headings, the user's Division first (`competition/scheduleDivisions.ts`). Every Division already plays on the same calendar, so this is the World calendar.
 - **Tested:** unit tests for zones, form, and Division order. The multi-season World test checks the tables against the season's results, the number of places in each zone against the links, and that the user's Division comes first.
 
 Still open for league tables:
@@ -207,7 +209,7 @@ Still open for league tables:
 Still to do:
 
 - Club/country identity: flags, kit colors, and naming conventions appropriate to soccer club culture rather than NBA franchise conventions.
-- Season calendar view spanning all countries' Divisions at once, so the player can see results across the whole World, not just their own competition.
+- The Daily Schedule's filter still calls its choices conferences, though in a World they're Countries.
 
 ### Epic 7 — Content for the MVP pilot (2 countries × 2 tiers)
 

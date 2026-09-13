@@ -659,6 +659,18 @@ export type GameAttributesLeague = {
 	countries?: NonEmptyArray<Country>;
 	competitionDivisions?: NonEmptyArray<Division>;
 	promotionRelegationLinks?: PromotionRelegationLink[];
+	// International Soccer Zen GM mod (Epic 6): every promotion playoff game
+	// played, with its score, for showing results. Rounds start at 0.
+	promotionPlayoffResults?: {
+		season: number;
+		linkId: number;
+		round: number;
+		homeTid: number;
+		awayTid: number;
+		homePts: number;
+		awayPts: number;
+		winnerTid: number;
+	}[];
 	daysLeft: number;
 	defaultStadiumCapacity: number;
 	dh: "all" | "none" | number[];
