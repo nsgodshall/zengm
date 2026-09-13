@@ -231,6 +231,16 @@ const draftPicks = (params: Params) => {
 	};
 };
 
+// International Soccer Zen GM mod (Epic 6)
+const academy = (params: Params) => {
+	const [tid, abbrev] = validateAbbrev(params.abbrev);
+
+	return {
+		tid,
+		abbrev,
+	};
+};
+
 const draftTeamHistory = (params: Params) => {
 	let [tid, abbrev] = validateAbbrev(params.abbrev);
 
@@ -1093,6 +1103,7 @@ export default {
 	allStarDunk: validateSeasonOnly,
 	allStarTeams: validateSeasonOnly,
 	allStarThree: validateSeasonOnly,
+	academy,
 	awardRaces: validateSeasonOnly,
 	editAwardWinners: validateSeasonOnly,
 	awardsRecords,

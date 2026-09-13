@@ -160,7 +160,6 @@ describe("planAcademyPromotions", () => {
 		minRosterSize: 2,
 		maxRosterSize: 15,
 		rotationSize: 10,
-		userControlled: false,
 	};
 
 	test("an AI club only promotes a young prospect early if he'd already be in its rotation, not just because he's promising", () => {
@@ -263,21 +262,6 @@ describe("planAcademyPromotions", () => {
 				],
 				roster: [],
 				minRosterSize: 10,
-			}),
-		).toEqual({ promote: [2], release: [] });
-	});
-
-	test("all of the user's graduates join the first team, and the rest of the academy stays", () => {
-		expect(
-			planAcademyPromotions({
-				...ai,
-				prospects: [
-					{ pid: 1, ...player(90, 90), graduating: false },
-					{ pid: 2, ...player(10, 10), graduating: true },
-				],
-				roster: [player(50, 50)],
-				maxRosterSize: 1,
-				userControlled: true,
 			}),
 		).toEqual({ promote: [2], release: [] });
 	});

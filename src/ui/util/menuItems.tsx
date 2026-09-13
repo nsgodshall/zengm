@@ -295,6 +295,16 @@ export const menuItems: (MenuItemLink | MenuItemHeader)[] = [
 				path: ["roster"],
 				text: "Roster",
 			},
+			// International Soccer Zen GM mod (Epic 6)
+			{
+				type: "link",
+				active: (pageID) => pageID === "academy",
+				league: true,
+				commandPalette: true,
+				world: true,
+				path: ["academy"],
+				text: "Academy",
+			},
 			...(bySport({
 				baseball: true,
 				basketball: false,

@@ -3,6 +3,8 @@ import { memo, useCallback, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import { Dropdown, Nav } from "react-bootstrap";
 import { helpers } from "../util/helpers.ts";
+import { isWorld } from "../util/isWorld.ts";
+import { useLocal } from "../util/local.ts";
 import type {
 	MenuItemLink,
 	MenuItemHeader,
@@ -138,6 +140,8 @@ const MenuItem = ({
 	openID?: string;
 	root: boolean;
 }) => {
+	const { competitionDivisions } = useLocal(["competitionDivisions"]);
+
 	if (menuItem.type === "text") {
 		return <Dropdown.Header>{menuItem.text}</Dropdown.Header>;
 	}
@@ -156,6 +160,11 @@ const MenuItem = ({
 		}
 
 		if (menuItem.godMode && !godMode) {
+			return null;
+		}
+
+		// International Soccer Zen GM mod (Epic 6)
+		if (menuItem.world && !isWorld(competitionDivisions)) {
 			return null;
 		}
 

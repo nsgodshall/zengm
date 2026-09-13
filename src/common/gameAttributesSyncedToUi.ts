@@ -3,6 +3,8 @@ export const gameAttributesSyncedToUi = [
 	"budget",
 	"challengeNoRatings",
 	"challengeNoTrades",
+	// International Soccer Zen GM mod (Epic 6): for World-only menu items
+	"competitionDivisions",
 	"currencyFormat",
 	"draftType",
 	"fantasyPoints",

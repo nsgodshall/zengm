@@ -12,6 +12,7 @@ import { AnimatePresence, m } from "framer-motion";
 import { VIDEO_ADS, VIDEO_AD_PADDING } from "../../../common/constants.ts";
 import { menuItems } from "../../util/menuItems.tsx";
 import { safeLocalStorage } from "../../util/safeLocalStorage.ts";
+import { isWorld } from "../../util/isWorld.ts";
 
 export const getText = (
 	text: MenuItemLink["text"],
@@ -134,6 +135,8 @@ const MenuItem = ({
 	pathname?: string;
 	root: boolean;
 }) => {
+	const { competitionDivisions } = useLocal(["competitionDivisions"]);
+
 	if (menuItem.type === "text") {
 		return null;
 	}
@@ -152,6 +155,11 @@ const MenuItem = ({
 		}
 
 		if (menuItem.godMode && !godMode) {
+			return null;
+		}
+
+		// International Soccer Zen GM mod (Epic 6)
+		if (menuItem.world && !isWorld(competitionDivisions)) {
 			return null;
 		}
 

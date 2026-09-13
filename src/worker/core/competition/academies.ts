@@ -5,6 +5,7 @@ import { idb } from "../../db/index.ts";
 import { g, helpers, local, logEvent, toUI } from "../../util/index.ts";
 import { finances, player, team } from "../index.ts";
 import { getTeammateJerseyNumbers } from "../player/genJerseyNumber.ts";
+import { getNumPlayersTradedAwayNormalizedAll } from "../player/getNumPlayersTradedAwayNormalized.ts";
 import { dropPlayers } from "../team/checkRosterSizes.ts";
 import { isSingleDivision } from "./competitionStructure.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
@@ -48,7 +49,7 @@ export const getAcademyPlayers = async (tid?: number) => {
 	);
 };
 
-const getAcademyClubs = async () => {
+export const getAcademyClubs = async () => {
 	const tierByDivisionId = new Map(
 		getCompetitionStructure().competitionDivisions.map((division) => [
 			division.divisionId,
@@ -161,7 +162,11 @@ export const ensureAcademies = async () => {
 	return true;
 };
 
-const promote = async (p: Player, tid: number) => {
+/**
+ * Moves an academy player up to his club's first team, on a minimum-wage rookie
+ * contract (see getAcademyContract)
+ */
+export const promoteAcademyPlayer = async (p: Player, tid: number) => {
 	const season = g.get("season");
 	const phase = g.get("phase");
 	const { ovr, pot, skills } = last(p.ratings);
@@ -227,6 +232,46 @@ const release = async (p: Player) => {
 };
 
 /**
+ * Releases an academy player straight to free agency, where any club can sign
+ * him
+ */
+export const releaseAcademyPlayer = async (p: Player) => {
+	const tid = p.academyTid;
+	delete p.academyTid;
+	p.draft.year = g.get("season");
+	await player.addToFreeAgents(p, await getNumPlayersTradedAwayNormalizedAll());
+	await idb.cache.players.put(p);
+
+	if (tid !== undefined) {
+		await logEvent({
+			type: "release",
+			text: `The ${teamLink(tid)} released <a href="${helpers.leagueUrl([
+				"player",
+				p.pid,
+			])}">${p.firstName} ${p.lastName}</a> from their academy.`,
+			showNotification: false,
+			pids: [p.pid],
+			tids: [tid],
+		});
+	}
+};
+
+/**
+ * International Soccer Zen GM mod (Epic 6): when free agency starts, graduates
+ * still in an academy become free agents. AI clubs decide on theirs in the
+ * draft phase, so these are the user's graduates they didn't promote or release
+ * during re-signing.
+ */
+export const releaseUndecidedGraduates = async () => {
+	const season = g.get("season");
+	for (const p of await getAcademyPlayers()) {
+		if (p.draft.year <= season) {
+			await releaseAcademyPlayer(p);
+		}
+	}
+};
+
+/**
  * International Soccer Zen GM mod (Epic 5): a World's youth academies take the
  * place of ZenGM's draft classes. Every summer, in the draft phase, clubs
  * promote academy players to their first teams (see planAcademyPromotions),
@@ -256,7 +301,28 @@ const doAcademySummer = async () => {
 			continue;
 		}
 
-		const userControlled = g.get("userTids").includes(tid) && !aiRunsUserClubs;
+		// The user runs their own academy on the academy page, and their graduates
+		// wait until free agency starts (see releaseUndecidedGraduates)
+		if (g.get("userTids").includes(tid) && !aiRunsUserClubs) {
+			const numGraduates = academyPlayers.filter(
+				(p) => p.draft.year <= season,
+			).length;
+			if (numGraduates > 0) {
+				await logEvent({
+					type: "academy",
+					text: `${numGraduates} of your academy players ${
+						numGraduates === 1 ? "is" : "are"
+					} graduating. <a href="${helpers.leagueUrl([
+						"academy",
+						`${g.get("teamInfoCache")[tid]?.abbrev}_${tid}`,
+					])}">Promote or release your graduates</a> before free agency starts. Any you haven't decided on by then become free agents.`,
+					showNotification: true,
+					tids: [tid],
+				});
+			}
+			continue;
+		}
+
 		const plan = planAcademyPromotions({
 			prospects: academyPlayers.map((p) => ({
 				pid: p.pid,
@@ -274,12 +340,11 @@ const doAcademySummer = async () => {
 			maxRosterSize,
 			// Twice the players on court, a basketball rotation
 			rotationSize: 2 * g.get("numPlayersOnCourt"),
-			userControlled,
 		});
 
 		const byPid = new Map(academyPlayers.map((p) => [p.pid, p]));
 		for (const pid of plan.promote) {
-			await promote(byPid.get(pid)!, tid);
+			await promoteAcademyPlayer(byPid.get(pid)!, tid);
 		}
 		for (const pid of plan.release) {
 			await release(byPid.get(pid)!);
@@ -290,11 +355,9 @@ const doAcademySummer = async () => {
 			// it would before the regular season anyway (see
 			// team.checkRosterSizes). Otherwise its roster stays over the limit all
 			// summer, which stops it buying or signing anyone.
-			if (!userControlled) {
-				const roster = await idb.cache.players.indexGetAll("playersByTid", tid);
-				if (roster.length > maxRosterSize) {
-					await dropPlayers(roster, roster.length - maxRosterSize);
-				}
+			const roster = await idb.cache.players.indexGetAll("playersByTid", tid);
+			if (roster.length > maxRosterSize) {
+				await dropPlayers(roster, roster.length - maxRosterSize);
 			}
 
 			await team.rosterAutoSort(tid, true);

@@ -1,6 +1,10 @@
 import doAcademySummer, {
 	ensureAcademies,
+	getAcademyClubs,
 	getAcademyPlayers,
+	promoteAcademyPlayer,
+	releaseAcademyPlayer,
+	releaseUndecidedGraduates,
 } from "./academies.ts";
 import computeDivisionTable from "./computeDivisionTable.ts";
 import getWorldTables from "./worldTables.ts";
@@ -54,7 +58,11 @@ export default {
 	doEndOfSeason,
 	getWorldTables,
 	ensureAcademies,
+	getAcademyClubs,
 	getAcademyPlayers,
+	promoteAcademyPlayer,
+	releaseAcademyPlayer,
+	releaseUndecidedGraduates,
 	getCurrentTransferWindow,
 	getTransferFee,
 	getTransferWindow,

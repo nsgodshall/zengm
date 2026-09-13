@@ -30,6 +30,7 @@ import {
 import { menuItems } from "../../util/menuItems.tsx";
 import { safeLocalStorage } from "../../util/safeLocalStorage.ts";
 import { local, useLocal } from "../../util/local.ts";
+import { isWorld } from "../../util/isWorld.ts";
 import { realtimeUpdate } from "../../util/realtimeUpdate.ts";
 import { relativeTime } from "../../util/relativeTime.ts";
 
@@ -121,6 +122,15 @@ const getResultsGroupedDefault = ({
 		}
 
 		if (menuItem.godMode && !godMode) {
+			return false;
+		}
+
+		// International Soccer Zen GM mod (Epic 6)
+		if (
+			menuItem.type === "link" &&
+			menuItem.world &&
+			!isWorld(local.getState().competitionDivisions)
+		) {
 			return false;
 		}
 

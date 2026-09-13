@@ -53,6 +53,8 @@ const useLocalRaw = createWithEqualityFn<LocalStateWithActions>(
 		budget: defaultGameAttributes.budget,
 		challengeNoRatings: false,
 		challengeNoTrades: false,
+		// International Soccer Zen GM mod (Epic 6)
+		competitionDivisions: undefined,
 		currencyFormat: defaultGameAttributes.currencyFormat,
 		customMenu: undefined,
 		draftType: defaultGameAttributes.draftType,
@@ -152,6 +154,8 @@ const useLocalRaw = createWithEqualityFn<LocalStateWithActions>(
 				set({
 					alwaysShowCountry: false,
 					challengeNoRatings: false,
+					// International Soccer Zen GM mod (Epic 6)
+					competitionDivisions: undefined,
 					games: [],
 					godMode: false,
 					hideDisabledTeams: false,

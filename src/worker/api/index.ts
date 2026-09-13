@@ -22,6 +22,7 @@ import leagueFileUpload, {
 import processInputs from "./processInputs.ts";
 import {
 	allStar,
+	competition,
 	contractNegotiation,
 	draft,
 	finances,
@@ -3237,6 +3238,52 @@ const regenerateSchedule = async (param: unknown, conditions: Conditions) => {
 	return formatScheduleForEditor(schedule, teams, []);
 };
 
+// International Soccer Zen GM mod (Epic 6): the user's academy page
+const getUserAcademyPlayer = async (pid: number) => {
+	const p = await idb.cache.players.get(pid);
+	if (!p || p.academyTid === undefined) {
+		return "Player not found";
+	}
+	if (p.academyTid !== g.get("userTid") || g.get("spectator")) {
+		return "You aren't allowed to do this";
+	}
+	return p;
+};
+
+const promoteAcademyPlayer = async ({ pid }: { pid: number }) => {
+	const p = await getUserAcademyPlayer(pid);
+	if (typeof p === "string") {
+		return p;
+	}
+
+	const tid = p.academyTid!;
+	await competition.promoteAcademyPlayer(p, tid);
+
+	const t = await idb.cache.teams.get(tid);
+	if (t?.keepRosterSorted) {
+		await team.rosterAutoSort(tid);
+	}
+
+	await toUI("realtimeUpdate", [["playerMovement"]]);
+	await recomputeLocalUITeamOvrs();
+};
+
+const releaseAcademyPlayer = async ({ pid }: { pid: number }) => {
+	const p = await getUserAcademyPlayer(pid);
+	if (typeof p === "string") {
+		return p;
+	}
+
+	await competition.releaseAcademyPlayer(p);
+
+	await toUI("realtimeUpdate", [["playerMovement"]]);
+
+	await freeAgents.normalizeContractDemands({
+		type: "dummyExpiringContracts",
+		pids: [pid],
+	});
+};
+
 const releasePlayer = async ({ pids }: { pids: number[] }) => {
 	if (pids.length === 0) {
 		return;
@@ -5384,6 +5431,8 @@ export default {
 		realtimeUpdate,
 		regenerateDraftClass,
 		regenerateSchedule,
+		promoteAcademyPlayer,
+		releaseAcademyPlayer,
 		releasePlayer,
 		expandVote,
 		relocateVote,

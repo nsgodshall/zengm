@@ -49,7 +49,11 @@ const newPhaseResignPlayers = async (
 						[g.get("season")],
 						[g.get("season"), Infinity],
 					])
-				).filter((p) => p.tid === PLAYER.UNDRAFTED)
+				).filter(
+					// International Soccer Zen GM mod (Epic 6): the user decides on their
+					// academy graduates during re-signing (see competition/academies.ts)
+					(p) => p.tid === PLAYER.UNDRAFTED && p.academyTid === undefined,
+				)
 			: [];
 
 	const numPlayersTradedAwayNormalized =
@@ -355,7 +359,9 @@ const newPhaseResignPlayers = async (
 	// Delete any old undrafted players that still somehow exist
 	const toRemove = [];
 	for (const p of draftProspects) {
-		if (p.draft.year <= g.get("season")) {
+		// International Soccer Zen GM mod (Epic 6): not academy graduates, who become
+		// free agents when free agency starts
+		if (p.draft.year <= g.get("season") && p.academyTid === undefined) {
 			toRemove.push(p.pid);
 		}
 	}

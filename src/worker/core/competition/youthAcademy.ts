@@ -149,10 +149,9 @@ export type AcademyProspect = AcademyRosterPlayer & {
  *   `maxRosterSize`, a promotion takes the place of the lowest value player,
  *   since that's who the AI releases (see team.checkRosterSizes), and a
  *   prospect who'd be that player himself isn't promoted.
- * - The user's club only has its graduates decided for it, since until Epic 6
- *   there's no academy screen: they all join the first team, so the user never
- *   loses one without choosing to, and can release any of them for free before
- *   the regular season, like a drafted rookie.
+ *
+ * This is only for AI clubs. The user runs their own academy on the academy
+ * page (see competition/academies.ts).
  */
 export const planAcademyPromotions = ({
 	prospects,
@@ -160,14 +159,12 @@ export const planAcademyPromotions = ({
 	minRosterSize,
 	maxRosterSize,
 	rotationSize,
-	userControlled,
 }: {
 	prospects: AcademyProspect[];
 	roster: AcademyRosterPlayer[];
 	minRosterSize: number;
 	maxRosterSize: number;
 	rotationSize: number;
-	userControlled: boolean;
 }) => {
 	const promote: number[] = [];
 	const release: number[] = [];
@@ -176,13 +173,6 @@ export const planAcademyPromotions = ({
 
 	const bestFirst = [...prospects].sort((a, b) => b.value - a.value);
 	for (const prospect of bestFirst) {
-		if (userControlled) {
-			if (prospect.graduating) {
-				promote.push(prospect.pid);
-			}
-			continue;
-		}
-
 		const lowestValue = minBy(firstTeam, "value");
 		const beatsLowestValue =
 			lowestValue !== undefined && prospect.value > lowestValue.value;

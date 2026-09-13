@@ -1,4 +1,9 @@
-import { contractNegotiation, freeAgents, player } from "../index.ts";
+import {
+	competition,
+	contractNegotiation,
+	freeAgents,
+	player,
+} from "../index.ts";
 import { helpers } from "../../util/index.ts";
 import type { PhaseReturn } from "../../../common/types.ts";
 import { idb } from "../../db/index.ts";
@@ -11,6 +16,10 @@ const newPhaseFreeAgency = async (): Promise<PhaseReturn> => {
 
 	// Delete all current negotiations to resign players
 	await contractNegotiation.cancelAll();
+
+	// International Soccer Zen GM mod (Epic 6): academy graduates the user didn't
+	// promote or release during re-signing become free agents
+	await competition.releaseUndecidedGraduates();
 
 	await freeAgents.ensureEnoughPlayers();
 

@@ -507,4 +507,42 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			);
 		}
 	});
+
+	// Changes the league, so it goes last
+	test("the user can promote and release academy players, and undecided graduates become free agents", async () => {
+		const season = g.get("season");
+		const userTid = g.get("userTid");
+		const [promoted, released, graduate, ...rest] =
+			await competition.getAcademyPlayers(userTid);
+		assert(promoted && released && graduate, "Not enough academy players");
+
+		await competition.promoteAcademyPlayer(promoted, userTid);
+		const p1 = (await idb.cache.players.get(promoted.pid))!;
+		assert.strictEqual(p1.tid, userTid);
+		assert.strictEqual(p1.academyTid, undefined);
+		assert.strictEqual(p1.contract.amount, g.get("minContract"));
+		assert.strictEqual(p1.contract.rookie, true);
+		// Promoted in the preseason, so this season is the first of 3
+		assert.strictEqual(p1.contract.exp, season + 2);
+		assert.strictEqual(p1.transactions!.at(-1)!.type, "academy");
+
+		await competition.releaseAcademyPlayer(released);
+		const p2 = (await idb.cache.players.get(released.pid))!;
+		assert.strictEqual(p2.tid, PLAYER.FREE_AGENT);
+		assert.strictEqual(p2.academyTid, undefined);
+
+		graduate.draft.year = season;
+		await idb.cache.players.put(graduate);
+		await competition.releaseUndecidedGraduates();
+		const p3 = (await idb.cache.players.get(graduate.pid))!;
+		assert.strictEqual(p3.tid, PLAYER.FREE_AGENT);
+		assert.strictEqual(p3.academyTid, undefined);
+
+		// Everyone else in the academy is still there
+		for (const p of rest) {
+			const p4 = (await idb.cache.players.get(p.pid))!;
+			assert.strictEqual(p4.tid, PLAYER.UNDRAFTED);
+			assert.strictEqual(p4.academyTid, userTid);
+		}
+	});
 });

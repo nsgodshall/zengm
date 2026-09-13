@@ -1,3 +1,4 @@
+export { default as Academy } from "./Academy.tsx";
 export { default as Account } from "./Account/index.tsx";
 export { default as AccountUpdateCard } from "./AccountUpdateCard.tsx";
 export { default as Achievements } from "./Achievements.tsx";

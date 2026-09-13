@@ -1,3 +1,4 @@
+export { default as academy } from "./academy.ts";
 export { default as account } from "./account.ts";
 export { default as accountUpdateCard } from "./accountUpdateCard.ts";
 export { default as achievements } from "./achievements.ts";

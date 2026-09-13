@@ -148,7 +148,7 @@ What landed:
 - **Academy players** (`competition/academies.ts`) are draft prospects (`PLAYER.UNDRAFTED`) with a new `academyTid` on the player. That keeps them off first-team rosters, payrolls, and games, and lists them on the draft scouting page by the season they have to graduate. Unlike draft prospects, they develop every preseason. They join at 16 and leave in the summer they turn 22 (3 years below the bottom of `draftAges`, up to its top), so an academy holds 6 yearly intakes.
 - **Intake** (`competition/youthAcademy.ts`): each summer the World takes in as many 16-year-olds as a default draft class (56 for 24 clubs), and every club gets the same number, give or take one. They're shared out in rounds: each round, clubs take the best prospect left (by true potential) in order of academy strength plus luck. Strength is the scouting budget's effect (3-season average expense level, about −1.1 to 1.1) minus 0.5 for each tier below the top, and luck is up to ±0.75. A new World, or a World from before academies, gets all 6 intakes at once, developed to their ages.
 - **Promotion**, in the draft phase before re-signing: an AI club promotes a younger academy player early only if, on current ratings (`valueNoPot`), he'd already be in its rotation: its best 10 players, twice the players on court. Promising players who aren't ready yet stay in the academy. At graduation it's keep him or lose him: the club keeps a graduate worth more than its worst first-team player counting potential (`value`), or any graduate while it's below the minimum roster size. If that takes it over the roster limit, it releases its lowest value players straight away. Graduates nobody promotes become free agents when re-signing starts, like ZenGM's undrafted prospects. A promoted player signs a rookie contract, so he can be released for free until the regular season, and the promotion shows in the news and his transactions.
-- **The user's club:** until there's an academy screen, all of the user's graduates join the first team, where the user can release any of them for free before the regular season, and nobody is promoted early. Auto play and spectator mode run the user's academy the way the AI runs its own.
+- **The user's club:** the AI never decides for it. The user promotes and releases academy players on the academy page (Epic 6), and graduates they haven't decided on by the start of free agency become free agents. Auto play and spectator mode run the user's academy the way the AI runs its own.
 - **Tested:** unit tests for academy ages, intake size and sharing out, strength, promotion decisions, and contracts. The multi-season World test checks that every club has an academy of the right ages that develops every season, the newest intake is shared out equally, there are no draft classes, and promotions show up in transactions and the news.
 
 Decisions:
@@ -159,7 +159,7 @@ Decisions:
 
 Still open:
 
-- **Academy screen (Epic 6):** see a club's academy, and promote or release players at any time. Until then the draft scouting page lists every club's academy players together, and a player page still calls an academy player a draft prospect.
+- The draft scouting page still lists every club's academy players together, and a player page still calls an academy player a draft prospect instead of naming his academy.
 - **Buying, selling, and loaning academy players** (Epic 4 stages C and D). AI transfers only look at first-team players.
 - Clubs only make academy decisions in the summer.
 - Academy players develop at the default coaching level, not their club's.
@@ -168,14 +168,17 @@ Still open:
 
 ### Epic 6 — UI/UX rework
 
-**Status: league tables done.** Next, in the agreed order: the academy screen, the transfer market (which needs Epic 4 stage C first), a World calendar and results, then club and country identity.
+**Status: league tables and the academy screen done.** Next, in the agreed order: the transfer market (which needs Epic 4 stage C first), a World calendar and results, then club and country identity.
 
-Decided: soccer-style tables, every Division on one page grouped by Country with a Country filter, and the user's Division first.
+Decided: soccer-style tables, every Division on one page grouped by Country with a Country filter, and the user's Division first. On the academy screen, the user decides on their graduates during re-signing, and promoting onto a full roster is allowed, like a draft pick.
 
 What landed:
 
 - **League tables** (`ui/components/LeagueTable.tsx`, from `competition/worldTables.ts`): in a World the Standings page becomes League Tables, one table per Division: position, club, P, W, D (only once a game has been drawn), L, points for and against, difference, points, and form over the last 5 games. A colored bar on each position shows what it leads to at the end of the season (`getTableZones`: promotion, promotion playoff, relegation), and (C) marks the champion once the regular season is over. The user's Division comes first, then the rest of their Country, then the other Countries, each by tier (`orderDivisionsForDisplay`), and a filter shows one Country. The season picker still works; ZenGM's league/conference/division picker is hidden.
 - **Dashboard:** the mini standings show the user's Division table, with its zones.
+- **Academy screen** (`ui/views/Academy.tsx`, `worker/views/academy.ts`, under Team → Academy): any club's academy players with position, age, ratings (fuzzed by the user's scouting, like draft prospects), and the summer each has to leave, plus how the academy ranks for strength. On the user's own club, Promote moves a player to the first team on the academy contract, and Release makes him a free agent. Promoting onto a full roster is allowed; the user has to release someone before the next game, as with a draft pick.
+- **Graduates:** the summer academy step leaves the user's graduates in the academy and sends a notification. Re-signing no longer turns academy players into free agents or deletes them, so the user decides during re-signing, and graduates still in the academy when free agency starts become free agents (`releaseUndecidedGraduates`). Auto play and spectator mode still run the user's academy like the AI's.
+- **World-only menu items:** menu links can be marked `world`, and the top menu, sidebar, and command palette hide them outside a World. `competitionDivisions` is now synced to the UI for this.
 - **Tested:** unit tests for zones, form, and Division order. The multi-season World test checks the tables against the season's results, the number of places in each zone against the links, and that the user's Division comes first.
 
 Still open for league tables:
