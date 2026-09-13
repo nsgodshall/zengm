@@ -305,6 +305,13 @@ describe("competition structure", () => {
 			gameAttributes.promotionRelegationLinks,
 			pilot.promotionRelegationLinks,
 		);
+
+		// ZenGM's own playoffs are off - each Division crowns its table winner
+		assert.deepStrictEqual(
+			unwrapGameAttribute(gameAttributes, "numGamesPlayoffSeries"),
+			[],
+		);
+		assert.strictEqual(gameAttributes.playIn, false);
 		assert.deepStrictEqual(
 			unwrapGameAttribute(gameAttributes, "confs").map((conf) => conf.name),
 			["Northland", "Southland"],

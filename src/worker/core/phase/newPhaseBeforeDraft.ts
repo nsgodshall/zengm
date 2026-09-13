@@ -1,5 +1,5 @@
 import { PLAYER } from "../../../common/constants.ts";
-import { draft, player, season, team, league } from "../index.ts";
+import { competition, draft, player, season, team, league } from "../index.ts";
 import { idb } from "../../db/index.ts";
 import {
 	achievement,
@@ -321,7 +321,12 @@ const newPhaseBeforeDraft = async (
 	// In case some weird situation results in games still in the schedule, clear them
 	await idb.cache.schedule.clear();
 
-	if (g.get("numGamesPlayoffSeries").length === 0) {
+	// International Soccer Zen GM mod (Epic 3): a World with more than one
+	// Division crowns each Division's champion and does promotion/relegation
+	// instead
+	const endedWorldSeason = await competition.doEndOfSeason(conditions);
+
+	if (!endedWorldSeason && g.get("numGamesPlayoffSeries").length === 0) {
 		// Set champ of the league!
 		await setChampNoPlayoffs(conditions);
 	}
@@ -337,14 +342,15 @@ const newPhaseBeforeDraft = async (
 		"noCopyCache",
 	);
 
-	// Give award to all players on the championship team
-	const t = teams.find(
+	// Give award to all players on the championship team. A World has one
+	// champion per Country.
+	const champions = teams.filter(
 		(t2) =>
 			t2.seasonAttrs.playoffRoundsWon ===
 			g.get("numGamesPlayoffSeries", "current").length,
 	);
 
-	if (t !== undefined) {
+	for (const t of champions) {
 		const players = await idb.cache.players.indexGetAll("playersByTid", t.tid);
 
 		for (const p of players) {
@@ -410,7 +416,10 @@ const newPhaseBeforeDraft = async (
 
 	await doThanosMode(conditions);
 
-	if (g.get("challengeSisyphusMode") && t?.tid === g.get("userTid")) {
+	if (
+		g.get("challengeSisyphusMode") &&
+		champions.some((t) => t.tid === g.get("userTid"))
+	) {
 		await doSisyphusMode(conditions);
 	}
 

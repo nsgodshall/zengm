@@ -322,6 +322,14 @@ const createGameAttributes = async (
 		if (legacy) {
 			gameAttributes.confs = wrapFromStart(legacy.confs);
 			gameAttributes.divs = wrapFromStart(legacy.divs);
+
+			// ZenGM's playoffs would bracket clubs from different tiers together by
+			// conference (Country). Instead each Division crowns its table winner,
+			// and promotion playoffs belong to PromotionRelegationLinks (see
+			// competition/endOfSeason.ts).
+			gameAttributes.numGamesPlayoffSeries = wrapFromStart([]);
+			gameAttributes.numPlayoffByes = wrapFromStart(0);
+			gameAttributes.playIn = false;
 		}
 
 		for (const t of teamInfos) {

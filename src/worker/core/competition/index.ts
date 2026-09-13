@@ -9,6 +9,9 @@ import {
 	validateCompetitionStructure,
 } from "./competitionStructure.ts";
 import { buildDivisionTables, getDivisionTables } from "./divisionTables.ts";
+import doEndOfSeason from "./endOfSeason.ts";
+import planEndOfSeason from "./planEndOfSeason.ts";
+import runPromotionPlayoff from "./promotionPlayoff.ts";
 import ensureCompetitionStructure, {
 	getCompetitionStructure,
 } from "./ensureCompetitionStructure.ts";
@@ -33,6 +36,7 @@ import resolvePromotionRelegation, {
 export default {
 	buildDivisionTables,
 	computeDivisionTable,
+	doEndOfSeason,
 	ensureCompetitionStructure,
 	flattenPromotionRelegationMoves,
 	getCompetitionStructure,
@@ -46,7 +50,9 @@ export default {
 	isSingleDivision,
 	mergeRoundsIntoDays,
 	newWorldSchedule,
+	planEndOfSeason,
 	resolvePromotionRelegation,
+	runPromotionPlayoff,
 	validateClubDivisions,
 	validateCompetitionStructure,
 	validatePromotionRelegationLink,

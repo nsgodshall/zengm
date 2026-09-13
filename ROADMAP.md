@@ -93,10 +93,23 @@ Still open:
 
 ### Epic 3 — Season flow & promotion/relegation engine
 
-- Rework `phase/newPhaseRegularSeason.ts` / `newPhasePlayoffs.ts`: for most Divisions the champion is simply the club on top of the table at season end (no playoff), matching real soccer; keep the _option_ of an end-of-season playoff for a Division (useful for promotion playoffs among clubs ranked 3rd–6th, common in real football pyramids).
-- New phase step: **end-of-season promotion/relegation resolution** — after all Divisions finish, walk every `PromotionRelegationLink`, move the top N clubs of the lower Division up and bottom N of the upper Division down (running any promotion playoffs first), and reassign `divisionId` on the moved clubs before the next season's schedule is generated.
-- Decide tie-break rules (goal difference / goals scored analogs using whatever basketball stats stand in, since there's no natural "goals" — likely point differential, then head-to-head).
-- Surface promotion/relegation results in the season recap / news feed UI.
+**Status: season end written and unit tested, not yet played through in the game.** See "Still open".
+
+What landed:
+
+- **No ZenGM playoffs in a multi-Division World:** new Worlds start with no playoff rounds, so the playoffs phase passes with no games, and the standings page opens on the Division view.
+- **Champions** (`competition/endOfSeason.ts`, run at the start of `newPhaseBeforeDraft`): each Division's table winner is its champion. A top-tier champion is its Country's champion, marked the same way as ZenGM's champion in a league with no playoffs (`playoffRoundsWon` 0), so its players get the championship award and it shows in league history. Lower-tier champions get a news item.
+- **Promotion playoffs** (`promotionPlayoff.ts`, `playPromotionPlayoffGame.ts`): a knockout among a link's playoff clubs in table order, with the best remaining seed at home against the worst, and byes for the top seeds when the field doesn't divide evenly. Each game is a single `GameSim` run with nothing saved (no box score, stats, or injuries), and a tie sends the better seed through.
+- **Promotion and relegation** (`planEndOfSeason.ts`): every link is resolved from the final tables, and each moving club gets its team's `divisionId` (and mirrored `cid`/`did`) changed. This season's team season keeps the Division the club actually played in, and `newPhasePreseason` copies next season's from the team, so next season's schedule uses the new Divisions. Moves show up in the news feed with new `promotion` and `relegation` event types.
+- **Tiebreakers** (`computeDivisionTable`): points, then point differential, then head-to-head points among the clubs still level (a mini-table of just their games, from the season's head-to-head records), then points scored, then wins.
+
+Still open:
+
+- No season has been played through in the running game yet. The season-end step is covered by the typecheck and by unit tests of its pure parts (the plan, the bracket, and the tables), not by a real season. Epic 8's multi-season autoplay test is the real check, and should come before building much more on top of this.
+- Promotion playoff games aren't visible anywhere: no box scores and no bracket page.
+- ZenGM's awards (MVP, All-League, and so on) still treat the whole World as one league, and conference-level awards are per Country.
+- The season summary page still describes a single league champion (Epic 6).
+- The settings page can still turn ZenGM's playoffs back on for a World, which would bracket clubs from different tiers together again.
 
 ### Epic 4 — Transfer market & wages (replacing the draft and salary cap)
 
@@ -151,6 +164,6 @@ Still open:
 
 ## Open questions to resolve before or during Epic 1
 
-- Should tie-break in a Division table use point differential, or is there a natural basketball analog to "goal difference" worth inventing (e.g. margin of victory capped per game, to avoid blowout-farming)?
+- Should tie-break in a Division table use point differential, or is there a natural basketball analog to "goal difference" worth inventing (e.g. margin of victory capped per game, to avoid blowout-farming)? **Decided in Epic 3:** uncapped point differential, then head-to-head, then points scored. Revisit capping if blowout-farming shows up in playtests.
 - Do lower-tier Divisions need conferences/groups for travel/regionality (real lower-division football often splits into North/South groups), or is that a later-epic concern once we scale past 2 tiers?
 - How many clubs per Division for the pilot — real English football uses 20 (Tier 1) / 24 (Tier 2); worth matching or picking a rounder number for early testing (e.g. 16) to keep sim time down?

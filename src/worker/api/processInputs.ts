@@ -10,6 +10,8 @@ import type { AdvancedPlayerSearchFilter } from "../../ui/views/AdvancedPlayerSe
 import type { NoteInfo } from "../../ui/views/Player/Note.tsx";
 import { actualPhase } from "../util/actualPhase.ts";
 import { bySport, isSport } from "../../common/sportFunctions.ts";
+import { isSingleDivision } from "../core/competition/competitionStructure.ts";
+import { getCompetitionStructure } from "../core/competition/ensureCompetitionStructure.ts";
 
 /**
  * Validate that a given abbreviation corresponds to a team.
@@ -894,8 +896,13 @@ const leagueStats = (params: Params) => {
 };
 
 const standings = (params: Params) => {
-	let type: "conf" | "div" | "league" =
-		g.get("numGamesPlayoffSeries").length === 0
+	// International Soccer Zen GM mod (Epic 3): a World's Divisions are its real
+	// competitions, and it has no ZenGM playoffs
+	let type: "conf" | "div" | "league" = !isSingleDivision(
+		getCompetitionStructure(),
+	)
+		? "div"
+		: g.get("numGamesPlayoffSeries").length === 0
 			? "league"
 			: bySport({
 					baseball: "div",

@@ -3,12 +3,11 @@ export type ClubSeasonResult = {
 	won: number;
 	lost: number;
 	tied: number;
-	// Stand-in for "goal difference" until Epic 3 picks a concrete basketball
-	// analog (see ROADMAP.md's open questions) — e.g. cumulative scoring
-	// margin, possibly capped per game to discourage blowout-farming.
+	// Stand-in for "goal difference" - cumulative scoring margin. See ROADMAP.md's
+	// open questions about capping it per game to discourage blowout-farming.
 	pointDiff: number;
-	// Stand-in for "goals scored," used as a secondary tiebreak the way real
-	// soccer tables do.
+	// Stand-in for "goals scored," used as a later tiebreak the way real soccer
+	// tables do.
 	scored: number;
 };
 
@@ -17,67 +16,99 @@ export type DivisionTableRow = ClubSeasonResult & {
 	points: number;
 };
 
+export type HeadToHeadRecord = {
+	won: number;
+	lost: number;
+	tied: number;
+};
+
 export type DivisionTableOptions = {
 	winPoints?: number;
 	tiePoints?: number;
 	lossPoints?: number;
-};
-
-const DEFAULT_OPTIONS: Required<DivisionTableOptions> = {
-	winPoints: 3,
-	tiePoints: 1,
-	lossPoints: 0,
+	// A club's record in its games against another club, if they played
+	getHeadToHead?: (
+		tid: number,
+		otherTid: number,
+	) => HeadToHeadRecord | undefined;
 };
 
 /**
- * Turn one Division's season results into an ordered table, soccer-style:
- * sorted by points (win/tie/loss worth `winPoints`/`tiePoints`/`lossPoints`,
- * 3/1/0 by default), then point differential, then the "goals scored"
- * equivalent, then total wins, with tid as a final stable tiebreak so the
- * ordering is always deterministic given the same inputs.
+ * Turn one Division's season results into an ordered table, soccer-style.
+ * Clubs are sorted by:
+ *
+ * 1. points (a win/tie/loss is worth `winPoints`/`tiePoints`/`lossPoints`,
+ *    3/1/0 by default)
+ * 2. point differential
+ * 3. points from head-to-head games among the clubs still level after 1 and 2,
+ *    if `getHeadToHead` is given
+ * 4. the "goals scored" equivalent
+ * 5. total wins
+ * 6. tid, so the ordering is always deterministic given the same inputs
  *
  * Deliberately sport-agnostic — nothing here assumes basketball, or even
  * assumes a particular sport's stat names beyond the generic fields above.
- *
- * Head-to-head tiebreaking is intentionally NOT handled here — this function
- * only sees aggregate season totals, not individual results. That's a
- * reasonable Epic 3 refinement once real match data is available (see
- * ROADMAP.md's open questions).
  */
 const computeDivisionTable = (
 	results: ClubSeasonResult[],
 	options: DivisionTableOptions = {},
 ): DivisionTableRow[] => {
-	const { winPoints, tiePoints, lossPoints } = {
-		...DEFAULT_OPTIONS,
-		...options,
-	};
+	const winPoints = options.winPoints ?? 3;
+	const tiePoints = options.tiePoints ?? 1;
+	const lossPoints = options.lossPoints ?? 0;
+	const getPoints = (record: HeadToHeadRecord) =>
+		record.won * winPoints + record.tied * tiePoints + record.lost * lossPoints;
 
 	const withPoints = results.map((result) => ({
 		...result,
-		points:
-			result.won * winPoints +
-			result.tied * tiePoints +
-			result.lost * lossPoints,
+		points: getPoints(result),
 	}));
+	withPoints.sort((a, b) => b.points - a.points || b.pointDiff - a.pointDiff);
 
-	const sorted = [...withPoints].sort((a, b) => {
-		if (a.points !== b.points) {
-			return b.points - a.points;
+	// Head-to-head only means something among the clubs still level, so rank each
+	// such group on a mini-table of just their games against each other. Pairwise
+	// comparisons can go in circles with 3 or more clubs.
+	const sorted: typeof withPoints = [];
+	let start = 0;
+	while (start < withPoints.length) {
+		const first = withPoints[start]!;
+		let end = start + 1;
+		while (
+			end < withPoints.length &&
+			withPoints[end]!.points === first.points &&
+			withPoints[end]!.pointDiff === first.pointDiff
+		) {
+			end += 1;
 		}
-		if (a.pointDiff !== b.pointDiff) {
-			return b.pointDiff - a.pointDiff;
+
+		const group = withPoints.slice(start, end);
+		const headToHeadPoints = new Map<number, number>();
+		for (const row of group) {
+			let total = 0;
+			if (options.getHeadToHead && group.length > 1) {
+				for (const other of group) {
+					if (other.tid !== row.tid) {
+						const record = options.getHeadToHead(row.tid, other.tid);
+						if (record) {
+							total += getPoints(record);
+						}
+					}
+				}
+			}
+			headToHeadPoints.set(row.tid, total);
 		}
-		if (a.scored !== b.scored) {
-			return b.scored - a.scored;
-		}
-		if (a.won !== b.won) {
-			return b.won - a.won;
-		}
-		// Final stable tiebreak, purely so output is deterministic in tests
-		// and doesn't depend on sort stability guarantees elsewhere.
-		return a.tid - b.tid;
-	});
+
+		group.sort(
+			(a, b) =>
+				headToHeadPoints.get(b.tid)! - headToHeadPoints.get(a.tid)! ||
+				b.scored - a.scored ||
+				b.won - a.won ||
+				a.tid - b.tid,
+		);
+		sorted.push(...group);
+
+		start = end;
+	}
 
 	return sorted.map((row, i) => ({ ...row, rank: i + 1 }));
 };
