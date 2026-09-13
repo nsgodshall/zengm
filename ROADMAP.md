@@ -105,7 +105,7 @@ What landed:
 
 Still open:
 
-- No season has been played through in the running game yet. The season-end step is covered by the typecheck and by unit tests of its pure parts (the plan, the bracket, and the tables), not by a real season. Epic 8's multi-season autoplay test is the real check, and should come before building much more on top of this.
+- Several full seasons now run through the real game code in Epic 8's integration test (`src/test/worldSeasons.test.ts`), but nobody has played a World through the UI yet.
 - Promotion playoff games aren't visible anywhere: no box scores and no bracket page.
 - ZenGM's awards (MVP, All-League, and so on) still treat the whole World as one league, and conference-level awards are per Country.
 - The season summary page still describes a single league champion (Epic 6).
@@ -140,9 +140,11 @@ Still open:
 
 ### Epic 8 — Testing & QA
 
-- Unit tests for the new schedule generator (correct round robin per Division, no cross-Division fixtures, correct World-wide calendar merge).
-- Unit tests for the promotion/relegation resolver (correct clubs move, ties broken correctly, playoff variant works).
-- Integration test: simulate several full seasons autoplay (`worker/core/league/autoPlay.ts` as a reference) across the 2×2 pilot and confirm no crashes, no orphaned clubs, and division sizes stay correct after repeated promotion/relegation cycles.
+**Status: automated tests for Epics 1–3 done.** The manual playtest waits for Epic 4.
+
+- Unit tests for the schedule generator (done: `competition/worldSchedule.test.ts`, `season/newSchedule.test.ts`).
+- Unit tests for promotion/relegation, tables, and season end (done: `resolvePromotionRelegation.test.ts`, `computeDivisionTable.test.ts`, `promotionPlayoff.test.ts`, `planEndOfSeason.test.ts` in `competition/`).
+- Integration test (done: `src/test/worldSeasons.test.ts`): creates a 2-country × 2-tier World of 24 clubs under Node, using fake-indexeddb, and auto plays 3 full seasons through the real game code: schedule, games, season end, draft, and free agency. It checks that every Division keeps its 6 clubs with `cid`/`did` mirroring it, every club plays exactly its 10 games and only against its own Division, each Country's top-tier table winner is its champion, exactly the right clubs move each summer (including a promotion playoff winner from 2nd–5th), and the moves are in the news. It runs in about 25 seconds as part of `node --run test`, and fails if the season-end moves are skipped.
 - Manual playtest pass focused on the transfer market economy (does it produce sensible AI behavior, do wages stay plausible over a multi-season save).
 
 ### Epic 9 — Extension points for later (explicitly not in MVP)
