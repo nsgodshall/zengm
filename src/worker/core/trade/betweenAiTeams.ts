@@ -9,6 +9,7 @@ import { isSport } from "../../../common/sportFunctions.ts";
 import { choice } from "../../../common/random.ts";
 import { ValueChangeCalculator } from "../team/ValueChangeCalculator.ts";
 import transfersBetweenAiClubs from "../competition/aiTransfers.ts";
+import { dailyTransferOffers } from "../competition/aiOffers.ts";
 import { isSingleDivision } from "../competition/competitionStructure.ts";
 import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
 
@@ -155,6 +156,7 @@ const betweenAiTeams = async () => {
 	// fees during transfer windows instead of trading them
 	if (!isSingleDivision(getCompetitionStructure())) {
 		await transfersBetweenAiClubs();
+		await dailyTransferOffers();
 		return false;
 	}
 

@@ -89,6 +89,8 @@ export const processTransfer = async ({
 }) => {
 	p.tid = buyerTid;
 	p.ptModifier = 1;
+	delete p.transferOffers;
+	delete p.transferListed;
 
 	// Like a newly signed player, so he isn't sold on again straight away
 	p.gamesUntilTradable = Math.round(0.17 * g.get("numGames"));

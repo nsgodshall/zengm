@@ -1897,6 +1897,27 @@ export const generateJsonSchema = (sport: Sport | "test") => {
 						academyTid: {
 							type: "integer",
 						},
+						transferListed: {
+							type: "boolean",
+						},
+						transferOffers: {
+							type: "array",
+							items: {
+								type: "object",
+								properties: {
+									tid: {
+										type: "integer",
+									},
+									fee: {
+										type: "number",
+									},
+									daysLeft: {
+										type: "integer",
+									},
+								},
+								required: ["tid", "fee", "daysLeft"],
+							},
+						},
 						awards: {
 							type: "array",
 							items: zodJsonSchema(playerAwardSchema),

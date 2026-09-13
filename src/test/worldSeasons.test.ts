@@ -8,7 +8,8 @@ import {
 	getAcademyAges,
 	getAcademyIntakeSize,
 } from "../worker/core/competition/youthAcademy.ts";
-import { competition, league, player } from "../worker/core/index.ts";
+import { competition, league, player, team } from "../worker/core/index.ts";
+import { getWageBudgets } from "../worker/core/competition/wageBudgets.ts";
 import createStreamFromLeagueObject from "../worker/core/league/create/createStreamFromLeagueObject.ts";
 import { idb } from "../worker/db/index.ts";
 import { g, helpers, local, lock } from "../worker/util/index.ts";
@@ -579,9 +580,13 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		))!;
 		userSeason.cash = 1e9;
 		await idb.cache.teamSeasons.put(userSeason);
-		for (const p of (
-			await idb.cache.players.indexGetAll("playersByTid", userTid)
-		).slice(5)) {
+		// No maximum contract in a World, so keep the lowest paid players
+		const userRoster = await idb.cache.players.indexGetAll(
+			"playersByTid",
+			userTid,
+		);
+		userRoster.sort((a, b) => a.contract.amount - b.contract.amount);
+		for (const p of userRoster.slice(3)) {
 			await player.addToFreeAgents(p, {});
 			await idb.cache.players.put(p);
 		}
@@ -644,5 +649,102 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			]))!.cash;
 		assert.strictEqual(await cash(userTid), 1e9 - fee);
 		assert.strictEqual(await cash(sellerTid), sellerCash + fee);
+	});
+
+	// Changes the league, so it goes last
+	test("the user can accept or reject AI clubs' offers for their players, and list players for sale", async () => {
+		const season = g.get("season");
+		const userTid = g.get("userTid");
+
+		const [sold, kept] = (
+			await idb.cache.players.indexGetAll("playersByTid", userTid)
+		)
+			.filter((p) => p.gamesUntilTradable === 0 && p.contract.exp >= season)
+			.sort((a, b) => a.contract.amount - b.contract.amount);
+		assert(sold && kept, "Not enough players to sell");
+
+		// An AI club with plenty of cash and room in its roster and wage budget,
+		// so only the offer decides
+		const buyerTid = (await idb.cache.teams.getAll()).find(
+			(t) => !t.disabled && t.tid !== userTid,
+		)!.tid;
+		const wageBudget = (await getWageBudgets()).get(buyerTid)!;
+		for (const releasedPlayer of await idb.cache.releasedPlayers.indexGetAll(
+			"releasedPlayersByTid",
+			buyerTid,
+		)) {
+			await idb.cache.releasedPlayers.delete(releasedPlayer.rid);
+		}
+		const buyerRoster = await idb.cache.players.indexGetAll(
+			"playersByTid",
+			buyerTid,
+		);
+		buyerRoster.sort((a, b) => b.contract.amount - a.contract.amount);
+		for (const p of buyerRoster) {
+			const rosterSize = (
+				await idb.cache.players.indexGetAll("playersByTid", buyerTid)
+			).length;
+			if (
+				rosterSize < g.get("maxRosterSize") &&
+				(await team.getPayroll(buyerTid)) + sold.contract.amount <= wageBudget
+			) {
+				break;
+			}
+			await player.addToFreeAgents(p, {});
+			await idb.cache.players.put(p);
+		}
+		const buyerSeason = (await idb.cache.teamSeasons.indexGet(
+			"teamSeasonsBySeasonTid",
+			[season, buyerTid],
+		))!;
+		buyerSeason.cash = 1e9;
+		await idb.cache.teamSeasons.put(buyerSeason);
+
+		for (const p of [sold, kept]) {
+			p.transferOffers = [{ tid: buyerTid, fee: 1000, daysLeft: 3 }];
+			await idb.cache.players.put(p);
+		}
+
+		assert.strictEqual(
+			await competition.acceptAiTransferOffer({
+				pid: sold.pid,
+				tid: buyerTid,
+			}),
+			undefined,
+		);
+		const p1 = (await idb.cache.players.get(sold.pid))!;
+		assert.strictEqual(p1.tid, buyerTid);
+		assert.strictEqual(p1.transferOffers, undefined);
+		assert.strictEqual(p1.transactions!.at(-1)!.type, "transfer");
+
+		await competition.rejectAiTransferOffer({ pid: kept.pid, tid: buyerTid });
+		const p2 = (await idb.cache.players.get(kept.pid))!;
+		assert.strictEqual(p2.tid, userTid);
+		assert.strictEqual(p2.transferOffers, undefined);
+
+		await competition.setTransferListed({ pid: kept.pid, listed: true });
+		assert.strictEqual(
+			(await idb.cache.players.get(kept.pid))!.transferListed,
+			true,
+		);
+
+		// Whatever AI clubs offer, it's for the user's players, from other clubs
+		await competition.makeAiTransferOffers(100);
+		for (const p of await idb.cache.players.indexGetAll(
+			"playersByTid",
+			userTid,
+		)) {
+			for (const offer of p.transferOffers ?? []) {
+				assert.notStrictEqual(offer.tid, userTid);
+				assert(offer.fee > 0);
+				assert.strictEqual(offer.daysLeft, 3);
+			}
+		}
+
+		await competition.setTransferListed({ pid: kept.pid, listed: false });
+		assert.strictEqual(
+			(await idb.cache.players.get(kept.pid))!.transferListed,
+			undefined,
+		);
 	});
 });

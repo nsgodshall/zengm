@@ -112,7 +112,7 @@ Still open:
 
 ### Epic 4 — Transfer market & wages (replacing the draft and salary cap)
 
-**Status: stages A (the AI transfer market) and B (wage budgets and market wages) done, and the buying half of stage C.** Selling (AI offers for the user's players) and stage D are still to do.
+**Status: stages A (the AI transfer market), B (wage budgets and market wages), and C (the user in the market) done.** Stage D (loans) is still to do.
 
 Approach: ZenGM already has settings for no draft (`draftType: "freeAgents"`, which turns each draft class into free agents) and no salary cap (`salaryCapType: "none"`). A World turns those on when it's created rather than deleting the draft and cap code, which keeps upstream merges clean (see the Epic 0 merge rule).
 
@@ -137,9 +137,17 @@ Stage C, buying, landed. Decided: the user offers a fee against the club's askin
 - **No trades in a World:** trade proposals are refused (except in God Mode), and the Trade, Trading Block, and Trade Proposals menu links are hidden.
 - **Tested:** unit tests for the asking price, offer responses, the debt limit, and contract seasons left. The World test buys a player after a lowball offer is turned down and a second one the same day is refused, and checks the fee moves between the clubs.
 
+Stage C, selling, landed.
+
+- **AI offers** (`competition/aiOffers.ts`): once a day while a window is open, alongside AI transfers (so on regular season and free agency days), AI clubs attempt about 0.5 offers for each user club, scaled by the AI trades setting. A club only offers for a player who'd make it better, and whom it can afford and fit in its roster and wage budget. The user gets a notification, and each offer stays open for 3 days. All offers are withdrawn when the window closes, and none are made while the AI runs the user's clubs.
+- **Transfer list:** a listed player is 5 times as likely to draw an offer, at 75–100% of his fee. An unlisted player draws offers at 90–120% of it.
+- **Accepting** checks the buyer's roster, budget, and cash again, and withdraws an offer the club can no longer follow through on. A sold player keeps his contract, and his offers and listing are cleared.
+- **Tested:** unit tests for offer fees and expiry. The World test accepts and rejects offers, lists and unlists a player, and checks that AI clubs only make well-formed offers for the user's players.
+
 Still to do:
 
-- **Stage C, selling:** AI clubs send offers for the user's players during windows, with a notification, and the user accepts or rejects them before they expire. A transfer list makes offers for a player more likely.
+- The Trade For buttons on player and roster pages still lead to ZenGM's trade screen, which refuses trades in a World.
+- Academy players can't be bought or sold.
 - **Stage D — loans:** sending a player to another club for a season.
 - **Tuning:** the AI's thresholds (the buyer must improve; the seller can't lose more than 5 value) and the fee formula are first guesses. In the multi-season World test (24 clubs, 10-game seasons) they gave about 10 transfers a season, averaging about $24M, with the biggest at $122M against a $150M salary cap. Almost all happened during free agency, the only offseason phase with days to simulate. The winter window only lasts a day or two in a season that short, and saw 1 transfer in 3 seasons. Check volume and fees again with real season lengths. Clubs also start with only $10M cash, which limits early spending.
 
@@ -175,7 +183,7 @@ Still open:
 
 ### Epic 6 — UI/UX rework
 
-**Status: league tables, the academy screen, and buying on the transfer market done.** Next, in the agreed order: selling on the transfer market (with Epic 4 stage C), a World calendar and results, then club and country identity.
+**Status: league tables, the academy screen, and the transfer market done.** Next, in the agreed order: a World calendar and results, then club and country identity.
 
 Decided: soccer-style tables, every Division on one page grouped by Country with a Country filter, and the user's Division first. On the academy screen, the user decides on their graduates during re-signing, and promoting onto a full roster is allowed, like a draft pick.
 
@@ -186,7 +194,7 @@ What landed:
 - **Academy screen** (`ui/views/Academy.tsx`, `worker/views/academy.ts`, under Team → Academy): any club's academy players with position, age, ratings (fuzzed by the user's scouting, like draft prospects), and the summer each has to leave, plus how the academy ranks for strength. On the user's own club, Promote moves a player to the first team on the academy contract, and Release makes him a free agent. Promoting onto a full roster is allowed; the user has to release someone before the next game, as with a draft pick.
 - **Graduates:** the summer academy step leaves the user's graduates in the academy and sends a notification. Re-signing no longer turns academy players into free agents or deletes them, so the user decides during re-signing, and graduates still in the academy when free agency starts become free agents (`releaseUndecidedGraduates`). Auto play and spectator mode still run the user's academy like the AI's.
 - **World-only menu items:** menu links can be marked `world`, and the top menu, sidebar, and command palette hide them outside a World. `competitionDivisions` is now synced to the UI for this. Links marked `world: false` are hidden inside a World instead.
-- **Transfer Market** (`ui/views/TransferMarket.tsx`, `worker/views/transferMarket.ts`, under Players, in place of Trade): every player at another club with his club, Division, contract, and fee at market value. Make offer asks for a fee in millions and shows the club's answer, with a button to pay the asking price after a counter-offer. The page also shows whether a window is open, and the user's cash, payroll, wage budget, and roster spots.
+- **Transfer Market** (`ui/views/TransferMarket.tsx`, `worker/views/transferMarket.ts`, under Players, in place of Trade): open offers for the user's players, with Accept and Reject; the user's own players, each with a button for the transfer list; and every player at another club with his club, Division, contract, and fee at market value. Make offer asks for a fee in millions and shows the club's answer, with a button to pay the asking price after a counter-offer. The page also shows whether a window is open, and the user's cash, payroll, wage budget, and roster spots.
 - **Tested:** unit tests for zones, form, and Division order. The multi-season World test checks the tables against the season's results, the number of places in each zone against the links, and that the user's Division comes first.
 
 Still open for league tables:
@@ -198,7 +206,6 @@ Still open for league tables:
 
 Still to do:
 
-- Transfer market UI: replace the trade-proposal UI with a transfer market browser (list available/listed players, make offers, negotiate fees and wages).
 - Club/country identity: flags, kit colors, and naming conventions appropriate to soccer club culture rather than NBA franchise conventions.
 - Season calendar view spanning all countries' Divisions at once, so the player can see results across the whole World, not just their own competition.
 

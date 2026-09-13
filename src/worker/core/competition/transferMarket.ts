@@ -254,6 +254,45 @@ export const respondToTransferOffer = ({
 	return "reject";
 };
 
+// How many days an AI club's offer for one of the user's players stays open
+export const TRANSFER_OFFER_DAYS = 3;
+
+// A player on the user's transfer list is this many times as likely as one who
+// isn't to draw an offer
+export const TRANSFER_LISTED_OFFER_WEIGHT = 5;
+
+/**
+ * What an AI club offers for one of the user's players, in thousands of
+ * dollars: somewhat below his fee (see getTransferFee) if the user has put him
+ * on their transfer list, since they want to sell, and above it if they
+ * haven't, to tempt them. `random` is uniform on [0, 1).
+ */
+export const getAiOfferFee = ({
+	fee,
+	listed,
+	random = Math.random,
+}: {
+	fee: number;
+	listed: boolean;
+	random?: () => number;
+}) => {
+	const [min, max] = listed ? [0.75, 1] : [0.9, 1.2];
+
+	// Round to the nearest $50k
+	return Math.round((fee * (min + (max - min) * random())) / 50) * 50;
+};
+
+/**
+ * Offers one day later: each has a day less to run, and those that have run
+ * out are gone
+ */
+export const tickTransferOffers = <T extends { daysLeft: number }>(
+	offers: T[],
+) =>
+	offers
+		.map((offer) => ({ ...offer, daysLeft: offer.daysLeft - 1 }))
+		.filter((offer) => offer.daysLeft > 0);
+
 export const canSignWithinWageBudget = ({
 	payroll,
 	amount,

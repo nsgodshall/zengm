@@ -3255,6 +3255,18 @@ const makeTransferOffer = (params: { pid: number; fee: number }) => {
 	return competition.makeTransferOffer(params);
 };
 
+const acceptTransferOffer = (params: { pid: number; tid: number }) => {
+	return competition.acceptAiTransferOffer(params);
+};
+
+const rejectTransferOffer = (params: { pid: number; tid: number }) => {
+	return competition.rejectAiTransferOffer(params);
+};
+
+const setTransferListed = (params: { pid: number; listed: boolean }) => {
+	return competition.setTransferListed(params);
+};
+
 const promoteAcademyPlayer = async ({ pid }: { pid: number }) => {
 	const p = await getUserAcademyPlayer(pid);
 	if (typeof p === "string") {
@@ -5436,7 +5448,10 @@ export default {
 		realtimeUpdate,
 		regenerateDraftClass,
 		regenerateSchedule,
+		acceptTransferOffer,
 		makeTransferOffer,
+		rejectTransferOffer,
+		setTransferListed,
 		promoteAcademyPlayer,
 		releaseAcademyPlayer,
 		releasePlayer,

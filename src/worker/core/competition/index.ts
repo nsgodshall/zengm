@@ -10,6 +10,13 @@ import computeDivisionTable from "./computeDivisionTable.ts";
 import getWorldTables from "./worldTables.ts";
 import { makeTransferOffer } from "./userTransfers.ts";
 import {
+	acceptAiTransferOffer,
+	dailyTransferOffers,
+	makeAiTransferOffers,
+	rejectAiTransferOffer,
+	setTransferListed,
+} from "./aiOffers.ts";
+import {
 	getDefaultCompetitionStructure,
 	getDivisionIdForNewClub,
 	getLegacyConfsDivs,
@@ -59,6 +66,11 @@ export default {
 	doEndOfSeason,
 	getWorldTables,
 	makeTransferOffer,
+	acceptAiTransferOffer,
+	dailyTransferOffers,
+	makeAiTransferOffers,
+	rejectAiTransferOffer,
+	setTransferListed,
 	ensureAcademies,
 	getAcademyClubs,
 	getAcademyPlayers,

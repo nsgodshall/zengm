@@ -1251,6 +1251,15 @@ export type PlayerWithoutKey<PlayerRatings = MinimalPlayerRatings> = {
 	// International Soccer Zen GM mod (Epic 5): the club whose youth academy
 	// this PLAYER.UNDRAFTED player is in (see competition/academies.ts)
 	academyTid?: number;
+	// International Soccer Zen GM mod (Epic 4): open offers from AI clubs for one
+	// of the user's players, fees in thousands of dollars, and whether the user
+	// has put him on their transfer list
+	transferOffers?: {
+		tid: number;
+		fee: number;
+		daysLeft: number;
+	}[];
+	transferListed?: true;
 	awards: PlayerAward[];
 	born: {
 		year: number;

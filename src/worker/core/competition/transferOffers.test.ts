@@ -2,11 +2,42 @@ import { describe, expect, test } from "vitest";
 import { PHASE } from "../../../common/constants.ts";
 import {
 	canAffordFee,
+	getAiOfferFee,
 	getAskingPrice,
 	getContractSeasonsLeft,
 	MAX_ASKING_PRICE_MULTIPLE,
 	respondToTransferOffer,
+	tickTransferOffers,
 } from "./transferMarket.ts";
+
+describe("getAiOfferFee", () => {
+	test("offers below the fee for a listed player, and above it for one who isn't", () => {
+		const low = () => 0;
+		const high = () => 0.999_999;
+
+		expect(getAiOfferFee({ fee: 10000, listed: true, random: low })).toBe(7500);
+		expect(getAiOfferFee({ fee: 10000, listed: true, random: high })).toBe(
+			10000,
+		);
+		expect(getAiOfferFee({ fee: 10000, listed: false, random: low })).toBe(
+			9000,
+		);
+		expect(getAiOfferFee({ fee: 10000, listed: false, random: high })).toBe(
+			12000,
+		);
+	});
+});
+
+describe("tickTransferOffers", () => {
+	test("each offer has a day less to run, and offers that run out are gone", () => {
+		expect(
+			tickTransferOffers([
+				{ tid: 1, fee: 100, daysLeft: 3 },
+				{ tid: 2, fee: 200, daysLeft: 1 },
+			]),
+		).toEqual([{ tid: 1, fee: 100, daysLeft: 2 }]);
+	});
+});
 
 describe("getAskingPrice", () => {
 	test("a club sells a player it can do without at his fee", () => {
