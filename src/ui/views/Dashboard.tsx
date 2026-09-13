@@ -456,6 +456,15 @@ const Dashboard = ({ leagues }: View<"dashboard">) => {
 							<br />
 							<span className="dashboard-top-link-small">» Custom</span>
 						</a>
+						{/* International Soccer Zen GM mod (Epic 7) */}
+						<a
+							href="/new_league/world"
+							className="btn btn-primary dashboard-top-link dashboard-top-link-new me-3 mb-3"
+						>
+							New league
+							<br />
+							<span className="dashboard-top-link-small">» World</span>
+						</a>
 						<a
 							href="/exhibition"
 							className="btn btn-secondary dashboard-top-link dashboard-top-link-new me-sm-3 mb-3"

@@ -1,4 +1,6 @@
 import { idb } from "../db/index.ts";
+import { competition } from "../core/index.ts";
+import { helpers } from "../util/index.ts";
 import type { ViewInput, RealTeamInfo } from "../../common/types.ts";
 import { env } from "../util/env.ts";
 import type { Settings } from "./settings.ts";
@@ -493,6 +495,7 @@ const updateNewLeague = async ({ lid, type }: ViewInput<"newLeague">) => {
 				type,
 				godModeLimits,
 				defaultSettings,
+				world: undefined,
 			};
 		}
 	}
@@ -508,6 +511,21 @@ const updateNewLeague = async ({ lid, type }: ViewInput<"newLeague">) => {
 		type,
 		godModeLimits,
 		defaultSettings,
+
+		// International Soccer Zen GM mod (Epic 7): the pilot World's clubs and
+		// competition structure
+		world: type === "world" ? getPilotWorldNewLeagueInfo() : undefined,
+	};
+};
+
+const getPilotWorldNewLeagueInfo = () => {
+	const { structure, clubs } = competition.generatePilotWorld();
+	const { confs, divs } = competition.getLegacyConfsDivs(structure);
+	return {
+		confs,
+		divs,
+		gameAttributes: structure,
+		teams: helpers.addPopRank(clubs),
 	};
 };
 

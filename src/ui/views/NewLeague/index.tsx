@@ -762,10 +762,11 @@ const NewLeague = (props: View<"newLeague">) => {
 				file: undefined,
 				url: undefined,
 				loadingLeagueFile: false,
-				teams: teamsDefault,
-				confs: DEFAULT_CONFS,
-				divs: DEFAULT_DIVS,
-				tid: getNewTid(prevTeamRegionName, teams),
+				// International Soccer Zen GM mod (Epic 7): a new World has its own clubs
+				teams: props.world?.teams ?? teamsDefault,
+				confs: (props.world?.confs as NonEmptyArray<Conf>) ?? DEFAULT_CONFS,
+				divs: (props.world?.divs as NonEmptyArray<Div>) ?? DEFAULT_DIVS,
+				tid: getNewTid(prevTeamRegionName, props.world?.teams ?? teams),
 				pendingInitialLeagueInfo: true,
 				allKeys,
 				keptKeys,
@@ -778,6 +779,9 @@ const NewLeague = (props: View<"newLeague">) => {
 	let title: string;
 	if (importing) {
 		title = "Import League";
+	} else if (props.type === "world") {
+		// International Soccer Zen GM mod (Epic 7)
+		title = "New World";
 	} else if (props.type === "custom") {
 		title = REAL_PLAYERS_INFO ? "New Custom League" : "New League";
 	} else if (props.type === "random") {
@@ -870,7 +874,11 @@ const NewLeague = (props: View<"newLeague">) => {
 				tid: state.tid,
 				file: state.file,
 				url: state.url,
-				keptKeys: state.keptKeys,
+				// International Soccer Zen GM mod (Epic 7): a new World's competition
+				// structure is passed like a league file's game attributes
+				keptKeys: props.world
+					? [...state.keptKeys, "gameAttributes"]
+					: state.keptKeys,
 				shuffleRosters: actualShuffleRosters,
 				importLid: props.lid,
 				getLeagueOptions,
@@ -880,7 +888,8 @@ const NewLeague = (props: View<"newLeague">) => {
 				teamsFromInput: displayedTeams,
 				settings,
 				fromFile: {
-					gameAttributes: state.basicInfo?.gameAttributes,
+					gameAttributes:
+						state.basicInfo?.gameAttributes ?? props.world?.gameAttributes,
 					maxGid: state.basicInfo?.maxGid,
 					hasRookieContracts,
 					startingSeason: state.basicInfo?.startingSeason,
@@ -1428,8 +1437,11 @@ const NewLeague = (props: View<"newLeague">) => {
 											);
 										})}
 									</select>
-									{state.customize === "default" ||
-									state.customize === "crossEra" ? (
+									{(state.customize === "default" ||
+										state.customize === "crossEra") &&
+									// International Soccer Zen GM mod (Epic 7): a World's clubs can't be
+									// customized without breaking its competition structure
+									props.type !== "world" ? (
 										<button
 											className="btn btn-light-bordered"
 											disabled={disableWhileLoadingLeagueFile}

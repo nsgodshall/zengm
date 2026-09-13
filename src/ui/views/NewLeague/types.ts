@@ -19,6 +19,9 @@ export type NewLeagueTeam = {
 	cid: number;
 	did: number;
 
+	// International Soccer Zen GM mod (Epic 7): set for a new World's clubs
+	divisionId?: number;
+
 	// From UpsertTeamModal
 	players?: Player[];
 	usePlayers?: boolean;

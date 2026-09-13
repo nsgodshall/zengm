@@ -183,7 +183,7 @@ Still open:
 
 ### Epic 6 — UI/UX rework
 
-**Status: league tables, the academy screen, the transfer market, and World results done.** Next, in the agreed order: club and country identity.
+**Status: league tables, the academy screen, the transfer market, World results, and club and country identity for the pilot World (Epic 7) done.** Club logos are still to do.
 
 Decided: soccer-style tables, every Division on one page grouped by Country with a Country filter, and the user's Division first. On the academy screen, the user decides on their graduates during re-signing, and promoting onto a full roster is allowed, like a draft pick.
 
@@ -213,9 +213,21 @@ Still to do:
 
 ### Epic 7 — Content for the MVP pilot (2 countries × 2 tiers)
 
-- Pick 2 placeholder (or real-world-inspired but original) countries and name/flag them.
-- Generate 2 tiers per country (e.g. 16–20 clubs each) with names, colors, stadiums, starting rosters — can lean on existing `realRosters`/`createRandomPlayers` machinery for the player pool, but club identities need new data.
-- Seed initial club strength/finances so the pilot isn't perfectly flat (bigger "traditional" clubs vs smaller ones), giving promotion/relegation stories room to develop.
+**Status: the pilot World can be created from the New League page.**
+
+Decided: real countries (England and Spain) with fictional clubs, soccer-style club names, 2 tiers of 16 clubs in each Country, and a World option on the New League page.
+
+What landed:
+
+- **Pilot World** (`competition/pilotWorld.ts`): England and Spain, each with a First and a Second Division of 16 clubs playing 30-game double round robins. In each Country the bottom 3 of the top tier go down, the top 2 of the second tier go up, and 3rd–6th play off for one more place. Clubs get generated names (English towns with United, City, Athletic and so on; Spanish towns with CF or FC, sometimes after Real, Atlético, or similar), three letter abbreviations, kit colors, and market sizes. Top-tier clubs are bigger, and the biggest few much bigger than the rest, so there are traditional big clubs. Countries use their real flags, since `CountryFlag` knows England and Spain.
+- **New League → World** (`/new_league/world`, also on the dashboard and in the command palette): the page lists the pilot World's clubs to pick from, and creates the league with its competition structure (passed like a league file's game attributes) and random players. Customizing the teams is hidden, since editing them would break the structure.
+- **Tested:** unit tests for the structure (valid, 16 clubs per Division, the promotion and relegation rules), unique club names and abbreviations, bigger top-tier clubs, and the same World from the same random numbers.
+
+Still open:
+
+- Players come from ZenGM's usual worldwide mix, rather than mostly from each club's Country.
+- Clubs have no logos, and every stadium is the default size.
+- The multi-season World test still uses its small 2×2×6 World for speed, so a full pilot-sized season hasn't been run in tests.
 
 ### Epic 8 — Testing & QA
 

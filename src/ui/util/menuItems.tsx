@@ -110,6 +110,15 @@ export const menuItems: (MenuItemLink | MenuItemHeader)[] = [
 					path: "/new_league",
 					text: "New League > Custom",
 				},
+				// International Soccer Zen GM mod (Epic 7)
+				{
+					type: "link",
+					nonLeague: true,
+					commandPalette: true,
+					commandPaletteOnly: true,
+					path: "/new_league/world",
+					text: "New League > World",
+				},
 			] as MenuItemLink[])
 		: ([
 				{

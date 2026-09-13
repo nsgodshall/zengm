@@ -538,9 +538,13 @@ const negotiation = (params: Params) => {
 };
 
 const newLeague = (params: Params) => {
-	let type: "custom" | "random" | "real" | "legends" | "crossEra" = "custom";
+	let type: "custom" | "random" | "real" | "legends" | "crossEra" | "world" =
+		"custom";
 	let lid;
-	if (params.x === "random") {
+	if (params.x === "world") {
+		// International Soccer Zen GM mod (Epic 7)
+		type = "world";
+	} else if (params.x === "random") {
 		type = "random";
 	} else if (params.x === "real") {
 		type = "real";
