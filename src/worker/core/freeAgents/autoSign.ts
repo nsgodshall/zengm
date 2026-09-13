@@ -6,6 +6,9 @@ import { g, local } from "../../util/index.ts";
 import { orderBy } from "../../../common/utils.ts";
 import { isSport } from "../../../common/sportFunctions.ts";
 import { shuffle } from "../../../common/random.ts";
+import { isSingleDivision } from "../competition/competitionStructure.ts";
+import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
+import { getWageBudgets } from "../competition/wageBudgets.ts";
 
 /**
  * AI teams sign free agents.
@@ -27,6 +30,12 @@ const autoSign = async () => {
 
 	// List of free agents, sorted by value
 	let playersSorted = orderBy(players, "value", "desc");
+
+	// International Soccer Zen GM mod (Epic 4): in a World, clubs sign free
+	// agents within their wage budgets rather than a salary cap
+	const wageBudgets = isSingleDivision(getCompetitionStructure())
+		? undefined
+		: await getWageBudgets();
 
 	// Randomly order teams
 	const teams = await idb.cache.teams.getAll();
@@ -73,7 +82,12 @@ const autoSign = async () => {
 
 		// Ignore roster size, will drop bad player if necessary in checkRosterSizes, and getBest won't sign min contract player unless under the roster limit
 		const payroll = await team.getPayroll(t.tid);
-		const p = getBest(playersOnRoster, playersSorted, payroll);
+		const p = getBest(
+			playersOnRoster,
+			playersSorted,
+			payroll,
+			wageBudgets?.get(t.tid),
+		);
 		if (p) {
 			// Remove from list of free agents
 			playersSorted = playersSorted.filter((p2) => p2 !== p);

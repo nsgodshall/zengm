@@ -141,5 +141,37 @@ export const getWageBudget = ({
 		ratio = 1.2 - 0.4 * marketSize;
 	}
 
-	return Math.round(salaryCap * Math.min(2, Math.max(0.5, ratio)));
+	return Math.round(
+		salaryCap *
+			Math.min(
+				MAX_WAGE_BUDGET_CAP_MULTIPLE,
+				Math.max(MIN_WAGE_BUDGET_CAP_MULTIPLE, ratio),
+			),
+	);
 };
+
+// Wage budgets stay between these multiples of the salary cap (see
+// getWageBudget), so the upper one is also the most any club can pay in wages
+export const MIN_WAGE_BUDGET_CAP_MULTIPLE = 0.5;
+export const MAX_WAGE_BUDGET_CAP_MULTIPLE = 2;
+
+/**
+ * Whether a club can sign a player to a contract of `amount` without breaking
+ * its board's wage budget. The exceptions are the same as ZenGM's soft cap: a
+ * minimum contract is always allowed, and so is re-signing one of the club's
+ * own players. Like the salary cap checks, amounts within $1k are close enough.
+ */
+export const canSignWithinWageBudget = ({
+	payroll,
+	amount,
+	wageBudget,
+	minContract,
+	resigning,
+}: {
+	payroll: number;
+	amount: number;
+	wageBudget: number;
+	minContract: number;
+	resigning: boolean;
+}) =>
+	resigning || amount - 1 <= minContract || payroll + amount - 1 <= wageBudget;

@@ -4,6 +4,7 @@ import { range } from "../../../common/utils.ts";
 import g from "../../util/g.ts";
 import helpers from "../../util/helpers.ts";
 import accept from "./accept.ts";
+import { getMaxContract } from "../competition/wageBudgets.ts";
 
 export const generateContractOptions = async (
 	negotiation: Negotiation,
@@ -76,7 +77,8 @@ export const generateContractOptions = async (
 			return false;
 		}
 
-		return contractOption.amount * 1000 <= g.get("maxContract");
+		// International Soccer Zen GM mod (Epic 4): no maximum contract in a World
+		return contractOption.amount * 1000 <= getMaxContract();
 	});
 
 	for (const row of possible) {

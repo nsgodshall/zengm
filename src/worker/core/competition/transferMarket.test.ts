@@ -5,6 +5,7 @@ import {
 	getTransferFee,
 	getTransferWindow,
 	getWageBudget,
+	canSignWithinWageBudget,
 } from "./transferMarket.ts";
 
 describe("getTransferWindow", () => {
@@ -150,5 +151,35 @@ describe("getWageBudget", () => {
 		expect(budget(1)).toBe(120000);
 		expect(budget(3)).toBe(100000);
 		expect(budget(5)).toBe(80000);
+	});
+});
+
+describe("canSignWithinWageBudget", () => {
+	const base = {
+		payroll: 90000,
+		wageBudget: 100000,
+		minContract: 1000,
+		resigning: false,
+	};
+
+	test("allows a signing that fits the budget, and refuses one that doesn't", () => {
+		expect(canSignWithinWageBudget({ ...base, amount: 10000 })).toBe(true);
+		expect(canSignWithinWageBudget({ ...base, amount: 10002 })).toBe(false);
+	});
+
+	test("like a soft cap, a minimum contract or re-signing a club's own player is always allowed", () => {
+		const overBudget = { ...base, payroll: 150000 };
+
+		expect(canSignWithinWageBudget({ ...overBudget, amount: 1000 })).toBe(true);
+		expect(
+			canSignWithinWageBudget({
+				...overBudget,
+				amount: 20000,
+				resigning: true,
+			}),
+		).toBe(true);
+		expect(canSignWithinWageBudget({ ...overBudget, amount: 20000 })).toBe(
+			false,
+		);
 	});
 });

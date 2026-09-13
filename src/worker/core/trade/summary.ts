@@ -8,6 +8,9 @@ import type {
 } from "../../../common/types.ts";
 import { orderBy } from "../../../common/utils.ts";
 import isUntradable from "./isUntradable.ts";
+import { isSingleDivision } from "../competition/competitionStructure.ts";
+import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
+import { getWageBudgets } from "../competition/wageBudgets.ts";
 
 const getTeamOvr = async (playersRaw: Player[]) => {
 	const players = await idb.getCopies.playersPlus(playersRaw, {
@@ -178,6 +181,34 @@ const summary = async (teams: TradeTeams): Promise<TradeSummary> => {
 			"M",
 		)}.`;
 		s.warningAmount = amountOverCap;
+	}
+
+	// International Soccer Zen GM mod (Epic 4): a World has no salary cap, but
+	// a club's board won't let a trade take its payroll over its wage budget
+	if (!s.warning && !isSingleDivision(getCompetitionStructure())) {
+		const wageBudgets = await getWageBudgets();
+		for (const j of [0, 1] as const) {
+			const wageBudget = wageBudgets.get(tids[j]);
+			if (wageBudget === undefined) {
+				continue;
+			}
+
+			const { payrollAfterTrade, payrollBeforeTrade } = s.teams[j];
+			const amountOverBudget = payrollAfterTrade - wageBudget / 1000;
+			if (amountOverBudget > 0 && payrollAfterTrade > payrollBeforeTrade) {
+				s.warning = `This trade is not allowed because it increases the payroll of the ${
+					s.teams[j].name
+				} by ${helpers.formatCurrency(
+					payrollAfterTrade - payrollBeforeTrade,
+					"M",
+				)} and puts them over their wage budget by ${helpers.formatCurrency(
+					amountOverBudget,
+					"M",
+				)}.`;
+				s.warningAmount = amountOverBudget;
+				break;
+			}
+		}
 	}
 
 	return s;

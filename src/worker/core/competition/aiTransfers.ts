@@ -12,8 +12,8 @@ import {
 	getSeasonProgress,
 	getTransferFee,
 	getTransferWindow,
-	getWageBudget,
 } from "./transferMarket.ts";
+import { getWageBudgets } from "./wageBudgets.ts";
 
 // The buying club's value change (same scale as AI trades) has to be above
 // this, so it only buys players who make it better
@@ -70,53 +70,6 @@ const getAITids = async () => {
 			return !g.get("userTids").includes(t.tid);
 		})
 		.map((t) => t.tid);
-};
-
-/**
- * Every active club's wage budget, from its revenue in the last completed
- * season (see getWageBudget).
- */
-const getWageBudgets = async () => {
-	const currentSeason = g.get("season");
-	const revenueSeason =
-		g.get("phase") > PHASE.PLAYOFFS ? currentSeason : currentSeason - 1;
-
-	const teamSeasons = await idb.cache.teamSeasons.indexGetAll(
-		"teamSeasonsBySeasonTid",
-		[[revenueSeason], [revenueSeason, "Z"]],
-	);
-	const revenueByTid = new Map<number, number>();
-	for (const teamSeason of teamSeasons) {
-		let revenue = 0;
-		for (const amount of Object.values(teamSeason.revenues)) {
-			revenue += amount;
-		}
-		revenueByTid.set(teamSeason.tid, revenue);
-	}
-	const averageRevenue =
-		revenueByTid.size > 0
-			? [...revenueByTid.values()].reduce((sum, x) => sum + x, 0) /
-				revenueByTid.size
-			: 0;
-
-	const teams = (await idb.cache.teams.getAll()).filter((t) => !t.disabled);
-	const popRanks = helpers.getPopRanks(teams);
-
-	const wageBudgets = new Map<number, number>();
-	for (const [i, t] of teams.entries()) {
-		wageBudgets.set(
-			t.tid,
-			getWageBudget({
-				salaryCap: g.get("salaryCap"),
-				revenue: revenueByTid.get(t.tid),
-				averageRevenue,
-				popRank: popRanks[i] ?? teams.length,
-				numTeams: teams.length,
-			}),
-		);
-	}
-
-	return wageBudgets;
 };
 
 const teamLink = (tid: number) => {

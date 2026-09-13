@@ -113,7 +113,7 @@ Still open:
 
 ### Epic 4 — Transfer market & wages (replacing the draft and salary cap)
 
-**Status: stage A (the AI transfer market) done.** Stages B–D are still to do.
+**Status: stages A (the AI transfer market) and B (wage budgets and market wages) done.** Stages C and D are still to do.
 
 Approach: ZenGM already has settings for no draft (`draftType: "freeAgents"`, which turns each draft class into free agents) and no salary cap (`salaryCapType: "none"`). A World turns those on when it's created rather than deleting the draft and cap code, which keeps upstream merges clean (see the Epic 0 merge rule).
 
@@ -126,9 +126,13 @@ Stage A, landed:
 - **AI transfers** (`competition/aiTransfers.ts`): in a World, ZenGM's daily AI trades are replaced by transfer attempts whenever a window is open. A club buys only if the player makes it better (by the same value calculation AI trades use), it can pay the fee (going into debt down to half its wage budget), and his wages fit its budget. The seller only sells a player it can do without. The fee moves cash between the clubs, and transfers show up in the news, on the transactions page, and in each player's transactions.
 - **Tested:** unit tests for windows, fees, and budgets, and the multi-season World test checks that transfers happen, and only in phases with a window.
 
+Stage B, landed. Decided: the wage budget is a limit set by the club's board, with the same rules as ZenGM's soft cap so play feels like the cap system, and wages are set by the market with only a minimum contract.
+
+- **Board limit:** in a World, a club's wage budget stands in for the salary cap. Signing a free agent above the minimum contract is refused if it would take payroll over budget, both for the user (with a message from the board) and for AI clubs. Minimum contracts and re-signing a club's own players are still allowed, as with a soft cap. A trade can't increase a club's payroll past its budget.
+- **Market wages** (`competition/wageBudgets.ts`): there's no maximum contract, only the minimum. The ceiling on what a player can ask for or be offered is the most any club could ever afford (twice the salary cap), and in the free agent auction each club bids with what's left of its own wage budget. `maxContract` still sets the scale of ZenGM's contract formula, so wages don't inflate across the board. The auction only runs in basketball; the other sports still price contracts with that formula, capped at `maxContract`.
+
 Still to do:
 
-- **Stage B — wages everywhere:** free agent signings and re-signings still ignore wage budgets (with no cap, AI clubs sign free agents freely), and contracts still follow ZenGM's minimum/maximum contract rules rather than market wages.
 - **Stage C — the user in the market:** listing players, bidding for other clubs' players, and accepting or rejecting offers, with the screens in Epic 6. Until then, the user's club only moves players through ZenGM's trade screen (inside a window) or when auto play runs it.
 - **Stage D — loans:** sending a player to another club for a season.
 - **Tuning:** the AI's thresholds (the buyer must improve; the seller can't lose more than 5 value) and the fee formula are first guesses. In the multi-season World test (24 clubs, 10-game seasons) they gave about 10 transfers a season, averaging about $24M, with the biggest at $122M against a $150M salary cap. Almost all happened during free agency, the only offseason phase with days to simulate. The winter window only lasts a day or two in a season that short, and saw 1 transfer in 3 seasons. Check volume and fees again with real season lengths. Clubs also start with only $10M cash, which limits early spending.

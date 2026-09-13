@@ -22,10 +22,13 @@ const getBest = <T extends PlayerWithoutKey>(
 	playersOnRoster: T[],
 	playersAvailable: T[],
 	payroll?: number,
+	// International Soccer Zen GM mod (Epic 4): in a World, the club's own wage
+	// budget takes the place of the league-wide salary cap
+	wageBudget?: number,
 ): T | void => {
 	const maxRosterSize = g.get("maxRosterSize");
 	const minContract = g.get("minContract");
-	const salaryCap = g.get("salaryCap");
+	const salaryCap = wageBudget ?? g.get("salaryCap");
 	const salaryCapType = g.get("salaryCapType");
 	const numActiveTeams = g.get("numActiveTeams");
 
@@ -62,7 +65,9 @@ const getBest = <T extends PlayerWithoutKey>(
 	}
 
 	const skipSalaryCapCheck =
-		salaryCapType === "none" && Math.random() < 2 / numActiveTeams;
+		salaryCapType === "none" &&
+		wageBudget === undefined &&
+		Math.random() < 2 / numActiveTeams;
 
 	let keyPositionsNeededCache: Set<string> | undefined;
 	const getKeyPositionsNeeded = () => {

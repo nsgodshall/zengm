@@ -5,6 +5,10 @@ import { g, helpers, toUI } from "../../util/index.ts";
 import type { Negotiation, PlayerContract } from "../../../common/types.ts";
 import { PHASE, PLAYER } from "../../../common/constants.ts";
 import { actualPhase } from "../../util/actualPhase.ts";
+import { isSingleDivision } from "../competition/competitionStructure.ts";
+import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
+import { canSignWithinWageBudget } from "../competition/transferMarket.ts";
+import { getWageBudgets } from "../competition/wageBudgets.ts";
 
 /**
  * Accept the player's offer.
@@ -17,7 +21,7 @@ import { actualPhase } from "../../util/actualPhase.ts";
  */
 const accept = async <
 	DryRun extends boolean,
-	SuccessReturn extends DryRun extends true ? void : () => Promise<boolean>,
+	SuccessReturn extends (DryRun extends true ? void : () => Promise<boolean>),
 >({
 	negotiation,
 	amount,
@@ -46,6 +50,28 @@ const accept = async <
 			return `You cannot go over the salary cap to sign ${
 				salaryCapType === "hard" ? "players" : "free agents"
 			} to contracts higher than the minimum salary.`;
+		}
+	}
+
+	// International Soccer Zen GM mod (Epic 4): a World has no salary cap, but
+	// the club's board sets a wage budget, with the same exceptions as a soft cap
+	if (!isSingleDivision(getCompetitionStructure())) {
+		const payroll = await team.getPayroll(tid);
+		const wageBudget = (await getWageBudgets()).get(tid);
+		if (
+			wageBudget !== undefined &&
+			!canSignWithinWageBudget({
+				payroll,
+				amount,
+				wageBudget,
+				minContract: g.get("minContract"),
+				resigning: !!negotiation.resigning,
+			})
+		) {
+			return `Your board won't let you go over your wage budget of ${helpers.formatCurrency(
+				wageBudget / 1000,
+				"M",
+			)} to sign free agents to contracts higher than the minimum salary.`;
 		}
 	}
 

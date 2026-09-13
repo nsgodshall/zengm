@@ -6,6 +6,7 @@ import type { Player } from "../../../common/types.ts";
 import { bySport, isSport } from "../../../common/sportFunctions.ts";
 import { last } from "../../../common/utils.ts";
 import { uniformSeed } from "../../../common/random.ts";
+import { getMaxContract } from "../competition/wageBudgets.ts";
 
 const hasActiveNegotiation = async (tid: number, pid: number) => {
 	return (await idb.cache.negotiations.getAll()).some(
@@ -106,7 +107,8 @@ const moodInfo = async (
 	contractAmount = helpers.bound(
 		helpers.roundContract(contractAmount),
 		g.get("minContract"),
-		g.get("maxContract"),
+		// International Soccer Zen GM mod (Epic 4): no maximum contract in a World
+		getMaxContract(),
 	);
 
 	let willing = false;

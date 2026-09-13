@@ -7,6 +7,9 @@ import { TOO_MANY_TEAMS_TOO_SLOW } from "../season/getInitialNumGamesConfDivSett
 import { countBy, last, orderBy } from "../../../common/utils.ts";
 import { bySport, isSport } from "../../../common/sportFunctions.ts";
 import { choice, randInt, shuffle, uniform } from "../../../common/random.ts";
+import { isSingleDivision } from "../competition/competitionStructure.ts";
+import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
+import { getMaxContract, getWageBudgets } from "../competition/wageBudgets.ts";
 
 const TEMP = 0.35;
 const LEARNING_RATE = 0.5;
@@ -100,7 +103,8 @@ const normalizeContractDemands = async ({
 		hockey: 2.5,
 	});
 
-	const maxContract = g.get("maxContract");
+	// International Soccer Zen GM mod (Epic 4): no maximum contract in a World
+	const maxContract = getMaxContract();
 	const minContract = g.get("minContract");
 	const salaryCap = g.get("salaryCap");
 	const season = g.get("season");
@@ -197,6 +201,12 @@ const normalizeContractDemands = async ({
 		t.payroll = await team.getPayroll(contracts);
 	}
 
+	// International Soccer Zen GM mod (Epic 4): in a World, each club bids with
+	// what's left of its own wage budget rather than the league-wide salary cap
+	const wageBudgets = isSingleDivision(getCompetitionStructure())
+		? undefined
+		: await getWageBudgets();
+
 	//console.time("foo");
 	const updatedPIDs = new Set<number>();
 	const randTeams = [...teams];
@@ -208,7 +218,7 @@ const normalizeContractDemands = async ({
 		const bids = new Map<number, number>();
 		shuffle(randTeams);
 		for (const t of randTeams) {
-			let capSpace = salaryCap - t.payroll;
+			let capSpace = (wageBudgets?.get(t.tid) ?? salaryCap) - t.payroll;
 			if (type === "newLeague") {
 				if (g.get("salaryCapType") !== "hard") {
 					// Simulating that teams could have gone over the cap to sign players with bird rights
@@ -398,9 +408,11 @@ const normalizeContractDemands = async ({
 
 		// During regular season, should only look for short contracts that teams will actually sign
 		if (type === "dummyExpiringContracts") {
-			if (info.contractAmount >= maxContract / 4) {
+			// The setting, not getMaxContract, so this means the same thing in a World
+			const bigContract = g.get("maxContract") / 4;
+			if (info.contractAmount >= bigContract) {
 				p.contract.exp = season;
-				info.contractAmount = (info.contractAmount + maxContract / 4) / 2;
+				info.contractAmount = (info.contractAmount + bigContract) / 2;
 			}
 		}
 
