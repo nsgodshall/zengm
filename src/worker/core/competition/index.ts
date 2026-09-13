@@ -1,3 +1,7 @@
+import doAcademySummer, {
+	ensureAcademies,
+	getAcademyPlayers,
+} from "./academies.ts";
 import computeDivisionTable from "./computeDivisionTable.ts";
 import {
 	getDefaultCompetitionStructure,
@@ -40,11 +44,15 @@ import resolvePromotionRelegation, {
 // divisionId, set at league creation or filled in on load for older saves.
 // Tables and promotion/relegation are pure functions the season/phase rework
 // will call once the scheduler (Epic 2) and season flow (Epic 3) produce real
-// Division tables to feed them.
+// Division tables to feed them. A World's economy (Epics 4-5: transfers, wage
+// budgets, youth academies) lives here too.
 export default {
 	buildDivisionTables,
 	computeDivisionTable,
+	doAcademySummer,
 	doEndOfSeason,
+	ensureAcademies,
+	getAcademyPlayers,
 	getCurrentTransferWindow,
 	getTransferFee,
 	getTransferWindow,

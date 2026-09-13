@@ -1,5 +1,5 @@
 import { PLAYER } from "../../../common/constants.ts";
-import { finances, player, realRosters } from "../index.ts";
+import { competition, finances, player, realRosters } from "../index.ts";
 import genPlayersWithoutSaving from "./genPlayersWithoutSaving.ts";
 import { idb } from "../../db/index.ts";
 import { g, helpers, logEvent } from "../../util/index.ts";
@@ -10,6 +10,13 @@ const genPlayers = async (
 	scoutingLevel?: number,
 	forceScrubs?: boolean,
 ) => {
+	// International Soccer Zen GM mod (Epic 5): a World has no draft classes.
+	// Young players come through each club's youth academy instead (see
+	// competition/academies.ts).
+	if (!competition.isSingleDivision(competition.getCompetitionStructure())) {
+		return;
+	}
+
 	// If scoutingLevel is not supplied, have to hit the DB to get it
 	if (scoutingLevel === undefined) {
 		scoutingLevel = await finances.getLevelLastThree("scouting", {

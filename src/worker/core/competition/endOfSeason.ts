@@ -10,15 +10,7 @@ import { getDivisionTables } from "./divisionTables.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
 import planEndOfSeason, { type EndOfSeasonPlan } from "./planEndOfSeason.ts";
 import playPromotionPlayoffGame from "./playPromotionPlayoffGame.ts";
-
-const teamLink = (tid: number) => {
-	const teamInfo = g.get("teamInfoCache")[tid];
-	return `<a href="${helpers.leagueUrl([
-		"roster",
-		`${teamInfo?.abbrev}_${tid}`,
-		g.get("season"),
-	])}">${teamInfo?.region} ${teamInfo?.name}</a>`;
-};
+import teamLink from "./teamLink.ts";
 
 /**
  * A top-tier champion is its Country's champion, marked the same way as a

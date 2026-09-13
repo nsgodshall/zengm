@@ -1,5 +1,6 @@
 import type { IDBPTransaction } from "@dumbmatter/idb";
 import {
+	competition,
 	draft,
 	finances,
 	freeAgents,
@@ -1637,7 +1638,12 @@ const afterDBStream = async ({
 	}
 
 	// For random debuts we don't want addDraftProspects to be called, since it will fill in with random players. However this does imply that future pick value is going to be messed up for those transition years between random debuts generations, since getPickValues does not support partial draft classes.
-	if (!randomDebuts) {
+	// International Soccer Zen GM mod (Epic 5): a World has youth academies instead
+	// of draft classes (see competition.ensureAcademies below)
+	if (
+		!randomDebuts &&
+		competition.isSingleDivision(competition.getCompetitionStructure())
+	) {
 		await addDraftProspects({
 			players: activePlayers,
 			scoutingLevel,
@@ -1705,6 +1711,9 @@ const afterDBStream = async ({
 		fileHasPlayers,
 		phase: gameAttributes.phase,
 	});
+
+	// International Soccer Zen GM mod (Epic 5): fill a new World's youth academies
+	await competition.ensureAcademies();
 
 	// Handle repeatSeason after creating league, so we know what random players were created
 	const currentRepeatSeasonType = g.get("repeatSeason")?.type ?? "disabled";

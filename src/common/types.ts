@@ -976,6 +976,7 @@ export type LogEventType =
 	| "teamRename"
 	| "trade"
 	| "transfer"
+	| "academy"
 	| "tragedy"
 	| "upgrade"
 	| "luxuryTax"
@@ -1244,6 +1245,9 @@ export type MinimalPlayerRatings = {
 };
 
 export type PlayerWithoutKey<PlayerRatings = MinimalPlayerRatings> = {
+	// International Soccer Zen GM mod (Epic 5): the club whose youth academy
+	// this PLAYER.UNDRAFTED player is in (see competition/academies.ts)
+	academyTid?: number;
 	awards: PlayerAward[];
 	born: {
 		year: number;
@@ -1335,6 +1339,13 @@ export type PlayerWithoutKey<PlayerRatings = MinimalPlayerRatings> = {
 				fromTid: number;
 				// Thousands of dollars, like contracts
 				fee: number;
+				eid?: number;
+		  }
+		| {
+				season: number;
+				phase: Phase;
+				tid: number;
+				type: "academy";
 				eid?: number;
 		  }
 		| {

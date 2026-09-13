@@ -8,6 +8,7 @@ import { player, season, team } from "../index.ts";
 import { getTeammateJerseyNumbers } from "../player/genJerseyNumber.ts";
 import { ValueChangeCalculator } from "../team/ValueChangeCalculator.ts";
 import isUntradable from "../trade/isUntradable.ts";
+import teamLink from "./teamLink.ts";
 import {
 	getSeasonProgress,
 	getTransferFee,
@@ -70,15 +71,6 @@ const getAITids = async () => {
 			return !g.get("userTids").includes(t.tid);
 		})
 		.map((t) => t.tid);
-};
-
-const teamLink = (tid: number) => {
-	const teamInfo = g.get("teamInfoCache")[tid];
-	return `<a href="${helpers.leagueUrl([
-		"roster",
-		`${teamInfo?.abbrev}_${tid}`,
-		g.get("season"),
-	])}">${teamInfo?.region} ${teamInfo?.name}</a>`;
 };
 
 const processTransfer = async ({

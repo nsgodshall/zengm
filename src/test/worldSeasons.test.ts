@@ -1,9 +1,13 @@
 import "fake-indexeddb/auto";
 import { deleteDB } from "@dumbmatter/idb";
 import { afterAll, assert, beforeAll, describe, test } from "vitest";
-import { LEAGUE_DATABASE_VERSION, PHASE } from "../common/constants.ts";
+import { LEAGUE_DATABASE_VERSION, PHASE, PLAYER } from "../common/constants.ts";
 import type { EventBBGM, HeadToHead, Player } from "../common/types.ts";
 import type { CompetitionStructure } from "../worker/core/competition/competitionStructure.ts";
+import {
+	getAcademyAges,
+	getAcademyIntakeSize,
+} from "../worker/core/competition/youthAcademy.ts";
 import { competition, league } from "../worker/core/index.ts";
 import createStreamFromLeagueObject from "../worker/core/league/create/createStreamFromLeagueObject.ts";
 import { idb } from "../worker/db/index.ts";
@@ -385,6 +389,76 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		assert.strictEqual(
 			events.filter((event) => event.type === "transfer").length,
 			transfers.length,
+		);
+	});
+
+	test("every club has a youth academy, and there are no draft classes", async () => {
+		const players: Player[] = await idb.league.getAll("players");
+		const season = g.get("season");
+		const { intakeAge, graduationAge, numCohorts } = getAcademyAges(
+			g.get("draftAges"),
+		);
+		const numClubs = structure.competitionDivisions.length * CLUBS_PER_DIVISION;
+
+		const academyPlayers = players.filter((p) => p.tid === PLAYER.UNDRAFTED);
+		assert(academyPlayers.length > 0, "No academy players");
+
+		for (const p of academyPlayers) {
+			assert.notStrictEqual(p.academyTid, undefined, `pid ${p.pid}`);
+
+			// It's the preseason, so the oldest intake graduates this summer
+			assert(
+				p.draft.year >= season && p.draft.year < season + numCohorts,
+				`pid ${p.pid} graduates in ${p.draft.year}`,
+			);
+			assert.strictEqual(
+				season - p.born.year,
+				graduationAge - (p.draft.year - season),
+				`pid ${p.pid}`,
+			);
+
+			// Developed this preseason, like first-team players
+			assert.strictEqual(p.ratings.at(-1)!.season, season, `pid ${p.pid}`);
+		}
+
+		// The newest intake joined after last summer's promotions, so it's still
+		// shared out equally
+		const newestIntake = academyPlayers.filter(
+			(p) => p.draft.year === season + numCohorts - 1,
+		);
+		assert.strictEqual(newestIntake.length, getAcademyIntakeSize(numClubs));
+		assert.strictEqual(season - newestIntake[0]!.born.year, intakeAge + 1);
+		const perClub = newestIntake.length / numClubs;
+		for (let tid = 0; tid < numClubs; tid++) {
+			const count = newestIntake.filter((p) => p.academyTid === tid).length;
+			assert(
+				count >= Math.floor(perClub) && count <= Math.ceil(perClub),
+				`tid ${tid} got ${count}`,
+			);
+		}
+	});
+
+	test("clubs promote academy players to their first teams", async () => {
+		const players: Player[] = await idb.league.getAll("players");
+		const promotions = players.flatMap((p) =>
+			(p.transactions ?? []).flatMap((row) =>
+				row.type === "academy" ? [{ p, row }] : [],
+			),
+		);
+
+		assert(promotions.length > 0, "No academy players were promoted");
+		for (const { p, row } of promotions) {
+			assert(completedSeasons.includes(row.season), `${row.season}`);
+			assert.strictEqual(p.draft.tid, row.tid);
+			assert.strictEqual(p.draft.year, row.season);
+			assert.strictEqual(p.academyTid, undefined);
+			assert.notStrictEqual(p.tid, PLAYER.UNDRAFTED);
+		}
+
+		const events: EventBBGM[] = await idb.league.getAll("events");
+		assert.strictEqual(
+			events.filter((event) => event.type === "academy").length,
+			promotions.length,
 		);
 	});
 });

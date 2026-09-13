@@ -357,6 +357,9 @@ const processAttrs = (
 					output.latestTransaction = `God Mode in ${transaction.season}`;
 				} else if (transaction.type === "import") {
 					output.latestTransaction = `Imported in ${transaction.season}`;
+				} else if (transaction.type === "academy") {
+					// International Soccer Zen GM mod (Epic 5)
+					output.latestTransaction = `Academy graduate in ${transaction.season}`;
 				} else if (transaction.type === "sisyphus") {
 					const abbrev =
 						abbrevsCache?.get(transaction.season, transaction.fromTid) ?? "???";

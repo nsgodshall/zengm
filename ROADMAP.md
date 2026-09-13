@@ -139,8 +139,33 @@ Still to do:
 
 ### Epic 5 — Youth academies (replacing the draft prospect pool)
 
-- Replace `draft/genPlayers.ts` (annual draft class) with a **per-club academy**: each club periodically generates a small number of young prospects into its own pool (not a shared league-wide pool), which graduate into the first-team roster or get sold/loaned out.
-- Decide academy quality variance by club (bigger/richer clubs in higher divisions produce better prospects on average, smaller lower-division clubs produce more volume but lower quality) to give promotion/relegation strategic weight.
+**Status: academies, and the AI running them, done.** The user's academy screen (Epic 6) and buying, selling, or loaning academy players (Epic 4 stages C and D) are still to do.
+
+Decided: every club has its own academy squad, separate from the first team. How good a club's academy is comes from its scouting budget, plus a bonus for being in a higher tier. Every club gets about the same number of prospects. A graduate signs for the minimum wage for 3 seasons.
+
+What landed:
+
+- **No draft classes:** in a World, `draft.genPlayers` does nothing, and a new World skips ZenGM's draft prospects, so young players only come through academies.
+- **Academy players** (`competition/academies.ts`) are draft prospects (`PLAYER.UNDRAFTED`) with a new `academyTid` on the player. That keeps them off first-team rosters, payrolls, and games, and lists them on the draft scouting page by the season they have to graduate. Unlike draft prospects, they develop every preseason. They join at 16 and leave in the summer they turn 22 (3 years below the bottom of `draftAges`, up to its top), so an academy holds 6 yearly intakes.
+- **Intake** (`competition/youthAcademy.ts`): each summer the World takes in as many 16-year-olds as a default draft class (56 for 24 clubs), and every club gets the same number, give or take one. They're shared out in rounds: each round, clubs take the best prospect left (by true potential) in order of academy strength plus luck. Strength is the scouting budget's effect (3-season average expense level, about −1.1 to 1.1) minus 0.5 for each tier below the top, and luck is up to ±0.75. A new World, or a World from before academies, gets all 6 intakes at once, developed to their ages.
+- **Promotion**, in the draft phase before re-signing: an AI club promotes a younger academy player early only if, on current ratings (`valueNoPot`), he'd already be in its rotation: its best 10 players, twice the players on court. Promising players who aren't ready yet stay in the academy. At graduation it's keep him or lose him: the club keeps a graduate worth more than its worst first-team player counting potential (`value`), or any graduate while it's below the minimum roster size. If that takes it over the roster limit, it releases its lowest value players straight away. Graduates nobody promotes become free agents when re-signing starts, like ZenGM's undrafted prospects. A promoted player signs a rookie contract, so he can be released for free until the regular season, and the promotion shows in the news and his transactions.
+- **The user's club:** until there's an academy screen, all of the user's graduates join the first team, where the user can release any of them for free before the regular season, and nobody is promoted early. Auto play and spectator mode run the user's academy the way the AI runs its own.
+- **Tested:** unit tests for academy ages, intake size and sharing out, strength, promotion decisions, and contracts. The multi-season World test checks that every club has an academy of the right ages that develops every season, the newest intake is shared out equally, there are no draft classes, and promotions show up in transactions and the news.
+
+Decisions:
+
+- Promotions never fill a roster just because there's space, and an AI club gets back under the roster limit as soon as it promotes, instead of leaving that to `team.checkRosterSizes` before the regular season. AI transfers need a buyer below the roster limit, so rosters kept full all summer shut the transfer market. In the World test, before academies, AI rosters went into the preseason with 10–14 players and there were about 9 transfers a season. Filling spare places with graduates took rosters to 13–19 and cut transfers to 2–5.
+- A club's roster for promotion decisions includes players whose contracts are about to expire, since it might re-sign them.
+- The bar for early promotion is the rotation, on current ability. ZenGM's player value counts potential so heavily that most teenage prospects are worth more than a club's worst first-team player, and even on current ability most beat the 15th man. Judged either way, clubs promoted 150–200 academy players in the World test's first summer, and about 2 each every summer after.
+
+Still open:
+
+- **Academy screen (Epic 6):** see a club's academy, and promote or release players at any time. Until then the draft scouting page lists every club's academy players together, and a player page still calls an academy player a draft prospect.
+- **Buying, selling, and loaning academy players** (Epic 4 stages C and D). AI transfers only look at first-team players.
+- Clubs only make academy decisions in the summer.
+- Academy players develop at the default coaching level, not their club's.
+- An expansion club has no academy until the next summer's intake.
+- **Tuning:** the promotion rules, the tier penalty, and the luck in sharing out intakes are first guesses. In the World test (24 clubs, 10-game seasons), clubs promoted about 40 academy players a season, roughly half early and half at graduation, out of an intake of 56. The first summer had about 110, because a new World's full academies still hold every ready player in their older intakes; seeding them smaller could smooth that out. Transfers stayed about where they were before academies (7, 13, and 6 in 3 seasons, against 10, 3, and 13), but AI rosters go into the preseason with 13–19 players instead of 10–14, since promoted players add to them. Academies ended up with 8–16 players each.
 
 ### Epic 6 — UI/UX rework
 
@@ -162,7 +187,7 @@ Still to do:
 
 - Unit tests for the schedule generator (done: `competition/worldSchedule.test.ts`, `season/newSchedule.test.ts`).
 - Unit tests for promotion/relegation, tables, and season end (done: `resolvePromotionRelegation.test.ts`, `computeDivisionTable.test.ts`, `promotionPlayoff.test.ts`, `planEndOfSeason.test.ts` in `competition/`).
-- Integration test (done: `src/test/worldSeasons.test.ts`): creates a 2-country × 2-tier World of 24 clubs under Node, using fake-indexeddb, and auto plays 3 full seasons through the real game code: schedule, games, season end, draft, and free agency. It checks that every Division keeps its 6 clubs with `cid`/`did` mirroring it, every club plays exactly its 10 games and only against its own Division, each Country's top-tier table winner is its champion, exactly the right clubs move each summer (including a promotion playoff winner from 2nd–5th), and the moves are in the news. It runs in about 25 seconds as part of `node --run test`, and fails if the season-end moves are skipped.
+- Integration test (done: `src/test/worldSeasons.test.ts`): creates a 2-country × 2-tier World of 24 clubs under Node, using fake-indexeddb, and auto plays 3 full seasons through the real game code: schedule, games, season end, academies, and free agency. It checks that every Division keeps its 6 clubs with `cid`/`did` mirroring it, every club plays exactly its 10 games and only against its own Division, each Country's top-tier table winner is its champion, exactly the right clubs move each summer (including a promotion playoff winner from 2nd–5th), and the moves are in the news. It also checks AI transfers (Epic 4) and youth academies (Epic 5). It runs in about 20 seconds as part of `node --run test`, and fails if the season-end moves are skipped.
 - Manual playtest pass focused on the transfer market economy (does it produce sensible AI behavior, do wages stay plausible over a multi-season save).
 
 ### Epic 9 — Extension points for later (explicitly not in MVP)

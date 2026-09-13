@@ -1893,6 +1893,10 @@ export const generateJsonSchema = (sport: Sport | "test") => {
 				items: {
 					type: "object",
 					properties: {
+						// International Soccer Zen GM mod (Epic 5)
+						academyTid: {
+							type: "integer",
+						},
 						awards: {
 							type: "array",
 							items: zodJsonSchema(playerAwardSchema),

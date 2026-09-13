@@ -1,5 +1,5 @@
 import { PLAYER } from "../../../common/constants.ts";
-import { draft, league } from "../index.ts";
+import { competition, draft, league } from "../index.ts";
 import { idb } from "../../db/index.ts";
 import { g, helpers } from "../../util/index.ts";
 import type { Conditions, PhaseReturn } from "../../../common/types.ts";
@@ -43,6 +43,10 @@ const newPhaseDraft = async (conditions: Conditions): Promise<PhaseReturn> => {
 	await Promise.all(promises);
 
 	await draft.genPlayers(currentSeason);
+
+	// International Soccer Zen GM mod (Epic 5): a World's clubs promote and
+	// release academy players, and take in a new intake, instead
+	await competition.doAcademySummer();
 
 	if (g.get("draftType") !== "freeAgents") {
 		// Run lottery only if it hasn't been done yet

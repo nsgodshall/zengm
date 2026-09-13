@@ -4,6 +4,7 @@ import {
 	PHASE,
 } from "../../../common/constants.ts";
 import {
+	competition,
 	finances,
 	freeAgents,
 	league,
@@ -344,6 +345,12 @@ const newPhasePreseason = async (
 				conditions,
 			);
 		}
+	}
+
+	// International Soccer Zen GM mod (Epic 5): academy players develop every
+	// season too, unlike draft prospects
+	if (!repeatSeason) {
+		players.push(...(await competition.getAcademyPlayers()));
 	}
 
 	// Loop through all non-retired players
