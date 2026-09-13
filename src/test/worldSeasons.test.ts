@@ -12,6 +12,7 @@ import { competition, league } from "../worker/core/index.ts";
 import createStreamFromLeagueObject from "../worker/core/league/create/createStreamFromLeagueObject.ts";
 import { idb } from "../worker/db/index.ts";
 import { g, helpers, local, lock } from "../worker/util/index.ts";
+import academyView from "../worker/views/academy.ts";
 import { getDefaultSettings } from "../worker/views/newLeague.ts";
 
 // International Soccer Zen GM mod (Epic 8): create a small World and auto play
@@ -506,6 +507,25 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 				lowerLink?.numPromotionPlayoffTeams ?? 0,
 			);
 		}
+	});
+
+	test("the academy page shows the user's academy players", async () => {
+		const userTid = g.get("userTid");
+		const data = await academyView(
+			{ tid: userTid, abbrev: g.get("teamInfoCache")[userTid]!.abbrev },
+			["firstRun"],
+			{},
+		);
+		const players = data && "players" in data ? data.players : undefined;
+		assert(data && players, "No academy page data");
+		assert.strictEqual(data.canManage, true);
+
+		const academyPlayers = await competition.getAcademyPlayers(userTid);
+		assert(academyPlayers.length > 0);
+		assert.deepStrictEqual(
+			players.map((p) => p.pid).sort(byTid),
+			academyPlayers.map((p) => p.pid).sort(byTid),
+		);
 	});
 
 	// Changes the league, so it goes last
