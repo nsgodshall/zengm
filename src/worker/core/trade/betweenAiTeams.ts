@@ -8,6 +8,9 @@ import type { TradeTeams } from "../../../common/types.ts";
 import { isSport } from "../../../common/sportFunctions.ts";
 import { choice } from "../../../common/random.ts";
 import { ValueChangeCalculator } from "../team/ValueChangeCalculator.ts";
+import transfersBetweenAiClubs from "../competition/aiTransfers.ts";
+import { isSingleDivision } from "../competition/competitionStructure.ts";
+import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
 
 const getAITids = async () => {
 	const teams = await idb.cache.teams.getAll();
@@ -145,6 +148,13 @@ const DEFAULT_NUM_TEAMS = 30;
 
 const betweenAiTeams = async () => {
 	if (g.get("forceHistoricalRosters")) {
+		return false;
+	}
+
+	// International Soccer Zen GM mod (Epic 4): clubs in a World buy players for
+	// fees during transfer windows instead of trading them
+	if (!isSingleDivision(getCompetitionStructure())) {
+		await transfersBetweenAiClubs();
 		return false;
 	}
 

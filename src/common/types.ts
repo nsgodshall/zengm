@@ -975,6 +975,7 @@ export type LogEventType =
 	| "teamRelocation"
 	| "teamRename"
 	| "trade"
+	| "transfer"
 	| "tragedy"
 	| "upgrade"
 	| "luxuryTax"
@@ -1324,6 +1325,16 @@ export type PlayerWithoutKey<PlayerRatings = MinimalPlayerRatings> = {
 				tid: number;
 				type: "trade";
 				fromTid: number;
+				eid?: number;
+		  }
+		| {
+				season: number;
+				phase: Phase;
+				tid: number;
+				type: "transfer";
+				fromTid: number;
+				// Thousands of dollars, like contracts
+				fee: number;
 				eid?: number;
 		  }
 		| {

@@ -330,6 +330,13 @@ const createGameAttributes = async (
 			gameAttributes.numGamesPlayoffSeries = wrapFromStart([]);
 			gameAttributes.numPlayoffByes = wrapFromStart(0);
 			gameAttributes.playIn = false;
+
+			// No draft and no salary cap: clubs get players through transfers and free
+			// agency, within each club's wage budget (see
+			// competition/transferMarket.ts). Draft prospects still arrive, as free
+			// agents, until youth academies replace them (Epic 5).
+			gameAttributes.draftType = "freeAgents";
+			gameAttributes.salaryCapType = "none";
 		}
 
 		for (const t of teamInfos) {

@@ -10,6 +10,14 @@ import {
 } from "./competitionStructure.ts";
 import { buildDivisionTables, getDivisionTables } from "./divisionTables.ts";
 import doEndOfSeason from "./endOfSeason.ts";
+import transfersBetweenAiClubs, {
+	getCurrentTransferWindow,
+} from "./aiTransfers.ts";
+import {
+	getTransferFee,
+	getTransferWindow,
+	getWageBudget,
+} from "./transferMarket.ts";
 import planEndOfSeason from "./planEndOfSeason.ts";
 import runPromotionPlayoff from "./promotionPlayoff.ts";
 import ensureCompetitionStructure, {
@@ -37,6 +45,11 @@ export default {
 	buildDivisionTables,
 	computeDivisionTable,
 	doEndOfSeason,
+	getCurrentTransferWindow,
+	getTransferFee,
+	getTransferWindow,
+	getWageBudget,
+	transfersBetweenAiClubs,
 	ensureCompetitionStructure,
 	flattenPromotionRelegationMoves,
 	getCompetitionStructure,

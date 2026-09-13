@@ -8,6 +8,9 @@ import get from "./get.ts";
 import { idb } from "../../db/index.ts";
 import { hashSavedTrade } from "../../../common/hashSavedTrade.ts";
 import { ValueChangeCalculator } from "../team/ValueChangeCalculator.ts";
+import { getCurrentTransferWindow } from "../competition/aiTransfers.ts";
+import { isSingleDivision } from "../competition/competitionStructure.ts";
+import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
 
 /**
  * Proposes the current trade in the database.
@@ -19,6 +22,18 @@ import { ValueChangeCalculator } from "../team/ValueChangeCalculator.ts";
  * @return {Promise.<boolean, string>} Resolves to an array. The first argument is a boolean for whether the trade was accepted or not. The second argument is a string containing a message to be dispalyed to the user.
  */
 const propose = async (forceTrade: boolean = false) => {
+	// International Soccer Zen GM mod (Epic 4): in a World, trades are only
+	// allowed while a transfer window is open
+	if (
+		!isSingleDivision(getCompetitionStructure()) &&
+		!(await getCurrentTransferWindow())
+	) {
+		return {
+			accepted: false as const,
+			message: "Error! The transfer window is closed.",
+		};
+	}
+
 	if (
 		g.get("phase") >= PHASE.AFTER_TRADE_DEADLINE &&
 		g.get("phase") <= PHASE.PLAYOFFS

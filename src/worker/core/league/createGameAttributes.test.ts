@@ -312,6 +312,10 @@ describe("competition structure", () => {
 			[],
 		);
 		assert.strictEqual(gameAttributes.playIn, false);
+
+		// No draft or salary cap either - transfers and wage budgets instead
+		assert.strictEqual(gameAttributes.draftType, "freeAgents");
+		assert.strictEqual(gameAttributes.salaryCapType, "none");
 		assert.deepStrictEqual(
 			unwrapGameAttribute(gameAttributes, "confs").map((conf) => conf.name),
 			["Northland", "Southland"],

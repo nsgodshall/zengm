@@ -40,6 +40,7 @@ const updateEventLog = async (
 					event.type === "reSigned" ||
 					event.type === "release" ||
 					event.type === "trade" ||
+					event.type === "transfer" ||
 					event.type === "freeAgent" ||
 					event.type === "draft",
 			);

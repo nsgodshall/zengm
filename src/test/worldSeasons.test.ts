@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 import { deleteDB } from "@dumbmatter/idb";
 import { afterAll, assert, beforeAll, describe, test } from "vitest";
 import { LEAGUE_DATABASE_VERSION, PHASE } from "../common/constants.ts";
-import type { EventBBGM, HeadToHead } from "../common/types.ts";
+import type { EventBBGM, HeadToHead, Player } from "../common/types.ts";
 import type { CompetitionStructure } from "../worker/core/competition/competitionStructure.ts";
 import { competition, league } from "../worker/core/index.ts";
 import createStreamFromLeagueObject from "../worker/core/league/create/createStreamFromLeagueObject.ts";
@@ -347,5 +347,44 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 				);
 			}
 		}
+	});
+
+	test("AI clubs buy players for fees, only while a transfer window can be open", async () => {
+		const players: Player[] = await idb.league.getAll("players");
+		const transfers = players.flatMap((p) =>
+			(p.transactions ?? []).flatMap((row) =>
+				row.type === "transfer" ? [row] : [],
+			),
+		);
+
+		// AI runs every club during auto play, and the summer window covers the
+		// whole offseason, so there's plenty of chance for transfers
+		assert(transfers.length > 0, "No transfers happened");
+
+		// The winter window is part of the regular season, and the summer window
+		// runs from the end of the season through the preseason
+		const phasesWithAWindow = new Set<number>([
+			PHASE.PRESEASON,
+			PHASE.REGULAR_SEASON,
+			PHASE.DRAFT_LOTTERY,
+			PHASE.DRAFT,
+			PHASE.AFTER_DRAFT,
+			PHASE.RESIGN_PLAYERS,
+			PHASE.FREE_AGENCY,
+		]);
+		for (const transfer of transfers) {
+			assert(
+				phasesWithAWindow.has(transfer.phase),
+				`Transfer in phase ${transfer.phase}`,
+			);
+			assert.notStrictEqual(transfer.tid, transfer.fromTid);
+			assert(transfer.fee >= 0);
+		}
+
+		const events: EventBBGM[] = await idb.league.getAll("events");
+		assert.strictEqual(
+			events.filter((event) => event.type === "transfer").length,
+			transfers.length,
+		);
 	});
 });

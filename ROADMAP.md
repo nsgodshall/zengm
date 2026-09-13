@@ -113,11 +113,25 @@ Still open:
 
 ### Epic 4 — Transfer market & wages (replacing the draft and salary cap)
 
-- Remove/retire the annual draft (`worker/core/draft/*`) and the hard salary cap logic (`worker/core/contractNegotiation/*` as currently written).
-- Design a **transfer system**: clubs can list players, other clubs bid, a transfer fee is agreed (AI valuation model needed — likely adapted from existing trade value logic in `worker/core/trade/getPickValues.ts` and player value estimation elsewhere), and two transfer windows per season (like real soccer) gate when transfers can happen.
-- Design **loans**: a club can temporarily send a player to another club (common soccer mechanic, useful for academy graduates who aren't ready for the first team).
-- Replace the hard cap with a **wage budget** per club (soft constraint tied to club finances/attendance revenue, which `worker/core/finances/*` already partially models) — no max/min contract rules, market-driven wages instead.
-- Free agency (`worker/core/freeAgents/*`) keeps existing out-of-contract players available to sign at any time, soccer-style, rather than a scheduled free-agency period.
+**Status: stage A (the AI transfer market) done.** Stages B–D are still to do.
+
+Approach: ZenGM already has settings for no draft (`draftType: "freeAgents"`, which turns each draft class into free agents) and no salary cap (`salaryCapType: "none"`). A World turns those on when it's created rather than deleting the draft and cap code, which keeps upstream merges clean (see the Epic 0 merge rule).
+
+Stage A, landed:
+
+- **World settings:** new Worlds start with no draft and no salary cap.
+- **Transfer windows** (`competition/transferMarket.ts`): the summer window runs from the end of the season through the preseason, and the winter window is the last 15% of the regular season before the trade deadline. The user's trade proposals are refused outside a window.
+- **Transfer fees:** the player's market wage (from `player.genContract`) for each season left on his contract, up to 4, adjusted for age so young players cost more. A player in the last offseason of his contract can't be bought; he becomes a free agent instead.
+- **Wage budgets:** the salary cap scaled by the club's revenue last season against the league average (or by market size, before a club has a completed season), kept between half and double the cap.
+- **AI transfers** (`competition/aiTransfers.ts`): in a World, ZenGM's daily AI trades are replaced by transfer attempts whenever a window is open. A club buys only if the player makes it better (by the same value calculation AI trades use), it can pay the fee (going into debt down to half its wage budget), and his wages fit its budget. The seller only sells a player it can do without. The fee moves cash between the clubs, and transfers show up in the news, on the transactions page, and in each player's transactions.
+- **Tested:** unit tests for windows, fees, and budgets, and the multi-season World test checks that transfers happen, and only in phases with a window.
+
+Still to do:
+
+- **Stage B — wages everywhere:** free agent signings and re-signings still ignore wage budgets (with no cap, AI clubs sign free agents freely), and contracts still follow ZenGM's minimum/maximum contract rules rather than market wages.
+- **Stage C — the user in the market:** listing players, bidding for other clubs' players, and accepting or rejecting offers, with the screens in Epic 6. Until then, the user's club only moves players through ZenGM's trade screen (inside a window) or when auto play runs it.
+- **Stage D — loans:** sending a player to another club for a season.
+- **Tuning:** the AI's thresholds (the buyer must improve; the seller can't lose more than 5 value) and the fee formula are first guesses. In the multi-season World test (24 clubs, 10-game seasons) they gave about 10 transfers a season, averaging about $24M, with the biggest at $122M against a $150M salary cap. Almost all happened during free agency, the only offseason phase with days to simulate. The winter window only lasts a day or two in a season that short, and saw 1 transfer in 3 seasons. Check volume and fees again with real season lengths. Clubs also start with only $10M cash, which limits early spending.
 
 ### Epic 5 — Youth academies (replacing the draft prospect pool)
 
