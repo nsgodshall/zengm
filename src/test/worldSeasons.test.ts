@@ -461,4 +461,50 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			promotions.length,
 		);
 	});
+
+	test("league tables show every Division's table with its zones, the user's Division first", async () => {
+		const season = completedSeasons.at(-1)!;
+		const worldTables = await competition.getWorldTables(season);
+		assert(worldTables);
+		assert(worldTables.seasonOver);
+
+		const tables = await competition.getDivisionTables(season);
+		const divisionIdByTid = await getDivisionIdByTid(season);
+		const userDivisionId = divisionIdByTid.get(g.get("userTid"));
+		assert.strictEqual(worldTables.userDivisionId, userDivisionId);
+		assert.strictEqual(worldTables.divisions[0]!.divisionId, userDivisionId);
+		assert.deepStrictEqual(
+			worldTables.divisions.map((division) => division.divisionId).sort(),
+			structure.competitionDivisions.map((division) => division.divisionId),
+		);
+
+		for (const division of worldTables.divisions) {
+			const table = tables[division.divisionId]!;
+			assert.deepStrictEqual(
+				division.rows.map((row) => row.tid),
+				table.map((row) => row.tid),
+			);
+
+			for (const row of division.rows) {
+				assert.strictEqual(row.played, NUM_GAMES, `tid ${row.tid}`);
+				assert.strictEqual(row.form.length, 5, `tid ${row.tid}`);
+				assert.strictEqual(row.scored - row.conceded, row.pointDiff);
+			}
+
+			const count = (zone: string) =>
+				division.rows.filter((row) => row.zone === zone).length;
+			const upperLink = structure.promotionRelegationLinks.find(
+				(link) => link.upperDivisionId === division.divisionId,
+			);
+			const lowerLink = structure.promotionRelegationLinks.find(
+				(link) => link.lowerDivisionId === division.divisionId,
+			);
+			assert.strictEqual(count("relegation"), upperLink?.numAutoRelegated ?? 0);
+			assert.strictEqual(count("promotion"), lowerLink?.numAutoPromoted ?? 0);
+			assert.strictEqual(
+				count("promotionPlayoff"),
+				lowerLink?.numPromotionPlayoffTeams ?? 0,
+			);
+		}
+	});
 });

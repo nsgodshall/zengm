@@ -3,6 +3,7 @@ import doAcademySummer, {
 	getAcademyPlayers,
 } from "./academies.ts";
 import computeDivisionTable from "./computeDivisionTable.ts";
+import getWorldTables from "./worldTables.ts";
 import {
 	getDefaultCompetitionStructure,
 	getDivisionIdForNewClub,
@@ -51,6 +52,7 @@ export default {
 	computeDivisionTable,
 	doAcademySummer,
 	doEndOfSeason,
+	getWorldTables,
 	ensureAcademies,
 	getAcademyPlayers,
 	getCurrentTransferWindow,

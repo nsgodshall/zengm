@@ -1,5 +1,5 @@
 import { PHASE, PLAYER } from "../../common/constants.ts";
-import { season, team } from "../core/index.ts";
+import { competition, season, team } from "../core/index.ts";
 import { idb } from "../db/index.ts";
 import { g, helpers } from "../util/index.ts";
 import type { Player, UpdateEvents } from "../../common/types.ts";
@@ -574,6 +574,14 @@ const updateStandings = async (inputs: unknown, updateEvents: UpdateEvents) => {
 			playoffsByConf,
 		);
 
+		// International Soccer Zen GM mod (Epic 6): in a World, the user's Division's
+		// league table, which comes first
+		const worldTables = await competition.getWorldTables(g.get("season"));
+		const worldTable =
+			worldTables?.userDivisionId !== undefined
+				? worldTables.divisions[0]
+				: undefined;
+
 		return {
 			confOrAllTeams,
 			maxPlayoffSeed,
@@ -581,6 +589,8 @@ const updateStandings = async (inputs: unknown, updateEvents: UpdateEvents) => {
 			playoffsByConf,
 			pointsFormula,
 			usePts,
+			worldTable,
+			worldTableSeasonOver: worldTables?.seasonOver ?? false,
 		};
 	}
 };

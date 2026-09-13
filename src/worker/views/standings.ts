@@ -208,6 +208,10 @@ const updateStandings = async (
 			}
 		}
 
+		// International Soccer Zen GM mod (Epic 6): a World shows soccer-style
+		// league tables instead of these standings
+		const worldTables = await competition.getWorldTables(inputs.season);
+
 		const playIn =
 			inputs.season === g.get("season")
 				? g.get("playIn")
@@ -232,6 +236,7 @@ const updateStandings = async (
 			tiebreakers: getTiebreakers(inputs.season),
 			type: inputs.type,
 			usePts,
+			worldTables,
 		};
 	}
 };

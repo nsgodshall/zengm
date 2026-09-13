@@ -43,6 +43,8 @@ const LeagueDashboard = ({
 	tied,
 	usePts,
 	won,
+	worldTable,
+	worldTableSeasonOver,
 }: View<"leagueDashboard">) => {
 	useTitleBar({ title: `${region} ${name} Dashboard` });
 
@@ -83,6 +85,8 @@ const LeagueDashboard = ({
 									pointsFormula={pointsFormula}
 									usePts={usePts}
 									userTid={userTid}
+									worldTable={worldTable}
+									worldTableSeasonOver={worldTableSeasonOver}
 								/>
 							</div>
 						</div>

@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import { type CSSProperties, Fragment } from "react";
 import { TeamLogoInline } from "../components/TeamLogoInline.tsx";
+import { LeagueTables } from "../components/LeagueTable.tsx";
 import useTitleBar from "../hooks/useTitleBar.tsx";
 import { helpers } from "../util/helpers.ts";
 import useClickable from "../hooks/useClickable.tsx";
@@ -420,18 +421,33 @@ const Standings = ({
 	otl,
 	type,
 	usePts,
+	worldTables,
 }: View<"standings">) => {
 	useTitleBar({
-		title: "Standings",
+		title: worldTables ? "League Tables" : "Standings",
 		jumpTo: true,
 		jumpToSeason: season,
 		dropdownView: "standings",
-		dropdownFields: {
-			seasons: season,
-			standingsType: type,
-		},
+		// International Soccer Zen GM mod (Epic 6): a World only has Division tables
+		dropdownFields: worldTables
+			? { seasons: season }
+			: {
+					seasons: season,
+					standingsType: type,
+				},
 	});
 	const { userTid } = useLocal(["userTid"]);
+
+	// International Soccer Zen GM mod (Epic 6)
+	if (worldTables) {
+		return (
+			<LeagueTables
+				season={season}
+				userTid={userTid}
+				worldTables={worldTables}
+			/>
+		);
+	}
 
 	// Show small playoff standings if we're currently viewing the division standings and if the playoff standings differ from the division standings (like multiple divisions get grouped together to determine playoff ranking)
 	const confHasMultipleDivs = confs.some(

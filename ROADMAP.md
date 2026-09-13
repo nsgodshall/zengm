@@ -87,7 +87,6 @@ What landed:
 Still open:
 
 - Playoffs in a multi-Division World still follow ZenGM's conference-based playoff settings. Epic 3 decides per-Division playoffs, or none.
-- The standings page puts each Division in table order but still shows ZenGM's columns (W/L/%/GB), not points. Epic 6's league table page shows the table itself.
 - A Division without its own `numGames` inherits the league-wide setting, which is 82 for basketball. Epic 7's pilot content should set each Division's season length.
 - The calendar only guarantees a club never plays twice in a day. Nothing yet prevents long runs of home or away games, or the same two clubs meeting back to back where one round robin ends and the next begins.
 
@@ -169,8 +168,25 @@ Still open:
 
 ### Epic 6 — UI/UX rework
 
-- Navigation: replace the single "standings" page with a Country → Division picker; a "World" or "favorites" view showing just the Divisions the player's club and any followed clubs are in.
-- League table page: per-Division table with clear promotion/relegation zone highlighting (colors/rows), matching real football table conventions.
+**Status: league tables done.** Next, in the agreed order: the academy screen, the transfer market (which needs Epic 4 stage C first), a World calendar and results, then club and country identity.
+
+Decided: soccer-style tables, every Division on one page grouped by Country with a Country filter, and the user's Division first.
+
+What landed:
+
+- **League tables** (`ui/components/LeagueTable.tsx`, from `competition/worldTables.ts`): in a World the Standings page becomes League Tables, one table per Division: position, club, P, W, D (only once a game has been drawn), L, points for and against, difference, points, and form over the last 5 games. A colored bar on each position shows what it leads to at the end of the season (`getTableZones`: promotion, promotion playoff, relegation), and (C) marks the champion once the regular season is over. The user's Division comes first, then the rest of their Country, then the other Countries, each by tier (`orderDivisionsForDisplay`), and a filter shows one Country. The season picker still works; ZenGM's league/conference/division picker is hidden.
+- **Dashboard:** the mini standings show the user's Division table, with its zones.
+- **Tested:** unit tests for zones, form, and Division order. The multi-season World test checks the tables against the season's results, the number of places in each zone against the links, and that the user's Division comes first.
+
+Still open for league tables:
+
+- Not yet looked at in a browser. The dev server's game worker is shared by every tab, so testing a World there switches whatever league is open in other tabs.
+- Zones show places, not results: after the season, a table doesn't mark which clubs actually went up or down, or who won the promotion playoff.
+- Countries have no flags: `CountryFlag` only knows real country names.
+- A "favorites" view showing just the Divisions of followed clubs.
+
+Still to do:
+
 - Transfer market UI: replace the trade-proposal UI with a transfer market browser (list available/listed players, make offers, negotiate fees and wages).
 - Club/country identity: flags, kit colors, and naming conventions appropriate to soccer club culture rather than NBA franchise conventions.
 - Season calendar view spanning all countries' Divisions at once, so the player can see results across the whole World, not just their own competition.

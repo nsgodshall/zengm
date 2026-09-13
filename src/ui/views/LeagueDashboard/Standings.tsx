@@ -2,6 +2,7 @@ import clsx from "clsx";
 import { helpers } from "../../util/helpers.ts";
 import { ColPtsOrGB, TeamColumn } from "../Standings.tsx";
 import type { View } from "../../../common/types.ts";
+import { LeagueTableSmall } from "../../components/LeagueTable.tsx";
 
 const width100 = {
 	width: "100%",
@@ -15,6 +16,8 @@ const Standings = ({
 	pointsFormula,
 	usePts,
 	userTid,
+	worldTable,
+	worldTableSeasonOver,
 }: Pick<
 	View<"leagueDashboard">,
 	| "confOrAllTeams"
@@ -23,9 +26,22 @@ const Standings = ({
 	| "playoffsByConf"
 	| "pointsFormula"
 	| "usePts"
+	| "worldTable"
+	| "worldTableSeasonOver"
 > & {
 	userTid: number;
 }) => {
+	// International Soccer Zen GM mod (Epic 6): the user's Division's table
+	if (worldTable) {
+		return (
+			<LeagueTableSmall
+				division={worldTable}
+				seasonOver={worldTableSeasonOver}
+				userTid={userTid}
+			/>
+		);
+	}
+
 	const maxRank = Math.max(...confOrAllTeams.map((t) => t.rank));
 
 	return (
