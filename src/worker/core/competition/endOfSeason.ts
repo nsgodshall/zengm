@@ -15,6 +15,8 @@ import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
 import planEndOfSeason, { type EndOfSeasonPlan } from "./planEndOfSeason.ts";
 import playPromotionPlayoffGame from "./playPromotionPlayoffGame.ts";
 import teamLink from "./teamLink.ts";
+import { getChampionPrize, getPromotionPrize } from "./worldRevenue.ts";
+import { releaseRelegationClausePlayers } from "./relegationClauses.ts";
 
 /**
  * A top-tier champion is its Country's champion, marked the same way as a
@@ -29,16 +31,24 @@ const crownChampions = async (
 ) => {
 	for (const { division, row } of champions) {
 		const isTopTier = division.tier === 1;
-		if (isTopTier) {
-			const teamSeason = await idb.cache.teamSeasons.indexGet(
-				"teamSeasonsByTidSeason",
-				[row.tid, g.get("season")],
-			);
-			if (teamSeason) {
+
+		// Epic 8: every Division champion wins prize money (see
+		// competition/worldRevenue.ts)
+		const prize = getChampionPrize({
+			tier: division.tier,
+			salaryCap: g.get("salaryCap"),
+		});
+		const teamSeason = await idb.cache.teamSeasons.indexGet(
+			"teamSeasonsByTidSeason",
+			[row.tid, g.get("season")],
+		);
+		if (teamSeason) {
+			if (isTopTier) {
 				teamSeason.playoffRoundsWon = 0;
 				teamSeason.hype = helpers.bound(teamSeason.hype + 0.2, 0, 1);
-				await idb.cache.teamSeasons.put(teamSeason);
 			}
+			teamSeason.cash += prize;
+			await idb.cache.teamSeasons.put(teamSeason);
 		}
 
 		const country = structure.countries.find(
@@ -50,7 +60,10 @@ const crownChampions = async (
 				type: "playoffs",
 				text: `The ${teamLink(row.tid)} finished top of ${division.name} with ${
 					row.points
-				} points${isTopTier ? ` and are ${country?.name} champions!` : "."}`,
+				} points${isTopTier ? ` and are ${country?.name} champions!` : "."} They win ${helpers.formatCurrency(
+					prize / 1000,
+					"M",
+				)} in prize money.`,
 				showNotification: row.tid === g.get("userTid"),
 				hideInLiveGame: true,
 				tids: [row.tid],
@@ -105,12 +118,17 @@ const applyMoves = async (
 			"teamSeasonsByTidSeason",
 			[move.tid, g.get("season")],
 		);
+		// Epic 8: promotion also pays prize money (see competition/worldRevenue.ts)
+		const prize = promoted
+			? getPromotionPrize({ tier: from.tier, salaryCap: g.get("salaryCap") })
+			: 0;
 		if (teamSeason) {
 			teamSeason.hype = helpers.bound(
 				teamSeason.hype + (promoted ? PROMOTION_HYPE : -PROMOTION_HYPE),
 				0,
 				1,
 			);
+			teamSeason.cash += prize;
 			await idb.cache.teamSeasons.put(teamSeason);
 		}
 
@@ -121,6 +139,22 @@ const applyMoves = async (
 			text = `The ${teamLink(move.tid)} won the ${from.name} promotion playoff and were promoted to ${to.name}!`;
 		} else {
 			text = `The ${teamLink(move.tid)} were promoted from ${from.name} to ${to.name}!`;
+		}
+		if (prize > 0) {
+			text += ` They get ${helpers.formatCurrency(prize / 1000, "M")} in prize money.`;
+		}
+
+		// Epic 8: a relegated club's best-paid players walk away as free agents
+		// (see competition/relegationClauses.ts)
+		if (!promoted) {
+			const clausePlayers = await releaseRelegationClausePlayers(move.tid);
+			if (clausePlayers.length > 0) {
+				const names = clausePlayers.map(
+					(p) =>
+						`<a href="${helpers.leagueUrl(["player", p.pid])}">${p.firstName} ${p.lastName}</a>`,
+				);
+				text += ` Relegation clauses let ${names.join(", ")} leave as free agents.`;
+			}
 		}
 
 		logEvent(

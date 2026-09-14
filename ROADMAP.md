@@ -278,7 +278,27 @@ Still open:
   - **After the fixes** (another 10-season run with all of them): average ratings stayed flat (49.4 to 49.2, players rated 70+ from 37 to 33), clubs below −$100M fell from 25 at worst to 10 by the last season with every tier's average cash rising, clubs over budget settled around 45% (mostly by a little, while a cut budget catches up with contracts signed before), no club won its Division more than 5 times in 10 seasons (it was 8 before), and there were 16–27 transfers a season.
 - **Still open from the long runs** (balance to look at, not bugs):
   - Rich clubs pile up cash (up to $1.3B), since wage budgets stop at double the salary cap and there's nothing else to spend it on.
-  - Promoted clubs very often go straight back down (108 up-then-down or down-then-up moves in 10 seasons), since they arrive with a lower tier's revenue and budget. Parachute payments or shared TV money could soften it.
+  - ~~Promoted clubs very often go straight back down~~: addressed below.
+- **Promotion survival** (decided with the user: prize money, TV money shared by tier, and relegation clauses; tuned against real survival rates):
+  - **The problem:** 56% of clubs promoted to a top tier went straight back down, and 51% of relegated clubs went straight back up. Real top leagues relegate roughly 30–47% of promoted clubs in their first season (about 30% in La Liga and 40% in Serie A over 2006–07 to 2025–26, and 45–47% in the Premier League since 1995), and about 27–40% of relegated Premier League clubs have come straight back (27–28% since 2000; 40.5% from 2009–10 to 2022–23). Revenue didn't depend on tier at all, so moving up didn't pay, and promoted clubs started their top-tier season ranked about 13th of 16 on squad strength.
+  - **TV money by tier** (`competition/worldRevenue.ts`): each Division's national TV deal is shared equally by its clubs, 4 times ZenGM's national TV revenue in a top tier, 0.6 in a second tier, and 0.4 below (`tvShareByTier`), so a promoted club's revenue jumps.
+  - **Budgets for the new tier:** a club's wage budget swaps last season's TV money for its current Division's (`getProjectedRevenue`), so a promoted club budgets for its new deal, and a relegated club for its smaller one, as soon as it moves.
+  - **Prize money:** every Division champion gets 25% of the salary cap scaled by its Division's TV share, and every promoted club 15% scaled by the TV share of the Division it leaves, so winning a Division always pays more than being promoted from it. Paid into cash at the end of the season, and in the news.
+  - **Relegation clauses** (`competition/relegationClauses.ts`): when a club is relegated, its 8 best-paid players with a season left on their contracts walk away as free agents, and the club stops paying them. Free agency then sets their wages at what clubs can pay. A first version let other clubs buy them for their plain fee, but free agency fills every club's wage budget, so only 2–9 of 30–95 clause players a season were bought and nothing changed. The player keeps `relegationClause`, the season it happened.
+  - **Tuning** (10-season runs of England, Spain, and the USA; about 81 promotions to a top tier each, so rates are within about ±5 points):
+
+    | TV share (tier 1/2/3)      | Players freed | Promoted to a top tier, relegated next season | Relegated, promoted straight back |
+    | -------------------------- | ------------- | --------------------------------------------- | --------------------------------- |
+    | 1 (before)                 | none          | 56%                                           | 51%                               |
+    | 2 / 0.6 / 0.4              | 5             | 52%                                           | 45%                               |
+    | 2 / 0.6 / 0.4              | 8             | 57%                                           | 38%                               |
+    | 3 / 0.6 / 0.4              | 8             | 43%                                           | 41%                               |
+    | 4 / 0.6 / 0.4              | 5             | 40%                                           | 56%                               |
+    | **4 / 0.6 / 0.4 (chosen)** | **8**         | **43%**                                       | **41%**                           |
+
+    Money alone (TV shares from 1.3 to 2.2 and bigger prizes) left survival at 54–58%: promoted clubs had nobody good to spend it on. The chosen settings also gave the most competitive top tiers (no club won its Division more than 3 times in 10 seasons), about 41 transfers a season, stable ratings, and 8 clubs below −$100M.
+
+  - **Still open:** relegated clubs come straight back a little more often than the real range (41%). Top-tier clubs pile up more cash (about $760M on average), since their revenue is well past the wage budget ceiling of double the salary cap. An international talent pool of players from non-league nations, bought in the transfer windows, is an idea for giving clubs more to buy (suggested by the user, not built).
   - Lower tiers' hype sags over time (to about 0.25) while top tiers' rises (to about 0.7), because clubs that win get promoted and take their hype with them.
   - A squad well under the roster minimum can have a team rating below zero until the AI fills its roster before the first game.
   - **Board objectives:** "Avoid relegation" is met about 45% of the time and "Finish mid-table" about 80%, the rest about 75%. Decided to leave them: relegation-threatened clubs often do go down.

@@ -1297,6 +1297,10 @@ export type PlayerWithoutKey<PlayerRatings = MinimalPlayerRatings> = {
 		tid: number;
 		season: number;
 	};
+	// International Soccer Zen GM mod (Epic 8): the season this player's club was
+	// relegated at the end of, when he walked away as a free agent (see
+	// competition/relegationClauses.ts)
+	relegationClause?: number;
 	awards: PlayerAward[];
 	born: {
 		year: number;

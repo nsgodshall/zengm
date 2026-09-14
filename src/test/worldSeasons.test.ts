@@ -18,6 +18,8 @@ import {
 import { competition, league, player, team } from "../worker/core/index.ts";
 import { getWageBudgets } from "../worker/core/competition/wageBudgets.ts";
 import { LOAN_MAX_AGE } from "../worker/core/competition/loans.ts";
+import { getTvShare } from "../worker/core/competition/worldRevenue.ts";
+import { RELEGATION_CLAUSE_SETTINGS } from "../worker/core/competition/relegationClauses.ts";
 import createStreamFromLeagueObject from "../worker/core/league/create/createStreamFromLeagueObject.ts";
 import { idb } from "../worker/db/index.ts";
 import { g, helpers, local, lock } from "../worker/util/index.ts";
@@ -662,6 +664,112 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 				`tid ${tid}`,
 			);
 			assert(result.text.includes(info.divisionName));
+		}
+	});
+
+	test("a relegated club's best-paid players walk away as free agents through relegation clauses", async () => {
+		const players: Player[] = await idb.league.getAll("players");
+		const releasedPlayers = await idb.league.getAll("releasedPlayers");
+		const tierByDivisionId = new Map(
+			structure.competitionDivisions.map((division) => [
+				division.divisionId,
+				division.tier,
+			]),
+		);
+
+		for (const season of completedSeasons) {
+			const before = await getDivisionIdByTid(season);
+			const after = await getDivisionIdByTid(season + 1);
+			const relegatedTids = new Set(
+				[...before]
+					.filter(
+						([tid, divisionId]) =>
+							tierByDivisionId.get(after.get(tid)!)! >
+							tierByDivisionId.get(divisionId)!,
+					)
+					.map(([tid]) => tid),
+			);
+			assert.strictEqual(relegatedTids.size, 3, `${season}`);
+
+			const clausePlayers = players.filter(
+				(p) => p.relegationClause === season,
+			);
+			assert(clausePlayers.length > 0, `${season}: no relegation clauses`);
+			assert(
+				clausePlayers.length <=
+					relegatedTids.size * RELEGATION_CLAUSE_SETTINGS.numPlayers,
+				`${season}`,
+			);
+
+			// Each was at a relegated club that season, which isn't paying the rest
+			// of his contract
+			for (const p of clausePlayers) {
+				const clubTid = p.stats.findLast(
+					(row) => row.season === season && relegatedTids.has(row.tid),
+				)?.tid;
+				assert(clubTid !== undefined, `${season}: pid ${p.pid}`);
+				assert(
+					!releasedPlayers.some(
+						(row) => row.pid === p.pid && row.tid === clubTid,
+					),
+					`${season}: pid ${p.pid}`,
+				);
+			}
+		}
+	});
+
+	test("higher tiers get more national TV money, and champions and promoted clubs get prize money", async () => {
+		const teamSeasons: TeamSeason[] = await idb.league.getAll("teamSeasons");
+		const userTids = g.get("userTids");
+		const tierByDivisionId = new Map(
+			structure.competitionDivisions.map((division) => [
+				division.divisionId,
+				division.tier,
+			]),
+		);
+
+		for (const season of completedSeasons) {
+			// The user's revenue is adjusted for difficulty
+			const rows = teamSeasons.filter(
+				(row) => row.season === season && !userTids.includes(row.tid),
+			);
+			const tvByTier = (tier: number) =>
+				rows
+					.filter((row) => tierByDivisionId.get(row.divisionId!) === tier)
+					.map((row) => row.revenues.nationalTv);
+
+			// Every club plays the same number of games, so each tier's clubs get
+			// the same TV money
+			const top = tvByTier(1);
+			const second = tvByTier(2);
+			assert(Math.max(...top) - Math.min(...top) < 1, `${season}`);
+			assert(Math.max(...second) - Math.min(...second) < 1, `${season}`);
+			assert(
+				Math.abs(top[0]! / second[0]! - getTvShare(1) / getTvShare(2)) < 0.001,
+				`${season}`,
+			);
+		}
+
+		const events: EventBBGM[] = await idb.league.getAll("events");
+		for (const season of completedSeasons) {
+			const seasonEvents = events.filter((event) => event.season === season);
+			const promotions = seasonEvents.filter(
+				(event) => event.type === "promotion",
+			);
+			assert.strictEqual(promotions.length, 3, `${season}`);
+			for (const event of promotions) {
+				assert(event.text?.includes("in prize money"), event.text);
+			}
+			assert.strictEqual(
+				seasonEvents.filter(
+					(event) =>
+						event.type === "playoffs" &&
+						event.text?.includes("finished top of") &&
+						event.text.includes("in prize money"),
+				).length,
+				structure.competitionDivisions.length,
+				`${season}`,
+			);
 		}
 	});
 

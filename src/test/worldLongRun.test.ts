@@ -9,6 +9,8 @@ import type { EventBBGM, Player, TeamSeason } from "../common/types.ts";
 import { unwrapGameAttribute } from "../common/unwrapGameAttribute.ts";
 import { competition, league, team } from "../worker/core/index.ts";
 import { getWageBudgets } from "../worker/core/competition/wageBudgets.ts";
+import { WORLD_REVENUE_SETTINGS } from "../worker/core/competition/worldRevenue.ts";
+import { RELEGATION_CLAUSE_SETTINGS } from "../worker/core/competition/relegationClauses.ts";
 import createStreamFromLeagueObject from "../worker/core/league/create/createStreamFromLeagueObject.ts";
 import { idb } from "../worker/db/index.ts";
 import { g, helpers, local, lock } from "../worker/util/index.ts";
@@ -39,6 +41,20 @@ const STARTING_SEASON = 2026;
 // WORLD_LONG_RUN_CONTROL=1 plays an ordinary ZenGM league of random players
 // instead, to compare the player pool against, and skips the World analysis
 const CONTROL = env.WORLD_LONG_RUN_CONTROL === "1";
+
+// WORLD_LONG_RUN_REVENUE overrides some of WORLD_REVENUE_SETTINGS with JSON,
+// for tuning them
+if (env.WORLD_LONG_RUN_REVENUE) {
+	Object.assign(WORLD_REVENUE_SETTINGS, JSON.parse(env.WORLD_LONG_RUN_REVENUE));
+}
+
+// WORLD_LONG_RUN_CLAUSES does the same for RELEGATION_CLAUSE_SETTINGS
+if (env.WORLD_LONG_RUN_CLAUSES) {
+	Object.assign(
+		RELEGATION_CLAUSE_SETTINGS,
+		JSON.parse(env.WORLD_LONG_RUN_CLAUSES),
+	);
+}
 
 const errors: unknown[] = [];
 const onUnhandledRejection = (error: unknown) => {
@@ -307,6 +323,26 @@ const analyzeSeasons = async (snapshots: Snapshot[]) => {
 			}
 		}
 
+		// Players who walked away from relegated clubs at the end of this season,
+		// by the tier they played in next season
+		const clausePlayers = players.filter((p) => p.relegationClause === season);
+		const nextTierByTid = new Map(
+			teamSeasons
+				.filter((row) => row.season === season + 1)
+				.map((row) => [row.tid, divisionById.get(row.divisionId!)?.tier]),
+		);
+		const relegationClauses: Record<string, number> = {
+			players: clausePlayers.length,
+		};
+		for (const p of clausePlayers) {
+			const tid = p.stats.findLast((row) => row.season === season + 1)?.tid;
+			const key =
+				tid === undefined
+					? "no club next season"
+					: `tier ${nextTierByTid.get(tid) ?? "?"} next season`;
+			relegationClauses[key] = (relegationClauses[key] ?? 0) + 1;
+		}
+
 		const eventCounts: Record<string, number> = {};
 		for (const event of events) {
 			if (event.season === season) {
@@ -361,6 +397,7 @@ const analyzeSeasons = async (snapshots: Snapshot[]) => {
 			finances,
 			boardObjectives,
 			eventCounts,
+			relegationClauses,
 			divisionAwardCounts,
 			awardProblems,
 			otherAwards: (awards?.awards ?? [])
@@ -411,12 +448,74 @@ const analyzeSeasons = async (snapshots: Snapshot[]) => {
 		}
 	}
 
+	// How often promoted clubs go straight back down, by the tier they were
+	// promoted into, and how often relegated clubs go straight back up
+	const promotionSurvival: Record<
+		string,
+		{
+			promoted: number;
+			relegatedNextSeason: number;
+			champions: number;
+			championsRelegated: number;
+			playoffWinners: number;
+			playoffWinnersRelegated: number;
+		}
+	> = {};
+	const relegationReturns = { relegated: 0, promotedNextSeason: 0 };
+	const withoutPlayoff = (name: string) => name.replace(/ \(playoff\)$/, "");
+	for (let i = 0; i < seasons.length - 1; i++) {
+		const current = Map.groupBy(seasons[i]!.divisions, (d) => d.country);
+		const next = Map.groupBy(seasons[i + 1]!.divisions, (d) => d.country);
+		for (const [country, divisions] of current) {
+			for (const [tierIndex, division] of divisions.entries()) {
+				const upper = next.get(country)?.[tierIndex - 1];
+				if (upper) {
+					const row = (promotionSurvival[`into tier ${tierIndex}`] ??= {
+						promoted: 0,
+						relegatedNextSeason: 0,
+						champions: 0,
+						championsRelegated: 0,
+						playoffWinners: 0,
+						playoffWinnersRelegated: 0,
+					});
+					const champion = division.champion?.replace(/ \(\d+ pts\)$/, "");
+					for (const name of division.promoted) {
+						const down = upper.relegated.includes(withoutPlayoff(name));
+						row.promoted += 1;
+						row.relegatedNextSeason += down ? 1 : 0;
+						if (name.endsWith("(playoff)")) {
+							row.playoffWinners += 1;
+							row.playoffWinnersRelegated += down ? 1 : 0;
+						}
+						if (withoutPlayoff(name) === champion) {
+							row.champions += 1;
+							row.championsRelegated += down ? 1 : 0;
+						}
+					}
+				}
+
+				const lower = next.get(country)?.[tierIndex + 1];
+				if (lower) {
+					const promotedNext = lower.promoted.map(withoutPlayoff);
+					for (const name of division.relegated) {
+						relegationReturns.relegated += 1;
+						relegationReturns.promotedNextSeason += promotedNext.includes(name)
+							? 1
+							: 0;
+					}
+				}
+			}
+		}
+	}
+
 	return {
 		seasons,
 		clubMovement: {
 			numClubs: tiersByTid.size,
 			numNeverMoved,
 			numYoYos,
+			promotionSurvival,
+			relegationReturns,
 		},
 		championsByDivision,
 	};
@@ -692,6 +791,8 @@ describe.runIf(NUM_SEASONS > 0)("a realistic World over many seasons", () => {
 				snapshots,
 				analysis,
 				errors: errors.map(String),
+				revenueSettings: WORLD_REVENUE_SETTINGS,
+				clauseSettings: RELEGATION_CLAUSE_SETTINGS,
 			});
 			await writeReport("summary.md", formatSummary(snapshots, analysis));
 			await logProgress("report written");

@@ -8,6 +8,7 @@ import {
 	getWageBudget,
 	MAX_WAGE_BUDGET_CAP_MULTIPLE,
 } from "./transferMarket.ts";
+import { getProjectedRevenue } from "./worldRevenue.ts";
 
 /**
  * Every active club's wage budget, in thousands of dollars, from its revenue,
@@ -24,9 +25,24 @@ export const getWageBudgets = async () => {
 		"teamSeasonsBySeasonTid",
 		[[revenueSeason], [revenueSeason, "Z"]],
 	);
+	const tierByDivisionId = new Map(
+		getCompetitionStructure().competitionDivisions.map((division) => [
+			division.divisionId,
+			division.tier,
+		]),
+	);
+	const getTier = (divisionId: number | undefined) =>
+		divisionId === undefined ? undefined : tierByDivisionId.get(divisionId);
+
 	const financesByTid = new Map<
 		number,
-		{ revenue: number; runningCosts: number; cash: number }
+		{
+			revenue: number;
+			nationalTv: number;
+			lastTier: number;
+			runningCosts: number;
+			cash: number;
+		}
 	>();
 	for (const teamSeason of teamSeasons) {
 		let revenue = 0;
@@ -36,6 +52,8 @@ export const getWageBudgets = async () => {
 		const { coaching, facilities, health, scouting } = teamSeason.expenses;
 		financesByTid.set(teamSeason.tid, {
 			revenue,
+			nationalTv: teamSeason.revenues.nationalTv,
+			lastTier: getTier(teamSeason.divisionId) ?? 1,
 			runningCosts: coaching + facilities + health + scouting,
 			cash: teamSeason.cash,
 		});
@@ -54,7 +72,16 @@ export const getWageBudgets = async () => {
 			t.tid,
 			getWageBudget({
 				salaryCap: g.get("salaryCap"),
-				revenue: finances?.revenue,
+				// Epic 8: budgeting for the TV money of the Division the club is in now,
+				// after any promotion or relegation
+				revenue: finances
+					? getProjectedRevenue({
+							revenue: finances.revenue,
+							nationalTv: finances.nationalTv,
+							lastTier: finances.lastTier,
+							tier: getTier(t.divisionId) ?? finances.lastTier,
+						})
+					: undefined,
 				runningCosts: finances?.runningCosts ?? 0,
 				cash: finances?.cash ?? 0,
 				minWageBudget,

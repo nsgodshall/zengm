@@ -14,6 +14,7 @@ import { getAdjustedTicketPrice } from "../../../common/getAdjustedTicketPrice.t
 import { bySport, isSport } from "../../../common/sportFunctions.ts";
 import { isSingleDivision } from "../competition/competitionStructure.ts";
 import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
+import { getTvShare } from "../competition/worldRevenue.ts";
 
 const writeTeamStats = async (results: GameResults) => {
 	const allStarGame = results.team[0].id === -1 && results.team[1].id === -2;
@@ -172,6 +173,17 @@ const writeTeamStats = async (results: GameResults) => {
 				merchRevenue =
 					(salaryCapFactor2 * ((2500 / g.get("numGames")) * baseAttendance)) /
 					g.get("defaultStadiumCapacity");
+			}
+
+			// International Soccer Zen GM mod (Epic 8): in a World, a club's national
+			// TV money depends on its Division's tier (see competition/worldRevenue.ts)
+			const structure = getCompetitionStructure();
+			if (!isSingleDivision(structure)) {
+				const tier =
+					structure.competitionDivisions.find(
+						(division) => division.divisionId === teamSeason.divisionId,
+					)?.tier ?? 1;
+				nationalTvRevenue *= getTvShare(tier);
 			}
 		}
 
