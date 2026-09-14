@@ -1,4 +1,5 @@
 import { idb } from "../db/index.ts";
+import { competition } from "../core/index.ts";
 import { g, local, updatePlayMenu } from "../util/index.ts";
 import type {
 	Award,
@@ -266,6 +267,34 @@ const updateHistory = async (
 		});
 		retiredPlayers.sort((a, b) => b.stat - a.stat);
 
+		// International Soccer Zen GM mod (Epic 6): each Division's champion and
+		// who went up and down, with club names
+		const club = (tid: number) => {
+			const t = teamsByTid[tid];
+			return {
+				tid,
+				abbrev: t?.seasonAttrs.abbrev ?? "???",
+				region: t?.seasonAttrs.region ?? "",
+				name: t?.seasonAttrs.name ?? "",
+			};
+		};
+		const worldSummary = (await competition.getWorldSeasonSummary(season))?.map(
+			(country) => ({
+				...country,
+				divisions: country.divisions.map((division) => ({
+					...division,
+					champion: division.champion
+						? { ...division.champion, ...club(division.champion.tid) }
+						: undefined,
+					promoted: division.promoted.map((row) => ({
+						...row,
+						...club(row.tid),
+					})),
+					relegated: division.relegated.map(club),
+				})),
+			}),
+		);
+
 		// Get champs
 		const champ = teams.find(
 			(t) =>
@@ -281,6 +310,7 @@ const updateHistory = async (
 			retiredPlayers,
 			retiredStat,
 			season,
+			worldSummary,
 		};
 	}
 };

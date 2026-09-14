@@ -7,6 +7,7 @@ import {
 import {
 	getContractSeasonsLeft,
 	getTransferFee,
+	getTransferFunds,
 } from "../core/competition/transferMarket.ts";
 import { getWageBudgets } from "../core/competition/wageBudgets.ts";
 import isUntradable from "../core/trade/isUntradable.ts";
@@ -231,10 +232,14 @@ const updateTransferMarket = async (
 			[season, userTid],
 		);
 
+		const wageBudget = (await getWageBudgets()).get(userTid) ?? 0;
+
 		return {
 			academyPlayers,
 			// Millions of dollars
 			cash: (teamSeason?.cash ?? 0) / 1000,
+			transferFunds:
+				getTransferFunds({ cash: teamSeason?.cash ?? 0, wageBudget }) / 1000,
 			maxRosterSize: g.get("maxRosterSize"),
 			numPlayersOnRoster: (
 				await idb.cache.players.indexGetAll("playersByTid", userTid)
@@ -248,7 +253,7 @@ const updateTransferMarket = async (
 			transferWindow: await competition.getCurrentTransferWindow(),
 			userAcademyPlayers,
 			userPlayers,
-			wageBudget: ((await getWageBudgets()).get(userTid) ?? 0) / 1000,
+			wageBudget: wageBudget / 1000,
 		};
 	}
 };

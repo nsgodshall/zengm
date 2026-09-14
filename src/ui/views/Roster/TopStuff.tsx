@@ -155,6 +155,7 @@ const TopStuff = ({
 	worldDivision,
 	academy,
 	wageBudget,
+	clubInfo,
 }: Pick<
 	View<"roster">,
 	| "abbrev"
@@ -173,6 +174,7 @@ const TopStuff = ({
 	| "worldDivision"
 	| "academy"
 	| "wageBudget"
+	| "clubInfo"
 > & {
 	currentSeason: number;
 	openRosterSpots: number;
@@ -287,6 +289,15 @@ const TopStuff = ({
 									</a>
 								</div>
 							) : null}
+							{clubInfo ? (
+								// International Soccer Zen GM mod (Epic 6)
+								<div>
+									Stadium: {helpers.numberWithCommas(clubInfo.stadiumCapacity)}{" "}
+									· Market: {clubInfo.pop.toFixed(1)}M,{" "}
+									{helpers.ordinal(clubInfo.marketRank)} of{" "}
+									{clubInfo.numClubsInCountry} in {clubInfo.countryName}
+								</div>
+							) : null}
 							{worldDivision ? (
 								// International Soccer Zen GM mod (Epic 6): a World club's Division
 								<div>
@@ -399,6 +410,16 @@ const TopStuff = ({
 						{isCurrentSeason && wageBudget !== undefined ? (
 							// International Soccer Zen GM mod (Epic 4)
 							<div>Wage budget: {helpers.formatCurrency(wageBudget, "M")}</div>
+						) : null}
+						{isCurrentSeason && clubInfo?.transferFunds !== undefined ? (
+							// International Soccer Zen GM mod (Epic 6)
+							<div>
+								Cash: {helpers.formatCurrency(clubInfo.cash, "M")} ·{" "}
+								<span title="The most the club can pay in transfer fees: its cash, plus going into debt down to half its wage budget">
+									Transfer funds
+								</span>
+								: {helpers.formatCurrency(clubInfo.transferFunds, "M")}
+							</div>
 						) : null}
 						{isCurrentSeason && salaryCapType !== "none" ? (
 							<div>

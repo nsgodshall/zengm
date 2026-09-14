@@ -50,6 +50,37 @@ export const getAcademyPlayers = async (tid?: number) => {
 	);
 };
 
+/**
+ * How many academy players there are and the best prospect among them, with
+ * ratings fuzzed by the user's scouting like on the academy page
+ */
+export const summarizeAcademyPlayers = async (players: Player[]) => {
+	const playersPlus = await idb.getCopies.playersPlus(players, {
+		attrs: ["pid", "firstName", "lastName", "age", "valueFuzz"],
+		ratings: ["ovr", "pot", "pos"],
+		season: g.get("season"),
+		showNoStats: true,
+		showRookies: true,
+		fuzz: true,
+	});
+
+	const best = playersPlus.sort((a, b) => b.valueFuzz - a.valueFuzz)[0];
+
+	return {
+		numPlayers: players.length,
+		best: best
+			? {
+					pid: best.pid as number,
+					name: `${best.firstName} ${best.lastName}`,
+					age: best.age as number,
+					ovr: best.ratings.ovr as number,
+					pot: best.ratings.pot as number,
+					pos: best.ratings.pos as string,
+				}
+			: undefined,
+	};
+};
+
 export const getAcademyClubs = async () => {
 	const tierByDivisionId = new Map(
 		getCompetitionStructure().competitionDivisions.map((division) => [
@@ -143,6 +174,46 @@ const addIntake = async (graduationSeason: number, clubs: AcademyClub[]) => {
 		await player.addRelatives(p);
 
 		await player.updateValues(p);
+	}
+
+	return prospects as Player[];
+};
+
+/**
+ * Like youth intake day in Football Manager: the user hears how many players
+ * joined their academy and who the pick of them is
+ */
+const reportUserIntakes = async (intake: Player[]) => {
+	for (const tid of g.get("userTids")) {
+		const academyUrl = helpers.leagueUrl([
+			"academy",
+			`${g.get("teamInfoCache")[tid]?.abbrev}_${tid}`,
+		]);
+		const { numPlayers, best } = await summarizeAcademyPlayers(
+			intake.filter((p) => p.academyTid === tid),
+		);
+
+		let text;
+		if (!best) {
+			text = `No new players joined your <a href="${academyUrl}">academy</a> this year.`;
+		} else {
+			const ratings = g.get("challengeNoRatings")
+				? ""
+				: `, ${best.ovr} ovr, ${best.pot} pot`;
+			text = `Youth intake day: ${numPlayers} new ${
+				numPlayers === 1 ? "player has" : "players have"
+			} joined your <a href="${academyUrl}">academy</a>. The pick of them is <a href="${helpers.leagueUrl(
+				["player", best.pid],
+			)}">${best.name}</a> (${best.pos}, age ${best.age}${ratings}).`;
+		}
+
+		await logEvent({
+			type: "academy",
+			text,
+			showNotification: true,
+			pids: best ? [best.pid] : [],
+			tids: [tid],
+		});
 	}
 };
 
@@ -389,7 +460,10 @@ const doAcademySummer = async () => {
 	await idb.cache.flush();
 
 	const { numCohorts } = getAcademyAges(g.get("draftAges"));
-	await addIntake(season + numCohorts, clubs);
+	const intake = await addIntake(season + numCohorts, clubs);
+	if (!aiRunsUserClubs) {
+		await reportUserIntakes(intake);
+	}
 
 	await toUI("realtimeUpdate", [["playerMovement"]]);
 };

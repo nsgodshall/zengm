@@ -496,6 +496,80 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		}
 	});
 
+	test("the season summary names each Division's champion and who went up and down", async () => {
+		for (const season of completedSeasons) {
+			const tables = await competition.getDivisionTables(season);
+			const before = await getDivisionIdByTid(season);
+			const after = await getDivisionIdByTid(season + 1);
+			const tierByDivisionId = new Map(
+				structure.competitionDivisions.map((division) => [
+					division.divisionId,
+					division.tier,
+				]),
+			);
+
+			const summary = (await competition.getWorldSeasonSummary(season))!;
+			assert.deepStrictEqual(
+				summary.map((country) => country.name),
+				["Northland", "Southland"],
+			);
+
+			let numPlayoffPromotions = 0;
+			for (const division of summary.flatMap((country) => country.divisions)) {
+				assert.strictEqual(
+					division.champion?.tid,
+					tables[division.divisionId]![0]!.tid,
+				);
+
+				const movedTids = (up: boolean) =>
+					[...before]
+						.filter(([tid, divisionId]) => {
+							const toTier = tierByDivisionId.get(after.get(tid)!)!;
+							return (
+								divisionId === division.divisionId &&
+								(up ? toTier < division.tier : toTier > division.tier)
+							);
+						})
+						.map(([tid]) => tid)
+						.sort(byTid);
+
+				assert.deepStrictEqual(
+					division.promoted.map((row) => row.tid).sort(byTid),
+					movedTids(true),
+					`${season} ${division.name}`,
+				);
+				assert.deepStrictEqual(
+					[...division.relegated].sort(byTid),
+					movedTids(false),
+					`${season} ${division.name}`,
+				);
+				numPlayoffPromotions += division.promoted.filter(
+					(row) => row.viaPlayoff,
+				).length;
+			}
+
+			// Only Southland has a promotion playoff
+			assert.strictEqual(numPlayoffPromotions, 1, `${season}`);
+		}
+	});
+
+	test("a club's team page has its stadium, market size rank in its Country, and money", async () => {
+		const currentSeason = g.get("season");
+		for (const t of await idb.cache.teams.getAll()) {
+			const info = (await competition.getClubInfo(t.tid, currentSeason))!;
+			assert.strictEqual(info.numClubsInCountry, 2 * CLUBS_PER_DIVISION);
+			assert(info.marketRank >= 1 && info.marketRank <= 2 * CLUBS_PER_DIVISION);
+			assert(info.stadiumCapacity > 0);
+			assert(info.transferFunds !== undefined && info.transferFunds >= 0);
+
+			const pastInfo = (await competition.getClubInfo(
+				t.tid,
+				currentSeason - 1,
+			))!;
+			assert.strictEqual(pastInfo.transferFunds, undefined);
+		}
+	});
+
 	test("a club's team page summary counts its academy players and names its best prospect", async () => {
 		for (const t of await idb.cache.teams.getAll()) {
 			const academyPlayers = await competition.getAcademyPlayers(t.tid);

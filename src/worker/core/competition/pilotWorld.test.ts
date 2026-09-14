@@ -8,6 +8,7 @@ import {
 	generateWorld,
 	makeAbbrev,
 	PILOT_CLUBS_PER_DIVISION,
+	repeatsWord,
 } from "./pilotWorld.ts";
 import { WORLD_COUNTRIES } from "./worldCountries.ts";
 import {
@@ -224,6 +225,10 @@ describe("generateWorld", () => {
 							worldCountry.realClubNames,
 						),
 					).toBe(false);
+					expect(
+						repeatsWord(club.region, club.name),
+						`${club.region} ${club.name}`,
+					).toBe(false);
 				}
 			}
 		}
@@ -259,6 +264,15 @@ describe("generateWorld", () => {
 			);
 		}
 		expect(penaltyOf("USA")).toBe(0);
+	});
+});
+
+describe("repeatsWord", () => {
+	test("catches a name repeating a word of its region, ignoring case", () => {
+		expect(repeatsWord("Oklahoma City", "City")).toBe(true);
+		expect(repeatsWord("Salt Lake City", "city fc")).toBe(true);
+		expect(repeatsWord("Oklahoma City", "FC")).toBe(false);
+		expect(repeatsWord("Atlético Huelva", "CF")).toBe(false);
 	});
 });
 

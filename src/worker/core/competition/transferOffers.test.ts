@@ -5,6 +5,7 @@ import {
 	getAiOfferFee,
 	getAskingPrice,
 	getContractSeasonsLeft,
+	getTransferFunds,
 	MAX_ASKING_PRICE_MULTIPLE,
 	respondToTransferOffer,
 	tickTransferOffers,
@@ -92,6 +93,13 @@ describe("canAffordFee", () => {
 		expect(canAffordFee({ cash: 10000, fee: 60001, wageBudget: 100000 })).toBe(
 			false,
 		);
+	});
+});
+
+describe("getTransferFunds", () => {
+	test("is cash plus half the wage budget, and never below 0", () => {
+		expect(getTransferFunds({ cash: 10000, wageBudget: 100000 })).toBe(60000);
+		expect(getTransferFunds({ cash: -80000, wageBudget: 100000 })).toBe(0);
 	});
 });
 

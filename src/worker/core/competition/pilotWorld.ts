@@ -84,9 +84,20 @@ const chooseTowns = (
 	return chosen.sort((a, b) => b.size - a.size).map(({ town }) => town);
 };
 
+// Whether a club's name repeats a word from its region, like "Oklahoma City
+// City"
+export const repeatsWord = (region: string, name: string) => {
+	const regionWords = new Set(region.toLowerCase().split(" "));
+	return name
+		.toLowerCase()
+		.split(" ")
+		.some((word) => regionWords.has(word));
+};
+
 /**
  * A name for a club in `town`, from its Country's name patterns, that doesn't
- * copy a real club (see isRealClubName) or a club already in this World
+ * copy a real club (see isRealClubName) or a club already in this World, or
+ * repeat a word of its town
  */
 const nameClub = ({
 	town,
@@ -110,7 +121,8 @@ const nameClub = ({
 			const fullName = `${region} ${name}`;
 			return (
 				!takenNames.has(fullName) &&
-				!isRealClubName(fullName, country.realClubNames)
+				!isRealClubName(fullName, country.realClubNames) &&
+				!repeatsWord(region, name)
 			);
 		}) ?? candidates[0]!;
 	takenNames.add(`${club.region} ${club.name}`);

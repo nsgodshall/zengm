@@ -59,6 +59,44 @@ export const getSeasonProgress = (today: number, lastDay: number) => {
 	return Math.min(1, Math.max(0, (today - 1) / lastDay));
 };
 
+/**
+ * The schedule days the winter window is open, from `openDay` up to but not
+ * including `closeDay`, for news about it. `lastDay` is the regular season's
+ * last schedule day and `deadlineDay` the trade deadline's, if it has one,
+ * since reaching the deadline ends the window even if getTransferWindow would
+ * still have it open. Undefined if it never opens.
+ */
+export const getWinterWindowDays = ({
+	lastDay,
+	tradeDeadline,
+	deadlineDay,
+}: {
+	lastDay: number;
+	tradeDeadline: number;
+	deadlineDay?: number;
+}) => {
+	const lastWindowDay = Math.min(lastDay, (deadlineDay ?? Infinity) - 1);
+
+	let openDay;
+	for (let day = 1; day <= lastWindowDay; day++) {
+		const open =
+			getTransferWindow({
+				phase: PHASE.REGULAR_SEASON,
+				seasonProgress: getSeasonProgress(day, lastDay),
+				tradeDeadline,
+			}) === "winter";
+		if (open && openDay === undefined) {
+			openDay = day;
+		} else if (!open && openDay !== undefined) {
+			return { openDay, closeDay: day };
+		}
+	}
+
+	return openDay === undefined
+		? undefined
+		: { openDay, closeDay: lastWindowDay + 1 };
+};
+
 // Younger players cost more, since they have more good seasons ahead of them
 const getAgeFactor = (age: number) => {
 	if (age <= 21) {
@@ -220,9 +258,18 @@ export const getContractSeasonsLeft = ({
 export const MAX_DEBT_FRACTION_OF_WAGE_BUDGET = 0.5;
 
 /**
- * Whether a club can pay a transfer fee, going into debt down to
- * MAX_DEBT_FRACTION_OF_WAGE_BUDGET of its wage budget. Thousands of dollars.
+ * The most a club can pay in transfer fees: its cash, plus going into debt down
+ * to MAX_DEBT_FRACTION_OF_WAGE_BUDGET of its wage budget. Thousands of dollars.
  */
+export const getTransferFunds = ({
+	cash,
+	wageBudget,
+}: {
+	cash: number;
+	wageBudget: number;
+}) => Math.max(0, cash + MAX_DEBT_FRACTION_OF_WAGE_BUDGET * wageBudget);
+
+/** Whether a club can pay a transfer fee (see getTransferFunds) */
 export const canAffordFee = ({
 	cash,
 	fee,
@@ -231,7 +278,7 @@ export const canAffordFee = ({
 	cash: number;
 	fee: number;
 	wageBudget: number;
-}) => cash - fee >= -MAX_DEBT_FRACTION_OF_WAGE_BUDGET * wageBudget;
+}) => fee <= getTransferFunds({ cash, wageBudget });
 
 // A club can do without a player if losing him costs it no more than this much
 // value (the same scale as AI trades). It sells a player like that at his plain

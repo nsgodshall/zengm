@@ -5,8 +5,48 @@ import {
 	getTransferFee,
 	getTransferWindow,
 	getWageBudget,
+	getWinterWindowDays,
 	canSignWithinWageBudget,
 } from "./transferMarket.ts";
+
+describe("getWinterWindowDays", () => {
+	test("matches the days getTransferWindow has the winter window open", () => {
+		for (const tradeDeadline of [0.1, 0.45, 0.6, 1]) {
+			for (const lastDay of [30, 99, 100, 164]) {
+				const days = getWinterWindowDays({ lastDay, tradeDeadline })!;
+				for (let day = 1; day <= lastDay; day++) {
+					const open =
+						getTransferWindow({
+							phase: PHASE.REGULAR_SEASON,
+							seasonProgress: getSeasonProgress(day, lastDay),
+							tradeDeadline,
+						}) === "winter";
+					expect(open, `${tradeDeadline} ${lastDay} ${day}`).toBe(
+						day >= days.openDay && day < days.closeDay,
+					);
+				}
+			}
+		}
+	});
+
+	test("the trade deadline day closes it", () => {
+		const days = getWinterWindowDays({ lastDay: 100, tradeDeadline: 0.5 })!;
+		expect(
+			getWinterWindowDays({
+				lastDay: 100,
+				tradeDeadline: 0.5,
+				deadlineDay: days.closeDay - 2,
+			}),
+		).toEqual({ openDay: days.openDay, closeDay: days.closeDay - 2 });
+		expect(
+			getWinterWindowDays({
+				lastDay: 100,
+				tradeDeadline: 0.5,
+				deadlineDay: days.openDay,
+			}),
+		).toBeUndefined();
+	});
+});
 
 describe("getTransferWindow", () => {
 	test("the summer window is open from the end of the season through the preseason", () => {

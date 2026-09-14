@@ -42,6 +42,7 @@ const TransferMarket = ({
 	userAcademyPlayers,
 	userPlayers,
 	wageBudget,
+	transferFunds,
 }: View<"transferMarket">) => {
 	useTitleBar({ title: "Transfer Market" });
 
@@ -458,7 +459,9 @@ const TransferMarket = ({
 				{transferWindow
 					? `The ${transferWindow} transfer window is open.`
 					: "The transfer window is closed. The winter window opens late in the regular season, up to the trade deadline, and the summer window opens when the regular season ends."}{" "}
-				Your club has {formatMillions(cash)} in cash and a payroll of{" "}
+				Your club has {formatMillions(cash)} in cash, so it can spend up to{" "}
+				<b>{formatMillions(transferFunds)}</b> on transfer fees (your board lets
+				you go into debt down to half your wage budget). Your payroll is{" "}
 				{formatMillions(payroll)} against a wage budget of{" "}
 				{formatMillions(wageBudget)}, with {numPlayersOnRoster} of{" "}
 				{maxRosterSize} players. A player keeps his contract when he moves, and

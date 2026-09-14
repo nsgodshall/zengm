@@ -10,6 +10,7 @@ import { choice } from "../../../common/random.ts";
 import { ValueChangeCalculator } from "../team/ValueChangeCalculator.ts";
 import transfersBetweenAiClubs from "../competition/aiTransfers.ts";
 import { dailyTransferOffers } from "../competition/aiOffers.ts";
+import transferWindowNews from "../competition/transferWindowNews.ts";
 import { isSingleDivision } from "../competition/competitionStructure.ts";
 import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
 
@@ -157,6 +158,7 @@ const betweenAiTeams = async () => {
 	if (!isSingleDivision(getCompetitionStructure())) {
 		await transfersBetweenAiClubs();
 		await dailyTransferOffers();
+		await transferWindowNews();
 		return false;
 	}
 

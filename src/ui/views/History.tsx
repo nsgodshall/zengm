@@ -154,6 +154,97 @@ const splitTeamAwards = <T extends { numTeams: number }>(teamAwards: T[]) => {
 	return { teamAwards1, teamAwards2 };
 };
 
+// International Soccer Zen GM mod (Epic 6): what happened in each of a World's
+// Divisions, like the season summary on a soccer league's Wikipedia page
+const WorldSeason = ({
+	season,
+	userTid,
+	worldSummary,
+}: {
+	season: number;
+	userTid: number;
+	worldSummary: NonNullable<ActualProps["worldSummary"]>;
+}) => {
+	const clubLink = (t: {
+		tid: number;
+		abbrev: string;
+		region: string;
+		name: string;
+	}) => (
+		<span className={t.tid === userTid ? "table-info" : undefined}>
+			<a href={helpers.leagueUrl(["roster", `${t.abbrev}_${t.tid}`, season])}>
+				{t.region} {t.name}
+			</a>
+		</span>
+	);
+
+	return (
+		<div className="row">
+			{worldSummary.map((country) => (
+				<div
+					key={country.countryId}
+					className="col-xl-3 col-lg-4 col-sm-6 col-12 mb-3"
+				>
+					<h2>{country.name}</h2>
+					{country.divisions.map((division) => (
+						<div key={division.divisionId} className="mb-3">
+							<a
+								className="fw-bold"
+								href={helpers.leagueUrl(["standings", season])}
+							>
+								{division.name}
+							</a>
+							<div>
+								Champions:{" "}
+								{division.champion ? (
+									<>
+										{clubLink(division.champion)} ({division.champion.points}{" "}
+										pts)
+									</>
+								) : (
+									NO_WINNER
+								)}
+							</div>
+							{division.promoted.length > 0 ? (
+								<div>
+									<span className="text-success">▲</span> Promoted:{" "}
+									{division.promoted.map((t, i) => (
+										<React.Fragment key={t.tid}>
+											{i > 0 ? ", " : null}
+											{clubLink(t)}
+											{t.viaPlayoff ? (
+												<>
+													{" "}
+													(
+													<a href={helpers.leagueUrl(["playoffs", season])}>
+														playoff
+													</a>
+													)
+												</>
+											) : null}
+										</React.Fragment>
+									))}
+								</div>
+							) : null}
+							{division.relegated.length > 0 ? (
+								<div>
+									<span className="text-danger">▼</span> Relegated:{" "}
+									{division.relegated.map((t, i) => (
+										<React.Fragment key={t.tid}>
+											{i > 0 ? ", " : null}
+											{clubLink(t)}
+										</React.Fragment>
+									))}
+								</div>
+							) : null}
+						</div>
+					))}
+				</div>
+			))}
+		</div>
+	);
+};
+
 const History = (props: View<"history">) => {
 	const { invalidSeason, season } = props;
 
@@ -177,7 +268,8 @@ const History = (props: View<"history">) => {
 		);
 	}
 
-	const { awards, champ, confs, retiredPlayers, retiredStat } = props;
+	const { awards, champ, confs, retiredPlayers, retiredStat, worldSummary } =
+		props;
 
 	const { teamAwards1, teamAwards2 } = splitTeamAwards(awards.teamAwards);
 
@@ -191,10 +283,19 @@ const History = (props: View<"history">) => {
 		<>
 			<MoreLinks type="awards" page="history" season={season} />
 
+			{worldSummary ? (
+				<WorldSeason
+					season={season}
+					userTid={userTid}
+					worldSummary={worldSummary}
+				/>
+			) : null}
+
 			<div className="row">
 				<div className="col-md-3 col-sm-4 col-12">
 					<div className="row">
-						<div className="col-sm-12 col-6">
+						{/* International Soccer Zen GM mod (Epic 6): a World's champions are above */}
+						<div className="col-sm-12 col-6" hidden={!!worldSummary}>
 							<h2>League Champs</h2>
 							{champ ? (
 								<div>
