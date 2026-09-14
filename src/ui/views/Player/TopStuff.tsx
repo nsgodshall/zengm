@@ -33,6 +33,11 @@ import {
 } from "../../components/NegotiationModal.tsx";
 import { useLocal } from "../../util/local.ts";
 import { isWorld } from "../../util/isWorld.ts";
+import {
+	makeTransferOffer,
+	requestLoan,
+	showTransferError,
+} from "../../util/transferActions.ts";
 
 const Relatives = ({
 	gender,
@@ -294,8 +299,10 @@ const TopStuff = ({
 	teamName,
 	teamURL,
 	willingToSign,
+	transferInfo,
 }: Pick<
 	View<"player">,
+	| "transferInfo"
 	| "bestPos"
 	| "jerseyNumberInfos"
 	| "player"
@@ -490,8 +497,145 @@ const TopStuff = ({
 
 	const negotiationModal = useNegotiaionModal();
 
+	// International Soccer Zen GM mod (Epic 6): transfer, loan, and academy
+	// actions for a World player at a club
+	const transferButtons: ReactNode[] = [];
+	if (transferInfo && !spectator && !retired) {
+		const windowClosedTitle = transferInfo.transferWindow
+			? undefined
+			: "The transfer window is closed";
+
+		if (!transferInfo.userClub && !transferInfo.onLoan) {
+			if (!transferInfo.inAcademy || transferInfo.academyForSale) {
+				transferButtons.push(
+					<button
+						className="btn btn-light-bordered"
+						disabled={!transferInfo.transferWindow}
+						key="offer"
+						onClick={() =>
+							makeTransferOffer({
+								pid: player.pid,
+								abbrev: transferInfo.abbrev,
+								name: player.name,
+								fee: transferInfo.fee,
+								academy: transferInfo.inAcademy,
+							})
+						}
+						title={windowClosedTitle}
+					>
+						Make offer
+					</button>,
+				);
+			}
+			if (!transferInfo.inAcademy) {
+				transferButtons.push(
+					<button
+						className="btn btn-light-bordered"
+						disabled={!transferInfo.transferWindow}
+						key="borrow"
+						onClick={() => requestLoan({ pid: player.pid })}
+						title={
+							windowClosedTitle ??
+							"Ask to borrow him until the summer. You'd pay his wages."
+						}
+					>
+						Borrow
+					</button>,
+				);
+			}
+		} else if (transferInfo.userClub && !transferInfo.onLoan) {
+			transferButtons.push(
+				<button
+					className="btn btn-light-bordered"
+					key="transferList"
+					onClick={async () => {
+						showTransferError(
+							await toWorker("main", "setTransferListed", {
+								pid: player.pid,
+								listed: !transferInfo.transferListed,
+							}),
+						);
+					}}
+					title="Clubs make more offers for players on your transfer list, though for less"
+				>
+					{transferInfo.transferListed
+						? "Remove from transfer list"
+						: "Transfer list"}
+				</button>,
+			);
+
+			if (transferInfo.inAcademy) {
+				transferButtons.push(
+					<button
+						className="btn btn-light-bordered"
+						key="promote"
+						onClick={async () => {
+							const proceed = await confirm(
+								`Promote ${player.name} to your first team? ${helpers.pronoun(
+									gender,
+									"He",
+								)} will sign an academy contract for the minimum wage.`,
+								{ okText: "Promote" },
+							);
+							if (proceed) {
+								showTransferError(
+									await toWorker("main", "promoteAcademyPlayer", {
+										pid: player.pid,
+									}),
+								);
+							}
+						}}
+					>
+						Promote
+					</button>,
+					<button
+						className="btn btn-light-bordered"
+						key="release"
+						onClick={async () => {
+							const proceed = await confirm(
+								`Release ${player.name} from your academy? ${helpers.pronoun(
+									gender,
+									"He",
+								)} will become a free agent.`,
+								{ okText: "Release" },
+							);
+							if (proceed) {
+								showTransferError(
+									await toWorker("main", "releaseAcademyPlayer", {
+										pid: player.pid,
+									}),
+								);
+							}
+						}}
+					>
+						Release
+					</button>,
+				);
+			} else {
+				transferButtons.push(
+					<button
+						className="btn btn-light-bordered"
+						key="loanList"
+						onClick={async () => {
+							showTransferError(
+								await toWorker("main", "setLoanListed", {
+									pid: player.pid,
+									listed: !transferInfo.loanListed,
+								}),
+							);
+						}}
+						title="Clubs ask to borrow players on your loan list until the summer"
+					>
+						{transferInfo.loanListed ? "Remove from loan list" : "Loan list"}
+					</button>,
+				);
+			}
+		}
+	}
+
 	const buttonsAvailableOutsideGodMode = (
 		<>
+			{transferButtons}
 			{!spectator && (showTradeFor || showTradingBlock) ? (
 				<button
 					className="btn btn-light-bordered"

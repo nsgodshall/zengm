@@ -13,36 +13,19 @@ import useTitleBar from "../hooks/useTitleBar.tsx";
 import { confirm } from "../util/confirm.tsx";
 import { helpers } from "../util/helpers.ts";
 import { useLocal } from "../util/local.ts";
-import { showNotification } from "../util/showNotification.ts";
 import { toWorker } from "../util/toWorker.ts";
+import {
+	formatMillions,
+	makeTransferOffer as makeOffer,
+	requestLoan,
+	showTransferError as showError,
+} from "../util/transferActions.ts";
 
 // International Soccer Zen GM mod (Epic 6): the user's transfer business, from
 // worker/views/transferMarket.ts
 
 type MarketPlayer = View<"transferMarket">["players"][number];
 type Offer = View<"transferMarket">["offers"][number];
-
-type OfferTarget = {
-	pid: number;
-	abbrev: string;
-	firstName: string;
-	lastName: string;
-	// Millions of dollars
-	fee: number;
-	academy?: boolean;
-};
-
-// Amounts on this page are in millions of dollars
-const formatMillions = (amount: number) => helpers.formatCurrency(amount, "M");
-
-const showError = (errorMsg: string | undefined | void) => {
-	if (errorMsg) {
-		showNotification({
-			type: "error",
-			text: errorMsg,
-		});
-	}
-};
 
 const TransferMarket = ({
 	academyPlayers,
@@ -65,57 +48,6 @@ const TransferMarket = ({
 	const { challengeNoRatings } = useLocal(["challengeNoRatings"]);
 
 	const canAct = transferWindow !== undefined && !spectator;
-
-	// fee is in thousands of dollars, like contracts in the worker
-	const submitOffer = async (p: OfferTarget, fee: number) => {
-		const result = await toWorker("main", "makeTransferOffer", {
-			pid: p.pid,
-			fee,
-		});
-
-		if (result.type === "counter") {
-			const pay = await confirm(`${result.message} Pay their asking price?`, {
-				okText: `Pay ${formatMillions(result.askingPrice / 1000)}`,
-			});
-			if (pay) {
-				await submitOffer(p, result.askingPrice);
-			}
-		} else {
-			showNotification({
-				type: result.type === "accept" ? "success" : "error",
-				text: result.message,
-			});
-		}
-	};
-
-	const makeOffer = async (p: OfferTarget) => {
-		const input = await confirm(
-			`How much do you offer the ${p.abbrev} for ${p.firstName} ${p.lastName}, in millions of dollars? At market value the fee is about ${formatMillions(p.fee)}, but ${p.academy ? "a club asks double for the best player in its academy" : "a club asks more for a player it would miss"}.`,
-			{
-				defaultValue: String(p.fee),
-				okText: "Make offer",
-			},
-		);
-		if (input === null) {
-			return;
-		}
-
-		const millions = Number.parseFloat(input.replaceAll(/[^\d.]/g, ""));
-		if (Number.isNaN(millions)) {
-			showError("Enter a fee in millions of dollars, like 12.5.");
-			return;
-		}
-
-		await submitOffer(p, Math.round(millions * 1000));
-	};
-
-	const requestLoan = async (p: OfferTarget) => {
-		const result = await toWorker("main", "requestLoan", { pid: p.pid });
-		showNotification({
-			type: result.type === "accept" ? "success" : "error",
-			text: result.message,
-		});
-	};
 
 	const acceptOffer = async (offer: Offer) => {
 		const name = `${offer.firstName} ${offer.lastName}`;
@@ -446,7 +378,9 @@ const TransferMarket = ({
 				<button
 					className="btn btn-xs btn-primary"
 					disabled={!canAct || p.untradableMsg !== undefined}
-					onClick={() => makeOffer(p)}
+					onClick={() =>
+						makeOffer({ ...p, name: `${p.firstName} ${p.lastName}` })
+					}
 					title={p.untradableMsg}
 				>
 					Make offer
@@ -505,7 +439,13 @@ const TransferMarket = ({
 				className="btn btn-xs btn-primary"
 				disabled={!canAct}
 				key="offer"
-				onClick={() => makeOffer({ ...p, academy: true })}
+				onClick={() =>
+					makeOffer({
+						...p,
+						name: `${p.firstName} ${p.lastName}`,
+						academy: true,
+					})
+				}
 			>
 				Make offer
 			</button>,

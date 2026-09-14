@@ -401,6 +401,39 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		);
 	});
 
+	test("a player page's transfer info knows whose player he is and what he'd cost", async () => {
+		const userTid = g.get("userTid");
+
+		const userPlayer = (
+			await idb.cache.players.indexGetAll("playersByTid", userTid)
+		)[0]!;
+		const userInfo = (await competition.getPlayerTransferInfo(userPlayer))!;
+		assert.strictEqual(userInfo.userClub, true);
+		assert.strictEqual(userInfo.inAcademy, false);
+		assert.strictEqual(userInfo.clubTid, userTid);
+
+		const otherProspect = (await competition.getAcademyPlayers()).find(
+			(p) => p.academyTid !== userTid,
+		)!;
+		const prospectInfo =
+			(await competition.getPlayerTransferInfo(otherProspect))!;
+		assert.strictEqual(prospectInfo.userClub, false);
+		assert.strictEqual(prospectInfo.inAcademy, true);
+		assert.strictEqual(prospectInfo.clubTid, otherProspect.academyTid);
+		assert(prospectInfo.fee > 0);
+
+		// Free agents aren't at a club
+		const freeAgent = (
+			await idb.cache.players.indexGetAll("playersByTid", PLAYER.FREE_AGENT)
+		)[0];
+		if (freeAgent) {
+			assert.strictEqual(
+				await competition.getPlayerTransferInfo(freeAgent),
+				undefined,
+			);
+		}
+	});
+
 	test("a World has no minimum payroll fine or luxury tax, even one made before that was decided", async () => {
 		assert.strictEqual(g.get("luxuryTax"), 0);
 		assert.strictEqual(g.get("minPayroll"), 0);

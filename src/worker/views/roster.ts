@@ -208,6 +208,10 @@ const updateRoster = async (
 			"mood",
 			"value",
 			"awards",
+			// International Soccer Zen GM mod (Epic 6): transfer and loan statuses
+			"transferListed",
+			"loanListed",
+			"loan",
 		]; // tid and draft are used for checking if a player can be released without paying his salary
 
 		const ratings = ["ovr", "pot", "dovr", "dpot", "skills", "pos", "ovrs"];

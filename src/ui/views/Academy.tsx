@@ -12,6 +12,10 @@ import { helpers } from "../util/helpers.ts";
 import { useLocal } from "../util/local.ts";
 import { showNotification } from "../util/showNotification.ts";
 import { toWorker } from "../util/toWorker.ts";
+import {
+	makeTransferOffer,
+	showTransferError,
+} from "../util/transferActions.ts";
 
 // International Soccer Zen GM mod (Epic 6): one club's youth academy, from
 // worker/views/academy.ts
@@ -24,12 +28,15 @@ const Academy = ({
 	canManage,
 	contract,
 	graduationAge,
+	isUserClub,
 	maxRosterSize,
 	numClubs,
 	numPlayersOnRoster,
 	phase,
 	players,
 	season,
+	tid,
+	transferWindow,
 }: View<"academy">) => {
 	useTitleBar({
 		title: "Academy",
@@ -37,10 +44,17 @@ const Academy = ({
 		dropdownFields: { teams: abbrev },
 	});
 
-	const { challengeNoRatings, gender } = useLocal([
+	const { challengeNoRatings, gender, spectator, teamInfoCache } = useLocal([
 		"challengeNoRatings",
 		"gender",
+		"spectator",
+		"teamInfoCache",
 	]);
+
+	// International Soccer Zen GM mod (Epic 6): the user can make offers for
+	// another club's academy players while a transfer window is open
+	const canBuy = !isUserClub && !spectator;
+	const clubAbbrev = teamInfoCache[tid]?.abbrev ?? abbrev;
 
 	const name = (p: AcademyPlayer) => `${p.firstName} ${p.lastName}`;
 
@@ -105,7 +119,7 @@ const Academy = ({
 		sortSequence: ["asc", "desc"],
 		sortType: "number",
 	});
-	if (canManage) {
+	if (canManage || canBuy) {
 		cols.push({
 			title: "",
 			sortSequence: [],
@@ -157,9 +171,53 @@ const Academy = ({
 							>
 								Release
 							</button>
+							<button
+								className={
+									p.transferListed
+										? "btn btn-xs btn-secondary"
+										: "btn btn-xs btn-light-bordered"
+								}
+								onClick={async () => {
+									showTransferError(
+										await toWorker("main", "setTransferListed", {
+											pid: p.pid,
+											listed: !p.transferListed,
+										}),
+									);
+								}}
+								title="Clubs make more offers for players on your transfer list, though for less"
+							>
+								{p.transferListed ? "Listed" : "List"}
+							</button>
 						</div>,
 					]
-				: []),
+				: canBuy
+					? [
+							<button
+								className="btn btn-xs btn-primary"
+								disabled={!transferWindow || !p.forSale}
+								key="offer"
+								onClick={() =>
+									makeTransferOffer({
+										pid: p.pid,
+										abbrev: clubAbbrev,
+										name: name(p),
+										fee: p.fee,
+										academy: true,
+									})
+								}
+								title={
+									!transferWindow
+										? "The transfer window is closed"
+										: !p.forSale
+											? "He's leaving the academy this summer"
+											: `Transfer fee at market value: ${helpers.formatCurrency(p.fee, "M")}`
+								}
+							>
+								Make offer
+							</button>,
+						]
+					: []),
 		],
 	}));
 

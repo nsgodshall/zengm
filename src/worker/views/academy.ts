@@ -4,6 +4,10 @@ import {
 	getAcademyAges,
 	getAcademyContract,
 } from "../core/competition/youthAcademy.ts";
+import {
+	getAcademyPlayerFee,
+	isAcademyPlayerForSale,
+} from "../core/competition/academyTransfers.ts";
 import { idb } from "../db/index.ts";
 import { g } from "../util/index.ts";
 import addFirstNameShort from "../util/addFirstNameShort.ts";
@@ -43,6 +47,7 @@ const updateAcademy = async (
 				"draft",
 				"watch",
 				"valueFuzz",
+				"transferListed",
 			],
 			ratings: ["ovr", "pot", "skills", "pos"],
 			showNoStats: true,
@@ -54,7 +59,13 @@ const updateAcademy = async (
 			playersPlus
 				.map((p) => {
 					const ratings = p.ratings.at(-1);
+					const raw = academyPlayers.find((p2) => p2.pid === p.pid)!;
 					return {
+						// International Soccer Zen GM mod (Epic 6): for the transfer
+						// buttons, the fee in millions of dollars like contracts
+						fee: getAcademyPlayerFee(raw) / 1000,
+						forSale: isAcademyPlayerForSale(raw),
+						transferListed: !!p.transferListed,
 						pid: p.pid as number,
 						firstName: p.firstName as string,
 						lastName: p.lastName as string,
@@ -99,6 +110,9 @@ const updateAcademy = async (
 			players,
 			season,
 			tid: inputs.tid,
+			// International Soccer Zen GM mod (Epic 6): for the transfer buttons
+			isUserClub: g.get("userTids").includes(inputs.tid),
+			transferWindow: await competition.getCurrentTransferWindow(),
 		};
 	}
 };

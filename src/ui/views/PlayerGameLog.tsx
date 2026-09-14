@@ -160,6 +160,7 @@ const PlayerGameLog = ({
 	teamName,
 	teamURL,
 	willingToSign,
+	transferInfo,
 	gameLog,
 	season,
 	seasonsWithStats,
@@ -343,6 +344,7 @@ const PlayerGameLog = ({
 				teamName={teamName}
 				teamURL={teamURL}
 				willingToSign={willingToSign}
+				transferInfo={transferInfo}
 			/>
 
 			{noGamesMessage ? (

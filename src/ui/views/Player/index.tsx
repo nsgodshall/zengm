@@ -38,6 +38,7 @@ const Player2 = ({
 	teamName,
 	teamURL,
 	willingToSign,
+	transferInfo,
 }: View<"player">) => {
 	const { challengeNoRatings, season: currentSeason } = useLocal([
 		"challengeNoRatings",
@@ -110,6 +111,7 @@ const Player2 = ({
 				teamName={teamName}
 				teamURL={teamURL}
 				willingToSign={willingToSign}
+				transferInfo={transferInfo}
 			/>
 
 			{statTables.map(({ name, onlyShowIf, stats, superCols }) => (

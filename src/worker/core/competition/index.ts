@@ -15,6 +15,7 @@ import { generatePilotWorld } from "./pilotWorld.ts";
 import { getWorldNewLeagueInfo } from "./newWorldInfo.ts";
 import { getClubDivisionInfo, getLeagueHistory } from "./leagueHistory.ts";
 import { getAcademySummary } from "./academySummary.ts";
+import { getPlayerTransferInfo } from "./playerTransferInfo.ts";
 import getPromotionPlayoffBrackets from "./promotionPlayoffBrackets.ts";
 import getScheduleDivisions from "./scheduleDivisions.ts";
 import { makeTransferOffer } from "./userTransfers.ts";
@@ -93,6 +94,7 @@ export default {
 	getClubDivisionInfo,
 	getLeagueHistory,
 	getAcademySummary,
+	getPlayerTransferInfo,
 	getPromotionPlayoffBrackets,
 	getScheduleDivisions,
 	makeTransferOffer,

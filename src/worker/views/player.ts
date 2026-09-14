@@ -6,6 +6,7 @@ import {
 	DEFAULT_JERSEY,
 } from "../../common/constants.ts";
 import { player } from "../core/index.ts";
+import { getPlayerTransferInfo } from "../core/competition/playerTransferInfo.ts";
 import { idb } from "../db/index.ts";
 import { g, helpers } from "../util/index.ts";
 import type {
@@ -538,6 +539,9 @@ export const getCommon = async (
 		teamName,
 		teamURL,
 		willingToSign,
+		// International Soccer Zen GM mod (Epic 6): for the transfer, loan, and
+		// academy buttons, undefined outside a World
+		transferInfo: await getPlayerTransferInfo(pRaw),
 	};
 };
 

@@ -289,19 +289,65 @@ const Roster = ({
 				"table-info": p.tid === tid && season !== currentSeason,
 			}),
 			data: [
-				wrappedPlayerNameLabels({
-					pid: p.pid,
-					injury: p.injury,
-					jerseyNumber: p.stats.jerseyNumber,
-					season,
-					skills: p.ratings.skills,
-					defaultWatch: p.watch,
-					firstName: p.firstName,
-					firstNameShort: p.firstNameShort,
-					lastName: p.lastName,
-					awards: p.awards,
-					neverShowCountry: true,
-				}),
+				(() => {
+					const nameLabels = wrappedPlayerNameLabels({
+						pid: p.pid,
+						injury: p.injury,
+						jerseyNumber: p.stats.jerseyNumber,
+						season,
+						skills: p.ratings.skills,
+						defaultWatch: p.watch,
+						firstName: p.firstName,
+						firstNameShort: p.firstNameShort,
+						lastName: p.lastName,
+						awards: p.awards,
+						neverShowCountry: true,
+					});
+
+					// International Soccer Zen GM mod (Epic 6): a World player's transfer
+					// and loan statuses
+					const badges = [
+						p.transferListed ? (
+							<span
+								className="badge bg-warning text-dark ms-1"
+								key="transferListed"
+								title="On the transfer list"
+							>
+								TL
+							</span>
+						) : null,
+						p.loanListed ? (
+							<span
+								className="badge bg-warning text-dark ms-1"
+								key="loanListed"
+								title="On the loan list"
+							>
+								LL
+							</span>
+						) : null,
+						p.loan ? (
+							<span
+								className="badge bg-info text-dark ms-1"
+								key="loan"
+								title="On loan from another club"
+							>
+								Loan
+							</span>
+						) : null,
+					].filter((badge) => badge !== null);
+
+					return badges.length > 0
+						? {
+								...nameLabels,
+								value: (
+									<div className="d-flex align-items-center">
+										{nameLabels.value}
+										{badges}
+									</div>
+								),
+							}
+						: nameLabels;
+				})(),
 				p.ratings.pos,
 				p.age,
 				showRatings
