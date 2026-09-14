@@ -2,6 +2,7 @@ import "fake-indexeddb/auto";
 import { deleteDB } from "@dumbmatter/idb";
 import { afterAll, assert, beforeAll, describe, test } from "vitest";
 import { LEAGUE_DATABASE_VERSION, PHASE, PLAYER } from "../common/constants.ts";
+import { defaultGameAttributes } from "../common/defaultGameAttributes.ts";
 import type {
 	EventBBGM,
 	GameAttributesLeague,
@@ -551,6 +552,60 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			// Only Southland has a promotion playoff
 			assert.strictEqual(numPlayoffPromotions, 1, `${season}`);
 		}
+	});
+
+	test("each Division has its own MVP, top scorer, and All-Division team, even in a World made before that was decided", async () => {
+		assert(
+			!g
+				.get("awards")
+				.some(
+					(award) =>
+						typeof award.statRange === "number" ||
+						award.statRange === "playoffs",
+				),
+		);
+
+		const { confDivByDivisionId } = competition.getLegacyConfsDivs(structure);
+		for (const season of completedSeasons) {
+			const awards = (await idb.getCopy.awards({ season }))!;
+			const divisionIdByTid = await getDivisionIdByTid(season);
+			for (const division of structure.competitionDivisions) {
+				const did = confDivByDivisionId.get(division.divisionId)!.did;
+				for (const shortName of ["MVP", "TS", "ALD"]) {
+					const award = awards.awards.find(
+						(award) =>
+							award.shortName === shortName &&
+							award.group?.type === "div" &&
+							award.group.did === did,
+					);
+					assert(award, `${season} ${division.name} ${shortName}`);
+
+					const winners = (award.winner as unknown[])
+						.flat()
+						.filter(
+							(p): p is { pid: number; tid: number } =>
+								(p as { pid?: number }).pid !== undefined,
+						);
+					assert(winners.length > 0, `${season} ${division.name} ${shortName}`);
+					for (const p of winners) {
+						assert.strictEqual(
+							divisionIdByTid.get(p.tid),
+							division.divisionId,
+							`${season} ${division.name} ${shortName}`,
+						);
+					}
+				}
+			}
+		}
+
+		// A World made earlier has ZenGM's default awards until it's loaded
+		const worldAwards = g.get("awards");
+		g.setWithoutSavingToDB("awards", defaultGameAttributes.awards);
+		delete (g as unknown as { worldAwardsPerDivision?: true })
+			.worldAwardsPerDivision;
+		await competition.ensureCompetitionStructure();
+		assert.deepStrictEqual(g.get("awards"), worldAwards);
+		assert.strictEqual(g.get("worldAwardsPerDivision"), true);
 	});
 
 	test("every club gets a board objective each season, and is judged on it and on promotion and relegation", async () => {

@@ -278,11 +278,48 @@ const updateHistory = async (
 				name: t?.seasonAttrs.name ?? "",
 			};
 		};
+		// Each Division's own awards (see competition/worldAwards.ts), by the did
+		// that mirrors it, without the Division prefix on their names
+		const { confDivByDivisionId } = competition.getLegacyConfsDivs(
+			competition.getCompetitionStructure(),
+		);
+		const awardNames = new Map(
+			awards.awards.map((award) => [award.shortName, award.name]),
+		);
+		type AwardWinner = NonNullable<Awaited<ReturnType<typeof augmentPlayer>>>;
+		const isDivisionAward =
+			(did: number | undefined) => (award: { group?: Award["group"] }) =>
+				award.group?.type === "div" && award.group.did === did;
+		const getDivisionAwards = (divisionId: number) => {
+			const did = confDivByDivisionId.get(divisionId)?.did;
+			return [
+				...individualAwards.filter(isDivisionAward(did)).map((award) => ({
+					name: awardNames.get(award.shortName) ?? award.name,
+					winners: award.winner ? [award.winner] : [],
+				})),
+				...teamAwards.filter(isDivisionAward(did)).map((award) => ({
+					name: `${awardNames.get(award.shortName) ?? award.name} Team`,
+					winners: award.winner
+						.flat()
+						.filter((p): p is AwardWinner => p !== undefined && "pid" in p),
+				})),
+			].map(({ name, winners }) => ({
+				name,
+				winners: winners.map((p) => ({
+					pid: p.pid,
+					name: p.name,
+					tid: p.stats.tid,
+					abbrev: p.stats.abbrev,
+				})),
+			}));
+		};
+
 		const worldSummary = (await competition.getWorldSeasonSummary(season))?.map(
 			(country) => ({
 				...country,
 				divisions: country.divisions.map((division) => ({
 					...division,
+					awards: getDivisionAwards(division.divisionId),
 					champion: division.champion
 						? { ...division.champion, ...club(division.champion.tid) }
 						: undefined,

@@ -24,6 +24,7 @@ import {
 	getNewLeagueCompetition,
 	isSingleDivision,
 } from "../competition/competitionStructure.ts";
+import { getWorldAwards } from "../competition/worldAwards.ts";
 
 const createGameAttributes = async (
 	{
@@ -342,6 +343,11 @@ const createGameAttributes = async (
 			gameAttributes.luxuryTax = 0;
 			gameAttributes.minPayroll = 0;
 			gameAttributes.worldPayrollRulesOff = true;
+
+			// Decided: each Division has its own awards (see
+			// competition/worldAwards.ts and ensureCompetitionStructure)
+			gameAttributes.awards = getWorldAwards(gameAttributes.awards);
+			gameAttributes.worldAwardsPerDivision = true;
 		}
 
 		for (const t of teamInfos) {

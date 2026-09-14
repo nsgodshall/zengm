@@ -237,6 +237,38 @@ const WorldSeason = ({
 									))}
 								</div>
 							) : null}
+							{division.awards.map((award) => (
+								<div key={award.name}>
+									{award.name}:{" "}
+									{award.winners.length > 0
+										? award.winners.map((p, i) => (
+												<React.Fragment key={p.pid}>
+													{i > 0 ? ", " : null}
+													<span
+														className={
+															p.tid === userTid ? "table-info" : undefined
+														}
+													>
+														<a href={helpers.leagueUrl(["player", p.pid])}>
+															{p.name}
+														</a>{" "}
+														(
+														<a
+															href={helpers.leagueUrl([
+																"roster",
+																`${p.abbrev}_${p.tid}`,
+																season,
+															])}
+														>
+															{p.abbrev}
+														</a>
+														)
+													</span>
+												</React.Fragment>
+											))
+										: NO_WINNER}
+								</div>
+							))}
 						</div>
 					))}
 				</div>
@@ -271,7 +303,15 @@ const History = (props: View<"history">) => {
 	const { awards, champ, confs, retiredPlayers, retiredStat, worldSummary } =
 		props;
 
-	const { teamAwards1, teamAwards2 } = splitTeamAwards(awards.teamAwards);
+	// International Soccer Zen GM mod (Epic 6): a World's Division awards are
+	// with their Divisions above
+	const notDivisionAward = (award: { group?: { type: string } }) =>
+		!worldSummary || award.group?.type !== "div";
+	const individualAwards = awards.individualAwards.filter(notDivisionAward);
+
+	const { teamAwards1, teamAwards2 } = splitTeamAwards(
+		awards.teamAwards.filter(notDivisionAward),
+	);
 
 	const groupedIndividualAwardsPlayoffs = Object.values(
 		Object.groupBy(awards.individualAwardsPlayoffs, (award) => award.shortName),
@@ -383,7 +423,7 @@ const History = (props: View<"history">) => {
 							)}
 						</div>
 						<div className="col-sm-12 col-6">
-							{awards.individualAwards.map((award, i) => {
+							{individualAwards.map((award, i) => {
 								return (
 									<React.Fragment key={i}>
 										<h2>{award.name}</h2>

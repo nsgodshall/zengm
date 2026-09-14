@@ -669,6 +669,9 @@ export type GameAttributesLeague = {
 	// International Soccer Zen GM mod (Epic 4): set once a World's minimum payroll
 	// fine and luxury tax have been turned off (see ensureCompetitionStructure)
 	worldPayrollRulesOff?: true;
+	// International Soccer Zen GM mod (Epic 6): set once a World's awards have been
+	// switched to per-Division awards (see ensureCompetitionStructure)
+	worldAwardsPerDivision?: true;
 	promotionPlayoffResults?: {
 		season: number;
 		linkId: number;

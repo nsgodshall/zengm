@@ -1,5 +1,8 @@
+import fastDeepEqual from "fast-deep-equal";
+import { defaultGameAttributes } from "../../../common/defaultGameAttributes.ts";
 import { idb } from "../../db/index.ts";
 import { g } from "../../util/index.ts";
+import { getWorldAwards } from "./worldAwards.ts";
 import {
 	type CompetitionStructure,
 	getDefaultCompetitionStructure,
@@ -108,6 +111,25 @@ const ensureCompetitionStructure = async () => {
 		g.setWithoutSavingToDB("luxuryTax", 0);
 		g.setWithoutSavingToDB("minPayroll", 0);
 		g.setWithoutSavingToDB("worldPayrollRulesOff", true);
+	}
+
+	// International Soccer Zen GM mod (Epic 6): a World made before awards were
+	// per Division still has ZenGM's awards. Switch them once, unless the user
+	// has changed the award settings.
+	if (
+		!isSingleDivision(structure) &&
+		!(g as unknown as { worldAwardsPerDivision?: true }).worldAwardsPerDivision
+	) {
+		if (fastDeepEqual(g.get("awards"), defaultGameAttributes.awards)) {
+			const awards = getWorldAwards(g.get("awards"));
+			await idb.cache.gameAttributes.put({ key: "awards", value: awards });
+			g.setWithoutSavingToDB("awards", awards);
+		}
+		await idb.cache.gameAttributes.put({
+			key: "worldAwardsPerDivision",
+			value: true,
+		});
+		g.setWithoutSavingToDB("worldAwardsPerDivision", true);
 	}
 };
 
