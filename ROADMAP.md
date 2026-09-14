@@ -187,7 +187,7 @@ Still open:
 
 ### Epic 6 — UI/UX rework
 
-**Status: league tables, the academy screen, the transfer market, World results, and club and country identity for the pilot World (Epic 7) done.** Club logos are still to do.
+**Status: league tables, the academy screen, the transfer market, World results, and club and country identity for the pilot World (Epic 7), with generated crests, done.**
 
 Decided: soccer-style tables, every Division on one page grouped by Country with a Country filter, and the user's Division first. On the academy screen, the user decides on their graduates during re-signing, and promoting onto a full roster is allowed, like a draft pick.
 
@@ -225,6 +225,7 @@ What landed:
 
 - **Pilot World** (`competition/pilotWorld.ts`): England and Spain, each with a First and a Second Division of 16 clubs playing 30-game double round robins. In each Country the bottom 3 of the top tier go down, the top 2 of the second tier go up, and 3rd–6th play off for one more place. Clubs get generated names (English towns with United, City, Athletic and so on; Spanish towns with CF or FC, sometimes after Real, Atlético, or similar), three letter abbreviations, kit colors, and market sizes. Top-tier clubs are bigger, and the biggest few much bigger than the rest, so there are traditional big clubs. Countries use their real flags, since `CountryFlag` knows England and Spain.
 - **New League → World** (`/new_league/world`, also on the dashboard and in the command palette): the page lists the pilot World's clubs to pick from, and creates the league with its competition structure (passed like a league file's game attributes) and random players. Customizing the teams is hidden, since editing them would break the structure.
+- **Club crests** (`competition/crests.ts`): every pilot club gets a generated crest, a shield in its kit colors with one of five patterns (plain, stripes, a band, a sash, or halves) and its abbreviation, stored as an SVG data URL in the team's `imgURL`, so it shows wherever ZenGM shows team logos.
 - **Mostly local players** (`competition/nationality.ts`, `competition/localPlayers.ts`): about 70% of each club's starting players, and of its share of every academy intake, are from its Country, picked at random and given a name, birthplace, college, and face from ZenGM's name data for it. The share rounds up or down at random, so a club's one or two prospects a year still average 70%. The rest of its players, and every free agent, come from ZenGM's usual worldwide mix. A Country with no names in ZenGM's name data keeps the worldwide mix.
 - **Tested:** unit tests for the structure (valid, 16 clubs per Division, the promotion and relegation rules), unique club names and abbreviations, bigger top-tier clubs, the same World from the same random numbers, and the local share. An integration test (`src/test/pilotWorld.test.ts`) creates the pilot World and starts its first season: 16 clubs in each Division, double round robins, first wage budgets that cover payrolls, academies, and 60–90% of first-team and academy players from their club's Country. Tests use a stub of ZenGM's name data with no English names, so the test also checks that English clubs keep the worldwide mix.
 
@@ -232,7 +233,8 @@ Decided: about 70% of a club's starting players and academy intakes are from its
 
 Still open:
 
-- Clubs have no logos, and every stadium is the default size.
+- Every stadium is the default size.
+- Worlds created before crests have no club logos.
 - The multi-season World test still uses its small 2×2×6 World for speed, so a full pilot-sized season hasn't been run in tests.
 
 ### Epic 8 — Testing & QA

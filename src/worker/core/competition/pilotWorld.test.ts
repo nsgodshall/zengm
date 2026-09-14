@@ -58,6 +58,12 @@ describe("generatePilotWorld", () => {
 		expect(new Set(clubs.map((club) => club.abbrev)).size).toBe(clubs.length);
 		for (const club of clubs) {
 			expect(club.abbrev).toMatch(/^[\dA-Z]{3}$/);
+
+			// A generated crest with the club's abbreviation
+			expect(club.imgURL.startsWith("data:image/svg+xml,")).toBe(true);
+			expect(decodeURIComponent(club.imgURL)).toContain(
+				`>${club.abbrev}</text>`,
+			);
 		}
 	});
 

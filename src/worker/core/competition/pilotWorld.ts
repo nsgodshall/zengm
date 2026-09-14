@@ -1,4 +1,9 @@
 import type { CompetitionStructure } from "./competitionStructure.ts";
+import {
+	generateCrestSvg,
+	getCrestDataUrl,
+	pickCrestPattern,
+} from "./crests.ts";
 
 // International Soccer Zen GM mod (Epic 7): the pilot World, a real-country
 // setting with fictional clubs, created from the New League page
@@ -280,13 +285,23 @@ export const generatePilotWorld = (random: () => number = Math.random) => {
 					name = pick(SPANISH_CLUB_NAMES, random);
 				}
 
+				const abbrev = makeAbbrev(town, takenAbbrevs);
+				const pop = getPop(division.tier, place, random);
+				const colors = pick(KIT_COLORS, random);
+				const crest = generateCrestSvg({
+					abbrev,
+					colors,
+					pattern: pickCrestPattern(random),
+				});
+
 				return {
 					tid: did * PILOT_CLUBS_PER_DIVISION + place,
 					region,
 					name,
-					abbrev: makeAbbrev(town, takenAbbrevs),
-					pop: getPop(division.tier, place, random),
-					colors: pick(KIT_COLORS, random),
+					abbrev,
+					pop,
+					colors,
+					imgURL: getCrestDataUrl(crest),
 					cid: division.countryId,
 					did,
 					divisionId: division.divisionId,
