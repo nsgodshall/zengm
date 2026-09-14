@@ -55,6 +55,7 @@ const TransferMarket = ({
 	season,
 	spectator,
 	transferWindow,
+	userAcademyPlayers,
 	userPlayers,
 	wageBudget,
 }: View<"transferMarket">) => {
@@ -195,8 +196,10 @@ const TransferMarket = ({
 		},
 		data: [
 			...playerCells(offer),
-			wrappedContractAmount(offer),
-			wrappedContractExp(offer),
+			// An academy player has no contract, just the summer he has to leave
+			...(offer.academy
+				? ["Academy", offer.graduationSeason]
+				: [wrappedContractAmount(offer), wrappedContractExp(offer)]),
 			teamCell(offer.buyerAbbrev, offer.buyerTid),
 			offer.buyerDivisionName,
 			{
@@ -230,20 +233,58 @@ const TransferMarket = ({
 		],
 	}));
 
+	const offersCol = {
+		title: "Offers",
+		desc: "Open offers from other clubs",
+		sortSequence: ["desc", "asc"],
+		sortType: "number",
+	} as const;
+
+	const transferListCol = {
+		title: "Transfer list",
+		desc: "Clubs make more offers for players on your transfer list, though for less",
+		sortSequence: [],
+	};
+
+	const leavesCol = {
+		title: "Leaves",
+		desc: "The summer he has to leave his academy, for the first team or free agency",
+		sortSequence: ["asc", "desc"],
+		sortType: "number",
+	} as const;
+
+	const academyFeeCol = {
+		...feeCol,
+		desc: "Transfer fee at market value, mostly from his potential. A club asks double for the best player in its academy.",
+	};
+
+	const transferListButton = (p: { pid: number; transferListed: boolean }) => (
+		<button
+			className={
+				p.transferListed
+					? "btn btn-xs btn-secondary"
+					: "btn btn-xs btn-light-bordered"
+			}
+			disabled={spectator}
+			key="list"
+			onClick={async () => {
+				showError(
+					await toWorker("main", "setTransferListed", {
+						pid: p.pid,
+						listed: !p.transferListed,
+					}),
+				);
+			}}
+		>
+			{p.transferListed ? "Listed" : "List"}
+		</button>
+	);
+
 	const userCols = [
 		...getCols(["Name", "Pos", "Age", "Ovr", "Pot", "Contract", "Exp"]),
 		feeCol,
-		{
-			title: "Offers",
-			desc: "Open offers from other clubs",
-			sortSequence: ["desc", "asc"],
-			sortType: "number",
-		} as const,
-		{
-			title: "Transfer list",
-			desc: "Clubs make more offers for players on your transfer list, though for less",
-			sortSequence: [],
-		},
+		offersCol,
+		transferListCol,
 	];
 
 	const userRows: DataTableRow[] = userPlayers.map((p) => ({
@@ -263,25 +304,35 @@ const TransferMarket = ({
 				sortValue: p.fee,
 			},
 			p.transferOffers.length,
-			<button
-				className={
-					p.transferListed
-						? "btn btn-xs btn-secondary"
-						: "btn btn-xs btn-light-bordered"
-				}
-				disabled={spectator}
-				key="list"
-				onClick={async () => {
-					showError(
-						await toWorker("main", "setTransferListed", {
-							pid: p.pid,
-							listed: !p.transferListed,
-						}),
-					);
-				}}
-			>
-				{p.transferListed ? "Listed" : "List"}
-			</button>,
+			transferListButton(p),
+		],
+	}));
+
+	const userAcademyCols = [
+		...getCols(["Name", "Pos", "Age", "Ovr", "Pot"]),
+		leavesCol,
+		academyFeeCol,
+		offersCol,
+		transferListCol,
+	];
+
+	const userAcademyRows: DataTableRow[] = userAcademyPlayers.map((p) => ({
+		key: p.pid,
+		metadata: {
+			type: "player",
+			pid: p.pid,
+			season,
+			playoffs: "regularSeason",
+		},
+		data: [
+			...playerCells(p),
+			p.graduationSeason,
+			{
+				value: formatMillions(p.fee),
+				sortValue: p.fee,
+			},
+			p.transferOffers.length,
+			transferListButton(p),
 		],
 	}));
 
@@ -330,16 +381,8 @@ const TransferMarket = ({
 		{
 			title: "Division",
 		},
-		{
-			title: "Leaves",
-			desc: "The summer he has to leave his academy, for the first team or free agency",
-			sortSequence: ["asc", "desc"],
-			sortType: "number",
-		} as const,
-		{
-			...feeCol,
-			desc: "Transfer fee at market value, mostly from his potential. A club asks double for the best player in its academy.",
-		},
+		leavesCol,
+		academyFeeCol,
 		buttonsCol,
 	];
 
@@ -413,6 +456,18 @@ const TransferMarket = ({
 				defaultSort={[7, "desc"]}
 				name="TransferMarketUser"
 				rows={userRows}
+			/>
+
+			<h2>Your academy players</h2>
+			<p>
+				Clubs make offers for your academy players too, and one you sell joins
+				the buying club's academy.
+			</p>
+			<DataTable
+				cols={userAcademyCols}
+				defaultSort={[6, "desc"]}
+				name="TransferMarketUserAcademy"
+				rows={userAcademyRows}
 			/>
 
 			<h2>Other clubs' players</h2>

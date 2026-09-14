@@ -136,52 +136,69 @@ const updateTransferMarket = async (
 
 		const teamInfoCache = g.get("teamInfoCache");
 
-		// Other clubs' academy players, who'd join the user's academy
+		const getAcademyMarketPlayers = async (playersRaw: Player[]) => {
+			const infoByPid = new Map(
+				playersRaw.map((p) => [
+					p.pid,
+					{ tid: p.academyTid!, fee: getAcademyPlayerFee(p) },
+				]),
+			);
+
+			const playersPlus = await idb.getCopies.playersPlus(playersRaw, {
+				attrs: [
+					"pid",
+					"firstName",
+					"lastName",
+					"age",
+					"draft",
+					"injury",
+					"watch",
+					"transferListed",
+					"transferOffers",
+				],
+				ratings: ["ovr", "pot", "skills", "pos"],
+				season,
+				showNoStats: true,
+				showRookies: true,
+				fuzz: true,
+			});
+
+			return addFirstNameShort(
+				playersPlus.map((p) => {
+					const { tid, fee } = infoByPid.get(p.pid)!;
+					return {
+						...p,
+						abbrev: teamInfoCache[tid]?.abbrev ?? "",
+						divisionName: divisionNameByTid.get(tid) ?? "",
+						// Millions of dollars
+						fee: fee / 1000,
+						graduationSeason: p.draft.year as number,
+						tid,
+						transferListed: !!p.transferListed,
+						transferOffers: (p.transferOffers ?? []) as NonNullable<
+							Player["transferOffers"]
+						>,
+					};
+				}),
+			);
+		};
+
+		// Academy players who can be transferred: the user's, and other clubs',
+		// who'd join the user's academy
 		const academyPlayersRaw = (await competition.getAcademyPlayers()).filter(
-			(p) =>
-				!userTids.includes(p.academyTid!) &&
-				divisionNameByTid.has(p.academyTid!) &&
-				isAcademyPlayerForSale(p),
+			(p) => divisionNameByTid.has(p.academyTid!) && isAcademyPlayerForSale(p),
 		);
-		const academyInfoByPid = new Map(
-			academyPlayersRaw.map((p) => [
-				p.pid,
-				{ tid: p.academyTid!, fee: getAcademyPlayerFee(p) },
-			]),
+		const academyPlayers = await getAcademyMarketPlayers(
+			academyPlayersRaw.filter((p) => !userTids.includes(p.academyTid!)),
 		);
-		const academyPlayers = addFirstNameShort(
-			(
-				await idb.getCopies.playersPlus(academyPlayersRaw, {
-					attrs: [
-						"pid",
-						"firstName",
-						"lastName",
-						"age",
-						"draft",
-						"injury",
-						"watch",
-					],
-					ratings: ["ovr", "pot", "skills", "pos"],
-					season,
-					showNoStats: true,
-					showRookies: true,
-					fuzz: true,
-				})
-			).map((p) => {
-				const { tid, fee } = academyInfoByPid.get(p.pid)!;
-				return {
-					...p,
-					abbrev: teamInfoCache[tid]?.abbrev ?? "",
-					divisionName: divisionNameByTid.get(tid) ?? "",
-					// Millions of dollars
-					fee: fee / 1000,
-					graduationSeason: p.draft.year as number,
-					tid,
-				};
-			}),
+		const userAcademyPlayers = await getAcademyMarketPlayers(
+			academyPlayersRaw.filter((p) => userTids.includes(p.academyTid!)),
 		);
 
-		const offers = userPlayers.flatMap((p) =>
+		const offers = [
+			...userPlayers.map((p) => ({ ...p, academy: false })),
+			...userAcademyPlayers.map((p) => ({ ...p, academy: true })),
+		].flatMap((p) =>
 			p.transferOffers.map(
 				(offer: NonNullable<Player["transferOffers"]>[number]) => ({
 					...p,
@@ -214,6 +231,7 @@ const updateTransferMarket = async (
 			season,
 			spectator: g.get("spectator"),
 			transferWindow: await competition.getCurrentTransferWindow(),
+			userAcademyPlayers,
 			userPlayers,
 			wageBudget: ((await getWageBudgets()).get(userTid) ?? 0) / 1000,
 		};

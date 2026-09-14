@@ -854,4 +854,61 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		}
 		assert(numMoved > 0 && numMoved <= numTransfers);
 	});
+
+	// Changes the league, so it goes last
+	test("the user can sell academy players to AI clubs that make offers for them", async () => {
+		const season = g.get("season");
+		const userTid = g.get("userTid");
+
+		// Every club still has plenty of cash from the last test
+		const [sold, listed] = (await competition.getAcademyPlayers(userTid))
+			.filter((p) => p.draft.year > season)
+			.sort((a, b) => b.value - a.value);
+		assert(sold && listed, "Not enough academy players to sell");
+
+		const buyerTid = (await idb.cache.teams.getAll()).find(
+			(t) => !t.disabled && t.tid !== userTid,
+		)!.tid;
+		const cash = async (tid: number) =>
+			(await idb.cache.teamSeasons.indexGet("teamSeasonsBySeasonTid", [
+				season,
+				tid,
+			]))!.cash;
+		const buyerCash = await cash(buyerTid);
+
+		sold.transferOffers = [{ tid: buyerTid, fee: 1000, daysLeft: 3 }];
+		await idb.cache.players.put(sold);
+		assert.strictEqual(
+			await competition.acceptAiTransferOffer({
+				pid: sold.pid,
+				tid: buyerTid,
+			}),
+			undefined,
+		);
+		const p1 = (await idb.cache.players.get(sold.pid))!;
+		assert.strictEqual(p1.tid, PLAYER.UNDRAFTED);
+		assert.strictEqual(p1.academyTid, buyerTid);
+		assert.strictEqual(p1.transferOffers, undefined);
+		assert.strictEqual(await cash(buyerTid), buyerCash - 1000);
+
+		// AI clubs make offers for the user's academy players, including ones on
+		// the transfer list
+		await competition.setTransferListed({ pid: listed.pid, listed: true });
+		assert.strictEqual(
+			(await idb.cache.players.get(listed.pid))!.transferListed,
+			true,
+		);
+		const numOffers = await competition.makeAiTransferOffers(200, true);
+		assert(numOffers > 0, "No offers for academy players");
+		let numOffersFound = 0;
+		for (const p of await competition.getAcademyPlayers(userTid)) {
+			for (const offer of p.transferOffers ?? []) {
+				numOffersFound += 1;
+				assert.notStrictEqual(offer.tid, userTid);
+				assert(offer.fee > 0);
+				assert.strictEqual(offer.daysLeft, 3);
+			}
+		}
+		assert.strictEqual(numOffersFound, numOffers);
+	});
 });

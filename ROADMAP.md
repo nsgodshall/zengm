@@ -143,19 +143,18 @@ Stage C, selling, landed.
 - **AI offers** (`competition/aiOffers.ts`): once a day while a window is open, alongside AI transfers (so on regular season and free agency days), AI clubs attempt about 0.5 offers for each user club, scaled by the AI trades setting. A club only offers for a player who'd make it better, and whom it can afford and fit in its roster and wage budget. The user gets a notification, and each offer stays open for 3 days. All offers are withdrawn when the window closes, and none are made while the AI runs the user's clubs.
 - **Transfer list:** a listed player is 5 times as likely to draw an offer, at 75–100% of his fee. An unlisted player draws offers at 90–120% of it.
 - **Accepting** checks the buyer's roster, budget, and cash again, and withdraws an offer the club can no longer follow through on. A sold player keeps his contract, and his offers and listing are cleared.
-- **Academy players** (`competition/academyTransfers.ts`): other clubs' academy players can be bought while a window is open, and join the buying club's academy, so only its cash limits it, not its roster or wage budget. With no contract to buy out, an academy player's fee is one season of his market wage above the minimum (`getAcademyTransferFee`; his value counts potential heavily), and at least a minimum contract. A club asks double for the most valuable player in its academy. He can't be sold once his club has decided on him in the summer he has to leave. The Transfer Market lists other clubs' academy players with the summer each has to leave. AI clubs buy from each other too, about 1 attempt for every 40 clubs a day, but only a player who'd be one of the 3 most valuable in their academy, at the asking price. A bought player keeps his graduation season, and the transfer is in the news and his transactions like any other.
+- **Academy players** (`competition/academyTransfers.ts`): other clubs' academy players can be bought while a window is open, and join the buying club's academy, so only its cash limits it, not its roster or wage budget. With no contract to buy out, an academy player's fee is one season of his market wage above the minimum (`getAcademyTransferFee`; his value counts potential heavily), and at least a minimum contract. A club asks double for the most valuable player in its academy. He can't be sold once his club has decided on him in the summer he has to leave. The Transfer Market lists other clubs' academy players with the summer each has to leave. AI clubs buy from each other too, about 1 attempt for every 40 clubs a day, but only a player who'd be one of the 3 most valuable in their academy, at the asking price. A bought player keeps his graduation season, and the transfer is in the news and his transactions like any other. AI clubs also make offers for the user's academy players, on the same terms, with a quarter as many daily attempts as for first-team players (0.125 for each user club), and the user's academy players have their own table on the Transfer Market with offers and the transfer list.
 - **No trade buttons:** in a World, the Trade for and Trade away buttons on roster and player pages, the Trade With column on League Finances, and the Saved Trades menu link are hidden, since trades are refused. Players are bought on the Transfer Market instead.
 - **Tested:** unit tests for offer fees and expiry. The World test accepts and rejects offers, lists and unlists a player, and checks that AI clubs only make well-formed offers for the user's players.
 
 Still to do:
 
-- AI clubs don't make offers for the user's academy players yet, so the user can buy academy players but not sell them.
 - **Stage D — loans:** sending a player to another club for a season.
 - **Tuning:** the AI's thresholds (the buyer must improve; the seller can't lose more than 5 value) and the fee formula are first guesses. In the multi-season World test (24 clubs, 10-game seasons) they gave about 10 transfers a season, averaging about $24M, with the biggest at $122M against a $150M salary cap. Almost all happened during free agency, the only offseason phase with days to simulate. The winter window only lasts a day or two in a season that short, and saw 1 transfer in 3 seasons. Check volume and fees again with real season lengths. Clubs also start with only $10M cash, which limits early spending.
 
 ### Epic 5 — Youth academies (replacing the draft prospect pool)
 
-**Status: academies, the AI running them, the user's academy screen (Epic 6), and buying academy players (Epic 4 stage C) done.** Selling the user's academy players and loans (Epic 4 stage D) are still to do.
+**Status: academies, the AI running them, the user's academy screen (Epic 6), and buying and selling academy players (Epic 4 stage C) done.** Loans (Epic 4 stage D) are still to do.
 
 Decided: every club has its own academy squad, separate from the first team. How good a club's academy is comes from its scouting budget, plus a bonus for being in a higher tier. Every club gets about the same number of prospects. A graduate signs for the minimum wage for 3 seasons.
 
@@ -177,7 +176,7 @@ Decisions:
 Still open:
 
 - The draft scouting page still lists every club's academy players together, and a player page still calls an academy player a draft prospect instead of naming his academy.
-- **Selling and loaning academy players** (Epic 4 stages C and D). Academy players can be bought (see Epic 4), but AI clubs don't make offers for the user's.
+- **Loaning academy players** (Epic 4 stage D). Academy players can be bought and sold (see Epic 4).
 - **Tuning academy fees:** market wages are capped at the maximum contract, so the best few dozen prospects all cost the same (about $48.8M with a $50M maximum). First-team fees share that cap.
 - Clubs only make academy decisions in the summer.
 - Academy players develop at the default coaching level, not their club's.

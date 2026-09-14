@@ -6,11 +6,18 @@ import { recomputeLocalUITeamOvrs } from "../../util/recomputeLocalUITeamOvrs.ts
 import { player, team } from "../index.ts";
 import { ValueChangeCalculator } from "../team/ValueChangeCalculator.ts";
 import isUntradable from "../trade/isUntradable.ts";
+import { getAcademyPlayers } from "./academies.ts";
+import {
+	getAcademyPlayerFee,
+	isAcademyPlayerForSale,
+	processAcademyTransfer,
+} from "./academyTransfers.ts";
 import { getCurrentTransferWindow, processTransfer } from "./aiTransfers.ts";
 import { isSingleDivision } from "./competitionStructure.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
 import teamLink from "./teamLink.ts";
 import {
+	aiWantsAcademyPlayer,
 	canAffordFee,
 	getAiOfferFee,
 	getContractSeasonsLeft,
@@ -22,8 +29,10 @@ import {
 import { getWageBudgets } from "./wageBudgets.ts";
 
 // About this many offers are attempted each day for each of the user's clubs,
-// scaled by the AI trades setting. A fractional part is a probability.
+// scaled by the AI trades setting, and this many more for the players in its
+// academy. A fractional part is a probability.
 const OFFER_ATTEMPTS_PER_USER_CLUB = 0.5;
+const ACADEMY_OFFER_ATTEMPTS_PER_USER_CLUB = 0.125;
 
 const formatFee = (fee: number) => helpers.formatCurrency(fee / 1000, "M");
 
@@ -32,9 +41,20 @@ const clubName = (tid: number) => {
 	return `${teamInfo?.region} ${teamInfo?.name}`;
 };
 
-const getUserPlayers = async () => {
+// The club a player is at, in its first team or its academy
+const getClubTid = (p: Player) => p.academyTid ?? p.tid;
+
+/** The user's first-team players, or the players in their academies */
+const getUserPlayers = async (academy: boolean) => {
+	const userTids = g.get("userTids");
+	if (academy) {
+		return (await getAcademyPlayers()).filter((p) =>
+			userTids.includes(p.academyTid!),
+		);
+	}
+
 	const players: Player[] = [];
-	for (const tid of g.get("userTids")) {
+	for (const tid of userTids) {
 		players.push(...(await idb.cache.players.indexGetAll("playersByTid", tid)));
 	}
 	return players;
@@ -42,7 +62,8 @@ const getUserPlayers = async () => {
 
 /**
  * Why an AI club can't buy one of the user's players for a fee right now, or
- * undefined if it can. The same limits as AI transfers.
+ * undefined if it can. The same limits as AI transfers: an academy player
+ * would join its academy, so only its cash matters for him.
  */
 const getBuyerProblem = async ({
 	buyerTid,
@@ -56,10 +77,16 @@ const getBuyerProblem = async ({
 	wageBudgets: Map<number, number>;
 }) => {
 	const name = clubName(buyerTid);
+	const academy = p.academyTid !== undefined;
 
-	const roster = await idb.cache.players.indexGetAll("playersByTid", buyerTid);
-	if (roster.length >= g.get("maxRosterSize")) {
-		return `The ${name} have no room on their roster`;
+	if (!academy) {
+		const roster = await idb.cache.players.indexGetAll(
+			"playersByTid",
+			buyerTid,
+		);
+		if (roster.length >= g.get("maxRosterSize")) {
+			return `The ${name} have no room on their roster`;
+		}
 	}
 
 	const wageBudget = wageBudgets.get(buyerTid);
@@ -71,7 +98,10 @@ const getBuyerProblem = async ({
 		return `The ${name} aren't in the league this season`;
 	}
 
-	if ((await team.getPayroll(buyerTid)) + p.contract.amount > wageBudget) {
+	if (
+		!academy &&
+		(await team.getPayroll(buyerTid)) + p.contract.amount > wageBudget
+	) {
 		return `The ${name} can't fit his wages in their budget`;
 	}
 
@@ -90,13 +120,18 @@ const removeOffer = (p: Player, tid: number) => {
 };
 
 /**
- * AI clubs try to make up to `numAttempts` offers for the user's players. A
- * club only offers for a player who'd make it better (like AI transfers), that
- * it can afford and fit in its budget and roster, and that it hasn't already
- * made an offer for. Players on the transfer list draw more offers, at lower
- * fees (see getAiOfferFee). Returns how many offers were made.
+ * AI clubs try to make up to `numAttempts` offers for the user's first-team
+ * players, or with `academy`, the players in the user's academies. A club only
+ * offers for a player who'd make it better (like AI transfers, and for an
+ * academy player, one who'd be one of the best in its academy), that it can
+ * afford and fit in its budget and roster, and that it hasn't already made an
+ * offer for. Players on the transfer list draw more offers, at lower fees (see
+ * getAiOfferFee). Returns how many offers were made.
  */
-export const makeAiTransferOffers = async (numAttempts: number) => {
+export const makeAiTransferOffers = async (
+	numAttempts: number,
+	academy = false,
+) => {
 	const season = g.get("season");
 	const phase = g.get("phase");
 	const userTids = g.get("userTids");
@@ -104,10 +139,11 @@ export const makeAiTransferOffers = async (numAttempts: number) => {
 	const aiTids = (await idb.cache.teams.getAll())
 		.filter((t) => !t.disabled && !userTids.includes(t.tid))
 		.map((t) => t.tid);
-	const candidates = (await getUserPlayers()).filter(
-		(p) =>
-			!isUntradable(p).untradable &&
-			getContractSeasonsLeft({ exp: p.contract.exp, season, phase }) > 0,
+	const candidates = (await getUserPlayers(academy)).filter((p) =>
+		academy
+			? isAcademyPlayerForSale(p)
+			: !isUntradable(p).untradable &&
+				getContractSeasonsLeft({ exp: p.contract.exp, season, phase }) > 0,
 	);
 	if (aiTids.length === 0 || candidates.length === 0) {
 		return 0;
@@ -115,6 +151,7 @@ export const makeAiTransferOffers = async (numAttempts: number) => {
 
 	const valueChangeCalculator = new ValueChangeCalculator();
 	const wageBudgets = await getWageBudgets();
+	const academyPlayers = academy ? await getAcademyPlayers() : [];
 
 	let numOffers = 0;
 	for (let i = 0; i < numAttempts; i++) {
@@ -133,15 +170,17 @@ export const makeAiTransferOffers = async (numAttempts: number) => {
 		}
 
 		const fee = getAiOfferFee({
-			fee: getTransferFee({
-				marketWage: player.genContract(p, false).amount,
-				age: season - p.born.year,
-				seasonsLeft: getContractSeasonsLeft({
-					exp: p.contract.exp,
-					season,
-					phase,
-				}),
-			}),
+			fee: academy
+				? getAcademyPlayerFee(p)
+				: getTransferFee({
+						marketWage: player.genContract(p, false).amount,
+						age: season - p.born.year,
+						seasonsLeft: getContractSeasonsLeft({
+							exp: p.contract.exp,
+							season,
+							phase,
+						}),
+					}),
 			listed: !!p.transferListed,
 		});
 
@@ -149,16 +188,25 @@ export const makeAiTransferOffers = async (numAttempts: number) => {
 			continue;
 		}
 
-		const buyerValueChange = await valueChangeCalculator.evaluate({
-			tid: buyerTid,
-			pidsAdd: [p.pid],
-			pidsRemove: [],
-			dpidsAdd: [],
-			dpidsRemove: [],
-			tradingPartnerTid: p.tid,
-		});
-		if (buyerValueChange <= 0) {
-			continue;
+		if (academy) {
+			const academyValues = academyPlayers
+				.filter((p2) => p2.academyTid === buyerTid)
+				.map((p2) => p2.value);
+			if (!aiWantsAcademyPlayer({ value: p.value, academyValues })) {
+				continue;
+			}
+		} else {
+			const buyerValueChange = await valueChangeCalculator.evaluate({
+				tid: buyerTid,
+				pidsAdd: [p.pid],
+				pidsRemove: [],
+				dpidsAdd: [],
+				dpidsRemove: [],
+				tradingPartnerTid: p.tid,
+			});
+			if (buyerValueChange <= 0) {
+				continue;
+			}
 		}
 
 		p.transferOffers = [
@@ -174,16 +222,16 @@ export const makeAiTransferOffers = async (numAttempts: number) => {
 
 		await logEvent({
 			type: "info",
-			text: `The ${teamLink(buyerTid)} offered ${formatFee(
-				fee,
-			)} for <a href="${helpers.leagueUrl(["player", p.pid])}">${
+			text: `The ${teamLink(buyerTid)} offered ${formatFee(fee)} for ${
+				academy ? "academy player " : ""
+			}<a href="${helpers.leagueUrl(["player", p.pid])}">${
 				p.firstName
 			} ${p.lastName}</a>. <a href="${helpers.leagueUrl([
 				"transfer_market",
 			])}">Accept or reject the offer</a> within ${TRANSFER_OFFER_DAYS} days.`,
 			showNotification: true,
 			pids: [p.pid],
-			tids: [p.tid],
+			tids: [getClubTid(p)],
 		});
 	}
 
@@ -193,6 +241,10 @@ export const makeAiTransferOffers = async (numAttempts: number) => {
 
 	return numOffers;
 };
+
+// A whole number of attempts, where a fractional part is a probability
+const randomRound = (float: number) =>
+	Math.floor(float) + (Math.random() < float % 1 ? 1 : 0);
 
 /**
  * International Soccer Zen GM mod (Epic 4): called once a day, alongside AI
@@ -209,7 +261,10 @@ export const dailyTransferOffers = async () => {
 
 	const transferWindow = await getCurrentTransferWindow();
 
-	for (const p of await getUserPlayers()) {
+	for (const p of [
+		...(await getUserPlayers(false)),
+		...(await getUserPlayers(true)),
+	]) {
 		if (p.transferOffers) {
 			const offers = transferWindow ? tickTransferOffers(p.transferOffers) : [];
 			if (offers.length > 0) {
@@ -230,21 +285,19 @@ export const dailyTransferOffers = async () => {
 		return;
 	}
 
-	const float =
-		OFFER_ATTEMPTS_PER_USER_CLUB *
-		g.get("aiTradesFactor") *
-		g.get("userTids").length;
-	let numAttempts = Math.floor(float);
-	if (Math.random() < float % 1) {
-		numAttempts += 1;
-	}
-
-	await makeAiTransferOffers(numAttempts);
+	const numUserClubsFactor = g.get("aiTradesFactor") * g.get("userTids").length;
+	await makeAiTransferOffers(
+		randomRound(OFFER_ATTEMPTS_PER_USER_CLUB * numUserClubsFactor),
+	);
+	await makeAiTransferOffers(
+		randomRound(ACADEMY_OFFER_ATTEMPTS_PER_USER_CLUB * numUserClubsFactor),
+		true,
+	);
 };
 
 const getUserPlayer = async (pid: number) => {
 	const p = await idb.cache.players.get(pid);
-	if (!p || !g.get("userTids").includes(p.tid)) {
+	if (!p || !g.get("userTids").includes(getClubTid(p))) {
 		return "Player not found";
 	}
 	if (g.get("spectator")) {
@@ -254,9 +307,10 @@ const getUserPlayer = async (pid: number) => {
 };
 
 /**
- * The user sells one of their players to the AI club that made an offer for
- * him. Returns an error message if it can't happen, in which case an offer the
- * club can no longer follow through on is withdrawn.
+ * The user sells one of their players, from their first team or their academy,
+ * to the AI club that made an offer for him. Returns an error message if it
+ * can't happen, in which case an offer the club can no longer follow through on
+ * is withdrawn.
  */
 export const acceptAiTransferOffer = async ({
 	pid,
@@ -278,9 +332,19 @@ export const acceptAiTransferOffer = async ({
 		return "The transfer window is closed.";
 	}
 
-	const untradable = isUntradable(p);
-	if (untradable.untradable) {
-		return untradable.untradableMsg;
+	const academy = p.academyTid !== undefined;
+	if (academy) {
+		if (!isAcademyPlayerForSale(p)) {
+			return `${p.firstName} ${p.lastName} is leaving your academy this summer, so ${helpers.pronoun(
+				g.get("gender"),
+				"he",
+			)} can't be transferred.`;
+		}
+	} else {
+		const untradable = isUntradable(p);
+		if (untradable.untradable) {
+			return untradable.untradableMsg;
+		}
 	}
 
 	const problem = await getBuyerProblem({
@@ -297,7 +361,7 @@ export const acceptAiTransferOffer = async ({
 	}
 
 	const season = g.get("season");
-	const sellerTid = p.tid;
+	const sellerTid = getClubTid(p);
 	const buyerSeason = (await idb.cache.teamSeasons.indexGet(
 		"teamSeasonsBySeasonTid",
 		[season, tid],
@@ -310,14 +374,24 @@ export const acceptAiTransferOffer = async ({
 		return "Your club has no season to transfer in.";
 	}
 
-	await processTransfer({
-		p,
-		buyerTid: tid,
-		sellerTid,
-		fee: offer.fee,
-		buyerSeason,
-		sellerSeason,
-	});
+	if (academy) {
+		await processAcademyTransfer({
+			p,
+			buyerTid: tid,
+			fee: offer.fee,
+			buyerSeason,
+			sellerSeason,
+		});
+	} else {
+		await processTransfer({
+			p,
+			buyerTid: tid,
+			sellerTid,
+			fee: offer.fee,
+			buyerSeason,
+			sellerSeason,
+		});
+	}
 
 	await toUI("realtimeUpdate", [["playerMovement"]]);
 	await recomputeLocalUITeamOvrs();
@@ -341,7 +415,8 @@ export const rejectAiTransferOffer = async ({
 };
 
 /**
- * Puts one of the user's players on their transfer list, or takes him off it
+ * Puts one of the user's players, from their first team or their academy, on
+ * their transfer list, or takes him off it
  */
 export const setTransferListed = async ({
 	pid,
