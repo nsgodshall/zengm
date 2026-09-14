@@ -2411,6 +2411,10 @@ export const generateJsonSchema = (sport: Sport | "test") => {
 						did: {
 							type: "integer",
 						},
+						// International Soccer Zen GM mod (Epic 4)
+						startingPayroll: {
+							type: "number",
+						},
 						// International Soccer Zen GM mod (Epic 1)
 						divisionId: {
 							type: "integer",

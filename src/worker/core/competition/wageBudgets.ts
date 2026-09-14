@@ -1,6 +1,7 @@
 import { PHASE } from "../../../common/constants.ts";
 import { idb } from "../../db/index.ts";
 import { g, helpers } from "../../util/index.ts";
+import { team } from "../index.ts";
 import { isSingleDivision } from "./competitionStructure.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
 import {
@@ -49,11 +50,25 @@ export const getWageBudgets = async () => {
 				averageRevenue,
 				popRank: popRanks[i] ?? teams.length,
 				numTeams: teams.length,
+				startingPayroll: t.startingPayroll,
 			}),
 		);
 	}
 
 	return wageBudgets;
+};
+
+/**
+ * Records each club's payroll when a World is created, which its wage budget
+ * covers until its first season is over (see getWageBudget)
+ */
+export const recordStartingPayrolls = async () => {
+	for (const t of await idb.cache.teams.getAll()) {
+		if (!t.disabled && t.startingPayroll === undefined) {
+			t.startingPayroll = await team.getPayroll(t.tid);
+			await idb.cache.teams.put(t);
+		}
+	}
 };
 
 /**

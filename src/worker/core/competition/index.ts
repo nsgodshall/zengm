@@ -8,6 +8,7 @@ import doAcademySummer, {
 } from "./academies.ts";
 import computeDivisionTable from "./computeDivisionTable.ts";
 import getWorldTables from "./worldTables.ts";
+import setUpNewWorld from "./newWorld.ts";
 import { generatePilotWorld } from "./pilotWorld.ts";
 import getPromotionPlayoffBrackets from "./promotionPlayoffBrackets.ts";
 import getScheduleDivisions from "./scheduleDivisions.ts";
@@ -68,6 +69,7 @@ export default {
 	doAcademySummer,
 	doEndOfSeason,
 	getWorldTables,
+	setUpNewWorld,
 	generatePilotWorld,
 	getPromotionPlayoffBrackets,
 	getScheduleDivisions,

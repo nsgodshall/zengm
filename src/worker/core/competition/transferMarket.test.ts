@@ -138,6 +138,26 @@ describe("getWageBudget", () => {
 		expect(budget(10000)).toBe(50000);
 	});
 
+	test("before a club's first season is over, its budget covers its starting payroll with some room", () => {
+		const budget = (startingPayroll: number | undefined, revenue?: number) =>
+			getWageBudget({
+				salaryCap: 100000,
+				revenue,
+				averageRevenue: revenue === undefined ? 0 : 200000,
+				popRank: 5,
+				numTeams: 5,
+				startingPayroll,
+			});
+
+		// The smallest market's budget is 0.8 times the cap
+		expect(budget(undefined)).toBe(80000);
+		expect(budget(50000)).toBe(80000);
+		expect(budget(150000)).toBe(160000);
+
+		// Once there's revenue, the starting payroll doesn't count
+		expect(budget(150000, 200000)).toBe(100000);
+	});
+
 	test("without revenue yet, bigger markets get bigger budgets", () => {
 		const budget = (popRank: number) =>
 			getWageBudget({

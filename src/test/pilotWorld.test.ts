@@ -3,6 +3,7 @@ import { deleteDB } from "@dumbmatter/idb";
 import { afterAll, assert, beforeAll, describe, test } from "vitest";
 import { LEAGUE_DATABASE_VERSION, PHASE } from "../common/constants.ts";
 import { PILOT_CLUBS_PER_DIVISION } from "../worker/core/competition/pilotWorld.ts";
+import { getWageBudgets } from "../worker/core/competition/wageBudgets.ts";
 import { competition, league, phase, season } from "../worker/core/index.ts";
 import createStreamFromLeagueObject from "../worker/core/league/create/createStreamFromLeagueObject.ts";
 import { idb } from "../worker/db/index.ts";
@@ -115,6 +116,14 @@ describe("the pilot World", () => {
 		);
 		for (const count of meetings.values()) {
 			assert.strictEqual(count, 1);
+		}
+	});
+
+	test("every club's first wage budget covers its starting payroll", async () => {
+		const wageBudgets = await getWageBudgets();
+		for (const t of await idb.cache.teams.getAll()) {
+			assert(t.startingPayroll !== undefined, `tid ${t.tid}`);
+			assert(wageBudgets.get(t.tid)! > t.startingPayroll, `tid ${t.tid}`);
 		}
 	});
 

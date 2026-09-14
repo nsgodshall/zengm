@@ -118,8 +118,49 @@ export const getTransferFee = ({
  * pay more. Before a club has a completed season, its market size (popRank, 1
  * is biggest) stands in for revenue. Kept between half and double the cap, so
  * no club is locked out of the market or unlimited.
+ *
+ * Before its first season is over, a club's budget also covers its payroll
+ * when the World was created (`startingPayroll`), plus STARTING_BUDGET_ROOM of
+ * the cap to sign someone, since starting rosters aren't built to any budget.
  */
 export const getWageBudget = ({
+	salaryCap,
+	revenue,
+	averageRevenue,
+	popRank,
+	numTeams,
+	startingPayroll,
+}: {
+	salaryCap: number;
+	revenue: number | undefined;
+	averageRevenue: number;
+	popRank: number;
+	numTeams: number;
+	startingPayroll?: number;
+}) => {
+	const budget = getRevenueWageBudget({
+		salaryCap,
+		revenue,
+		averageRevenue,
+		popRank,
+		numTeams,
+	});
+
+	if (revenue === undefined && startingPayroll !== undefined) {
+		return Math.max(
+			budget,
+			Math.round(startingPayroll + STARTING_BUDGET_ROOM * salaryCap),
+		);
+	}
+
+	return budget;
+};
+
+// Room in a club's first-season budget beyond its starting payroll, as a
+// fraction of the salary cap
+export const STARTING_BUDGET_ROOM = 0.1;
+
+const getRevenueWageBudget = ({
 	salaryCap,
 	revenue,
 	averageRevenue,

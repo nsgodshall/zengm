@@ -1712,8 +1712,8 @@ const afterDBStream = async ({
 		phase: gameAttributes.phase,
 	});
 
-	// International Soccer Zen GM mod (Epic 5): fill a new World's youth academies
-	await competition.ensureAcademies();
+	// International Soccer Zen GM mod (Epic 5): set up a new World's first wage budgets and youth academies
+	await competition.setUpNewWorld();
 
 	// Handle repeatSeason after creating league, so we know what random players were created
 	const currentRepeatSeasonType = g.get("repeatSeason")?.type ?? "disabled";

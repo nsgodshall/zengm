@@ -1677,6 +1677,9 @@ export type SortType =
 	| "pos";
 
 export type Team = {
+	// International Soccer Zen GM mod (Epic 4): the club's payroll when its World
+	// was created, which its wage budget covers until its first season is over
+	startingPayroll?: number;
 	tid: number;
 	cid: number;
 	did: number;
