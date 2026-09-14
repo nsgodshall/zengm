@@ -415,6 +415,11 @@ const updateRoster = async (
 			// International Soccer Zen GM mod (Epic 6): a World club's stadium,
 			// market, and money
 			clubInfo: await competition.getClubInfo(inputs.tid, inputs.season),
+			// International Soccer Zen GM mod (Epic 6)
+			boardObjective: await competition.getBoardObjectiveInfo(
+				inputs.tid,
+				inputs.season,
+			),
 		};
 	}
 };

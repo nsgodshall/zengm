@@ -11,6 +11,7 @@ import Note from "../Player/Note.tsx";
 import { RosterComposition } from "../../components/RosterComposition.tsx";
 import { PlusMinus } from "../../components/PlusMinus.tsx";
 import { useLocal } from "../../util/local.ts";
+import { BoardObjective } from "../../components/BoardObjective.tsx";
 
 const fontSizeLarger = { fontSize: "larger" };
 
@@ -156,6 +157,7 @@ const TopStuff = ({
 	academy,
 	wageBudget,
 	clubInfo,
+	boardObjective,
 }: Pick<
 	View<"roster">,
 	| "abbrev"
@@ -175,6 +177,7 @@ const TopStuff = ({
 	| "academy"
 	| "wageBudget"
 	| "clubInfo"
+	| "boardObjective"
 > & {
 	currentSeason: number;
 	openRosterSpots: number;
@@ -335,6 +338,11 @@ const TopStuff = ({
 											)}
 										</>
 									)}
+								</div>
+							) : null}
+							{boardObjective ? (
+								<div>
+									<BoardObjective boardObjective={boardObjective} />
 								</div>
 							) : null}
 							{academy ? (

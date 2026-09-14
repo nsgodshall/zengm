@@ -31,6 +31,9 @@ const getMoodScore = (total: number, deltas: boolean = false) => {
 export const genMessage = async (
 	deltas: OwnerMood,
 	cappedDeltas: OwnerMood,
+	// International Soccer Zen GM mod (Epic 6): how a World club did against its
+	// board objective
+	objectiveText?: string,
 ) => {
 	// If auto play seasons or multi team mode, no messages - keep in sync with updateOwnerMood
 	if (
@@ -63,7 +66,7 @@ export const genMessage = async (
 		);
 	});
 
-	let m = "";
+	let m = objectiveText ? `<p>${objectiveText}</p>` : "";
 	let fired = false;
 
 	// Check for some challenge modes that can result in being fired

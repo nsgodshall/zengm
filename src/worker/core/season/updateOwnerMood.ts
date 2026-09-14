@@ -2,6 +2,7 @@ import { idb } from "../../db/index.ts";
 import { g, local } from "../../util/index.ts";
 import type { OwnerMood } from "../../../common/types.ts";
 import { bySport } from "../../../common/sportFunctions.ts";
+import { evaluateBoardObjective } from "../competition/boardObjectiveInfo.ts";
 
 /**
  * Update teamSeason.ownerMood based on performance this season, only for user's team.
@@ -15,6 +16,7 @@ const updateOwnerMood = async (): Promise<
 	| {
 			cappedDeltas: OwnerMood;
 			deltas: OwnerMood;
+			objectiveText?: string;
 	  }
 	| undefined
 > => {
@@ -90,6 +92,18 @@ const updateOwnerMood = async (): Promise<
 		deltas.playoffs = 0.2;
 	}
 
+	// International Soccer Zen GM mod (Epic 6): in a World, the club's board
+	// objective and whether it won the title or went up or down take the place of
+	// regular season and playoff success
+	const objective = await evaluateBoardObjective(
+		g.get("userTid"),
+		g.get("season"),
+	);
+	if (objective) {
+		deltas.wins = objective.wins;
+		deltas.playoffs = objective.playoffs;
+	}
+
 	if (!teamSeason.ownerMood) {
 		teamSeason.ownerMood = (g as any).ownerMood
 			? (g as any).ownerMood
@@ -133,6 +147,7 @@ const updateOwnerMood = async (): Promise<
 	return {
 		cappedDeltas,
 		deltas,
+		objectiveText: objective?.text,
 	};
 };
 

@@ -11,6 +11,8 @@ import { Fragment, type MouseEvent } from "react";
 import { TooltipWithBounds, useTooltip } from "@visx/tooltip";
 import { helpers } from "../../util/helpers.ts";
 import { localPoint } from "@visx/event";
+import { isWorld } from "../../util/isWorld.ts";
+import { useLocal } from "../../util/local.ts";
 
 export const ReferenceLine = ({
 	x,
@@ -77,6 +79,11 @@ const OwnerMoodsChart = ({
 	const MAX_WIDTH = 400;
 	const HEIGHT = 400;
 	const STAR_SIZE = 40;
+
+	// International Soccer Zen GM mod (Epic 6): in a World, board objectives and
+	// promotion/relegation take the place of the regular season and playoffs
+	const { competitionDivisions } = useLocal(["competitionDivisions"]);
+	const world = isWorld(competitionDivisions);
 
 	const data = ownerMoods.map((mood) => {
 		return {
@@ -300,8 +307,12 @@ const OwnerMoodsChart = ({
 
 			<div className="chart-legend">
 				<ul className="list-unstyled mb-0">
-					<li className="text-danger">— Regular season success</li>
-					<li className="text-info">— Playoff success</li>
+					<li className="text-danger">
+						— {world ? "Board objectives" : "Regular season success"}
+					</li>
+					<li className="text-info">
+						— {world ? "Titles, promotion, and relegation" : "Playoff success"}
+					</li>
 					<li className="text-success">— Finances</li>
 					<li className="text-dark fw-bold">— Total</li>
 				</ul>

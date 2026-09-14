@@ -16,6 +16,11 @@ import { getWorldNewLeagueInfo } from "./newWorldInfo.ts";
 import { getClubDivisionInfo, getLeagueHistory } from "./leagueHistory.ts";
 import { getAcademySummary } from "./academySummary.ts";
 import { getClubInfo } from "./clubInfo.ts";
+import {
+	ensureBoardObjectives,
+	evaluateBoardObjective,
+	getBoardObjectiveInfo,
+} from "./boardObjectiveInfo.ts";
 import { getWorldSeasonSummary } from "./seasonSummary.ts";
 import { getPlayerTransferInfo } from "./playerTransferInfo.ts";
 import getPromotionPlayoffBrackets from "./promotionPlayoffBrackets.ts";
@@ -97,6 +102,9 @@ export default {
 	getLeagueHistory,
 	getAcademySummary,
 	getClubInfo,
+	ensureBoardObjectives,
+	evaluateBoardObjective,
+	getBoardObjectiveInfo,
 	getWorldSeasonSummary,
 	getPlayerTransferInfo,
 	getPromotionPlayoffBrackets,

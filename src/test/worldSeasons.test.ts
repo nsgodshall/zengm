@@ -553,6 +553,63 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		}
 	});
 
+	test("every club gets a board objective each season, and is judged on it and on promotion and relegation", async () => {
+		const teamSeasons: TeamSeason[] = await idb.league.getAll("teamSeasons");
+		const tierByDivisionId = new Map(
+			structure.competitionDivisions.map((division) => [
+				division.divisionId,
+				division.tier,
+			]),
+		);
+
+		for (const season of completedSeasons) {
+			const rows = teamSeasons.filter((row) => row.season === season);
+			assert.strictEqual(rows.length, 4 * CLUBS_PER_DIVISION);
+			for (const row of rows) {
+				const objective = row.boardObjective;
+				assert(objective, `${season} tid ${row.tid} has no objective`);
+				assert(
+					objective.targetPosition >= 1 &&
+						objective.targetPosition <= CLUBS_PER_DIVISION,
+				);
+				const tier = tierByDivisionId.get(row.divisionId!);
+				if (tier === 1) {
+					assert(!["promotion", "promotionPlayoff"].includes(objective.kind));
+				} else {
+					assert.notStrictEqual(objective.kind, "avoidRelegation");
+				}
+			}
+		}
+
+		// The last season is the one whose moves are still on the teams
+		const season = completedSeasons.at(-1)!;
+		const before = await getDivisionIdByTid(season);
+		const after = await getDivisionIdByTid(season + 1);
+		for (const [tid, divisionId] of before) {
+			const result = (await competition.evaluateBoardObjective(tid, season))!;
+			const info = (await competition.getClubDivisionInfo(tid, season))!;
+			const objective = teamSeasons.find(
+				(row) => row.season === season && row.tid === tid,
+			)!.boardObjective!;
+
+			const tier = tierByDivisionId.get(divisionId)!;
+			const nextTier = tierByDivisionId.get(after.get(tid)!)!;
+			let expectedPlayoffs = 0;
+			if (nextTier < tier || (tier === 1 && info.position === 1)) {
+				expectedPlayoffs = 0.2;
+			} else if (nextTier > tier) {
+				expectedPlayoffs = -0.2;
+			}
+			assert.strictEqual(result.playoffs, expectedPlayoffs, `tid ${tid}`);
+			assert.strictEqual(
+				result.wins > 0,
+				info.position <= objective.targetPosition,
+				`tid ${tid}`,
+			);
+			assert(result.text.includes(info.divisionName));
+		}
+	});
+
 	test("a club's team page has its stadium, market size rank in its Country, and money", async () => {
 		const currentSeason = g.get("season");
 		for (const t of await idb.cache.teams.getAll()) {

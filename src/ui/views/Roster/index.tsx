@@ -104,6 +104,7 @@ const Roster = ({
 	academy,
 	wageBudget,
 	clubInfo,
+	boardObjective,
 	showTradingBlock,
 	stats,
 	t,
@@ -454,6 +455,7 @@ const Roster = ({
 				academy={academy}
 				wageBudget={wageBudget}
 				clubInfo={clubInfo}
+				boardObjective={boardObjective}
 				showTradingBlock={showTradingBlock}
 				t={t}
 				tid={tid}

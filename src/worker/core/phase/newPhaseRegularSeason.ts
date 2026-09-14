@@ -1,4 +1,4 @@
-import { season } from "../index.ts";
+import { competition, season } from "../index.ts";
 import { idb } from "../../db/index.ts";
 import { g, helpers, local, logEvent, toUI } from "../../util/index.ts";
 import type { Conditions, Game, PhaseReturn } from "../../../common/types.ts";
@@ -150,6 +150,10 @@ const newPhaseRegularSeason = async (
 	);
 
 	await season.setSchedule(await season.newSchedule(teams));
+
+	// International Soccer Zen GM mod (Epic 6): the board sets each World club's
+	// objective from the squad it starts the season with
+	await competition.ensureBoardObjectives();
 
 	await deleteOldBoxScores();
 

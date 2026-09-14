@@ -511,7 +511,11 @@ const newPhaseBeforeDraft = async (
 		await achievement.check("afterAwards", conditions);
 		const response = await season.updateOwnerMood();
 		if (response) {
-			await genMessage(response.deltas, response.cappedDeltas);
+			await genMessage(
+				response.deltas,
+				response.cappedDeltas,
+				response.objectiveText,
+			);
 		}
 
 		if (!repeatSeasonType) {

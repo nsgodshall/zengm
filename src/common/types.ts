@@ -1985,6 +1985,19 @@ export type TeamSeasonWithoutKey = {
 	// same way cid/did are, so history is preserved even after a club is later
 	// promoted/relegated to a different Division.
 	divisionId?: number;
+	// International Soccer Zen GM mod (Epic 6): what the board expects of a World
+	// club this season, the finish it wants and which part of the table that's in
+	// (see competition/boardObjectives.ts)
+	boardObjective?: {
+		kind:
+			| "title"
+			| "promotion"
+			| "promotionPlayoff"
+			| "topHalf"
+			| "midTable"
+			| "avoidRelegation";
+		targetPosition: number;
+	};
 	region: string;
 	name: string;
 	abbrev: string;

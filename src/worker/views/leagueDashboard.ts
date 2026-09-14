@@ -73,6 +73,11 @@ const updateTeam = async (inputs: unknown, updateEvents: UpdateEvents) => {
 				g.get("season"),
 			),
 			transferWindow: await competition.getCurrentTransferWindow(),
+			// International Soccer Zen GM mod (Epic 6)
+			boardObjective: await competition.getBoardObjectiveInfo(
+				g.get("userTid"),
+				g.get("season"),
+			),
 		};
 	}
 };

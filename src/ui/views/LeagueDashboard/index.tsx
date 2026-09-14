@@ -8,6 +8,7 @@ import TeamStats from "./TeamStats.tsx";
 import type { View } from "../../../common/types.ts";
 import Headlines from "./Headlines.tsx";
 import { useLocal } from "../../util/local.ts";
+import { BoardObjective } from "../../components/BoardObjective.tsx";
 
 const LeagueDashboard = ({
 	att,
@@ -46,6 +47,7 @@ const LeagueDashboard = ({
 	wageBudget,
 	won,
 	worldDivision,
+	boardObjective,
 	worldTable,
 	worldTableSeasonOver,
 }: View<"leagueDashboard">) => {
@@ -120,6 +122,11 @@ const LeagueDashboard = ({
 										<span className="d-none d-sm-inline">{roundsWonText}</span>
 									)}
 								</span>
+								{boardObjective ? (
+									<div>
+										<BoardObjective boardObjective={boardObjective} />
+									</div>
+								) : null}
 							</div>
 
 							<div className="row">
