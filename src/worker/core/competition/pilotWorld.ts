@@ -4,6 +4,7 @@ import {
 	getCrestDataUrl,
 	pickCrestPattern,
 } from "./crests.ts";
+import { getStadiumCapacity } from "./worldSettings.ts";
 
 // International Soccer Zen GM mod (Epic 7): the pilot World, a real-country
 // setting with fictional clubs, created from the New League page
@@ -300,6 +301,7 @@ export const generatePilotWorld = (random: () => number = Math.random) => {
 					name,
 					abbrev,
 					pop,
+					stadiumCapacity: getStadiumCapacity(pop),
 					colors,
 					imgURL: getCrestDataUrl(crest),
 					cid: division.countryId,

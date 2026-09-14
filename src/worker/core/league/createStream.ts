@@ -54,6 +54,7 @@ import addRelatives from "../realRosters/addRelatives.ts";
 import loadDataBasketball from "../realRosters/loadData.basketball.ts";
 import addDraftProspects from "./create/addDraftProspects.ts";
 import createRandomPlayers from "./create/createRandomPlayers.ts";
+import { MAX_STADIUM_CAPACITY } from "../competition/worldSettings.ts";
 import getRealTeamPlayerData from "./create/getRealTeamPlayerData.ts";
 import createGameAttributes from "./createGameAttributes.ts";
 import initRandomDebutsForRandomPlayersLeague from "./initRandomDebutsForRandomPlayersLeague.ts";
@@ -568,6 +569,15 @@ const finalizeGameAttributes = async ({
 
 		let godModeInPastOverride = false;
 		const godModeLimits = newLeagueGodModeLimits();
+
+		// International Soccer Zen GM mod (Epic 7): a World's stadiums are sized by
+		// market (see competition/worldSettings.ts), so only bigger than that is
+		// too powerful
+		const maxStadiumCapacity =
+			(finalized.competitionDivisions?.length ?? 0) > 1
+				? MAX_STADIUM_CAPACITY
+				: godModeLimits.stadiumCapacity;
+
 		for (const t of teamInfos) {
 			if (t.pop > godModeLimits.pop) {
 				godModeInPastOverride = true;
@@ -575,7 +585,7 @@ const finalizeGameAttributes = async ({
 			}
 			if (
 				t.stadiumCapacity !== undefined &&
-				t.stadiumCapacity > godModeLimits.stadiumCapacity
+				t.stadiumCapacity > maxStadiumCapacity
 			) {
 				godModeInPastOverride = true;
 				break;

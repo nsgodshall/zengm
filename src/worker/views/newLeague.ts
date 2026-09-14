@@ -11,6 +11,7 @@ import { defaultInjuries } from "../util/defaultInjuries.ts";
 import { newLeagueGodModeLimits } from "../util/newLeagueGodModeLimits.ts";
 import { getNewLeagueLid } from "../util/getNewLeagueLid.ts";
 import { defaultGameAttributes } from "../../common/defaultGameAttributes.ts";
+import { WORLD_MAX_ROSTER_SIZE } from "../core/competition/worldSettings.ts";
 
 const getDefaultRealStats = () => {
 	return env.mobile ? "none" : "allActiveHOF";
@@ -470,6 +471,17 @@ export const getRealTeamInfo = async () => {
 	return realTeamInfo;
 };
 
+// International Soccer Zen GM mod (Epic 7): settings a new World starts with
+// instead of ZenGM's defaults (see competition/worldSettings.ts)
+const WORLD_SETTINGS = {
+	maxRosterSize: WORLD_MAX_ROSTER_SIZE,
+};
+
+export const getWorldDefaultSettings = () => ({
+	...getDefaultSettings(),
+	...WORLD_SETTINGS,
+});
+
 const updateNewLeague = async ({ lid, type }: ViewInput<"newLeague">) => {
 	const godModeLimits = newLeagueGodModeLimits();
 
@@ -481,6 +493,8 @@ const updateNewLeague = async ({ lid, type }: ViewInput<"newLeague">) => {
 	const defaultSettings = {
 		...getDefaultSettings(),
 		...overrides,
+		// International Soccer Zen GM mod (Epic 7): a World's own defaults
+		...(type === "world" ? WORLD_SETTINGS : {}),
 	};
 
 	if (lid !== undefined) {

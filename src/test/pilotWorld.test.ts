@@ -5,11 +5,16 @@ import { LEAGUE_DATABASE_VERSION, PHASE } from "../common/constants.ts";
 import type { Player } from "../common/types.ts";
 import { PILOT_CLUBS_PER_DIVISION } from "../worker/core/competition/pilotWorld.ts";
 import { getWageBudgets } from "../worker/core/competition/wageBudgets.ts";
+import {
+	MAX_STADIUM_CAPACITY,
+	MIN_STADIUM_CAPACITY,
+	WORLD_MAX_ROSTER_SIZE,
+} from "../worker/core/competition/worldSettings.ts";
 import { competition, league, phase, season } from "../worker/core/index.ts";
 import createStreamFromLeagueObject from "../worker/core/league/create/createStreamFromLeagueObject.ts";
 import { idb } from "../worker/db/index.ts";
 import { g, helpers, local } from "../worker/util/index.ts";
-import { getDefaultSettings } from "../worker/views/newLeague.ts";
+import { getWorldDefaultSettings } from "../worker/views/newLeague.ts";
 
 // International Soccer Zen GM mod (Epic 7): create the pilot World the way New
 // League → World does, and start its first regular season
@@ -38,7 +43,7 @@ describe("the pilot World", () => {
 				lid: 0,
 				name: "Pilot World",
 				setLeagueCreationStatus: () => {},
-				settings: getDefaultSettings(),
+				settings: getWorldDefaultSettings(),
 				shuffleRosters: false,
 				startingSeasonFromInput: String(STARTING_SEASON),
 				teamsFromInput: helpers.addPopRank(clubs),
@@ -185,6 +190,32 @@ describe("the pilot World", () => {
 			}
 		}
 		assert(numCountriesWithNames > 0);
+	});
+
+	test("rosters are bigger than ZenGM's, with room to grow", async () => {
+		assert.strictEqual(g.get("maxRosterSize"), WORLD_MAX_ROSTER_SIZE);
+		for (const t of await idb.cache.teams.getAll()) {
+			const roster = await idb.cache.players.indexGetAll("playersByTid", t.tid);
+			assert(
+				roster.length <= WORLD_MAX_ROSTER_SIZE - 2,
+				`tid ${t.tid} has ${roster.length}`,
+			);
+		}
+	});
+
+	test("stadiums are sized by market, without counting as God Mode", async () => {
+		assert.strictEqual(g.get("godModeInPast"), false);
+
+		const capacities = (await idb.cache.teams.getAll()).map(
+			(t) => t.stadiumCapacity,
+		);
+		for (const capacity of capacities) {
+			assert(
+				capacity >= MIN_STADIUM_CAPACITY && capacity <= MAX_STADIUM_CAPACITY,
+				`${capacity}`,
+			);
+		}
+		assert(Math.max(...capacities) > 2 * Math.min(...capacities));
 	});
 
 	test("every club has a youth academy", async () => {

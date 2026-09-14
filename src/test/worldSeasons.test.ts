@@ -20,7 +20,7 @@ import createStreamFromLeagueObject from "../worker/core/league/create/createStr
 import { idb } from "../worker/db/index.ts";
 import { g, helpers, local, lock } from "../worker/util/index.ts";
 import academyView from "../worker/views/academy.ts";
-import { getDefaultSettings } from "../worker/views/newLeague.ts";
+import { getWorldDefaultSettings } from "../worker/views/newLeague.ts";
 
 // International Soccer Zen GM mod (Epic 8): create a small World and auto play
 // several full seasons through the real game code - schedule, games, season
@@ -171,7 +171,7 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 				name: "World",
 				setLeagueCreationStatus: () => {},
 				settings: {
-					...getDefaultSettings(),
+					...getWorldDefaultSettings(),
 					numGames: NUM_GAMES,
 				},
 				shuffleRosters: false,
