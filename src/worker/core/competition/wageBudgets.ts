@@ -10,9 +10,10 @@ import {
 } from "./transferMarket.ts";
 
 /**
- * Every active club's wage budget, in thousands of dollars, from its revenue
- * in the last completed season (see getWageBudget). In a World this is the
- * board's limit that takes the place of ZenGM's league-wide salary cap.
+ * Every active club's wage budget, in thousands of dollars, from its revenue,
+ * running costs, and cash at the end of the last completed season (see
+ * getWageBudget). In a World this is the board's limit that takes the place of
+ * ZenGM's league-wide salary cap.
  */
 export const getWageBudgets = async () => {
 	const currentSeason = g.get("season");
@@ -23,31 +24,40 @@ export const getWageBudgets = async () => {
 		"teamSeasonsBySeasonTid",
 		[[revenueSeason], [revenueSeason, "Z"]],
 	);
-	const revenueByTid = new Map<number, number>();
+	const financesByTid = new Map<
+		number,
+		{ revenue: number; runningCosts: number; cash: number }
+	>();
 	for (const teamSeason of teamSeasons) {
 		let revenue = 0;
 		for (const amount of Object.values(teamSeason.revenues)) {
 			revenue += amount;
 		}
-		revenueByTid.set(teamSeason.tid, revenue);
+		const { coaching, facilities, health, scouting } = teamSeason.expenses;
+		financesByTid.set(teamSeason.tid, {
+			revenue,
+			runningCosts: coaching + facilities + health + scouting,
+			cash: teamSeason.cash,
+		});
 	}
-	const averageRevenue =
-		revenueByTid.size > 0
-			? [...revenueByTid.values()].reduce((sum, x) => sum + x, 0) /
-				revenueByTid.size
-			: 0;
 
 	const teams = (await idb.cache.teams.getAll()).filter((t) => !t.disabled);
 	const popRanks = helpers.getPopRanks(teams);
 
+	// Enough to field a full squad on minimum contracts
+	const minWageBudget = g.get("minContract") * g.get("maxRosterSize");
+
 	const wageBudgets = new Map<number, number>();
 	for (const [i, t] of teams.entries()) {
+		const finances = financesByTid.get(t.tid);
 		wageBudgets.set(
 			t.tid,
 			getWageBudget({
 				salaryCap: g.get("salaryCap"),
-				revenue: revenueByTid.get(t.tid),
-				averageRevenue,
+				revenue: finances?.revenue,
+				runningCosts: finances?.runningCosts ?? 0,
+				cash: finances?.cash ?? 0,
+				minWageBudget,
 				popRank: popRanks[i] ?? teams.length,
 				numTeams: teams.length,
 				startingPayroll: t.startingPayroll,

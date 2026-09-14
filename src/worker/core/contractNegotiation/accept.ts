@@ -54,7 +54,9 @@ const accept = async <
 	}
 
 	// International Soccer Zen GM mod (Epic 4): a World has no salary cap, but
-	// the club's board sets a wage budget, with the same exceptions as a soft cap
+	// the club's board sets a wage budget. Decided in Epic 8: it works like a
+	// hard cap, so re-signing a player has to fit it too, and only minimum
+	// contracts can go over.
 	if (!isSingleDivision(getCompetitionStructure())) {
 		const payroll = await team.getPayroll(tid);
 		const wageBudget = (await getWageBudgets()).get(tid);
@@ -65,13 +67,12 @@ const accept = async <
 				amount,
 				wageBudget,
 				minContract: g.get("minContract"),
-				resigning: !!negotiation.resigning,
 			})
 		) {
 			return `Your board won't let you go over your wage budget of ${helpers.formatCurrency(
 				wageBudget / 1000,
 				"M",
-			)} to sign free agents to contracts higher than the minimum salary.`;
+			)} to ${negotiation.resigning ? "re-sign" : "sign"} players to contracts higher than the minimum salary.`;
 		}
 	}
 

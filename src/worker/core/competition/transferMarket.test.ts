@@ -149,33 +149,31 @@ describe("getTransferFee", () => {
 });
 
 describe("getWageBudget", () => {
-	test("scales the salary cap by revenue compared to the league average", () => {
-		const budget = (revenue: number) =>
-			getWageBudget({
-				salaryCap: 100000,
-				revenue,
-				averageRevenue: 200000,
-				popRank: 15,
-				numTeams: 30,
-			});
+	const afterASeason = {
+		salaryCap: 100000,
+		revenue: 300000,
+		runningCosts: 120000,
+		cash: 0,
+		minWageBudget: 20000,
+		popRank: 15,
+		numTeams: 30,
+	};
 
-		expect(budget(200000)).toBe(100000);
-		expect(budget(300000)).toBe(150000);
-		expect(budget(100000)).toBe(50000);
+	test("is what last season's revenue left after running costs", () => {
+		expect(getWageBudget(afterASeason)).toBe(180000);
+		expect(getWageBudget({ ...afterASeason, revenue: 200000 })).toBe(80000);
 	});
 
-	test("stays between half and double the cap", () => {
-		const budget = (revenue: number) =>
-			getWageBudget({
-				salaryCap: 100000,
-				revenue,
-				averageRevenue: 200000,
-				popRank: 15,
-				numTeams: 30,
-			});
+	test("pays off debt over 3 seasons, and spends a fifth of spare cash", () => {
+		expect(getWageBudget({ ...afterASeason, cash: -90000 })).toBe(150000);
+		expect(getWageBudget({ ...afterASeason, cash: 50000 })).toBe(190000);
+	});
 
-		expect(budget(1000000)).toBe(200000);
-		expect(budget(10000)).toBe(50000);
+	test("stays between enough for a squad on minimum contracts and double the cap", () => {
+		expect(
+			getWageBudget({ ...afterASeason, revenue: 100000, cash: -300000 }),
+		).toBe(20000);
+		expect(getWageBudget({ ...afterASeason, revenue: 1000000 })).toBe(200000);
 	});
 
 	test("before a club's first season is over, its budget covers its starting payroll with some room", () => {
@@ -183,7 +181,9 @@ describe("getWageBudget", () => {
 			getWageBudget({
 				salaryCap: 100000,
 				revenue,
-				averageRevenue: revenue === undefined ? 0 : 200000,
+				runningCosts: 100000,
+				cash: 0,
+				minWageBudget: 0,
 				popRank: 5,
 				numTeams: 5,
 				startingPayroll,
@@ -203,7 +203,9 @@ describe("getWageBudget", () => {
 			getWageBudget({
 				salaryCap: 100000,
 				revenue: undefined,
-				averageRevenue: 0,
+				runningCosts: 0,
+				cash: 0,
+				minWageBudget: 0,
 				popRank,
 				numTeams: 5,
 			});
@@ -219,25 +221,17 @@ describe("canSignWithinWageBudget", () => {
 		payroll: 90000,
 		wageBudget: 100000,
 		minContract: 1000,
-		resigning: false,
 	};
 
-	test("allows a signing that fits the budget, and refuses one that doesn't", () => {
+	test("allows a signing or re-signing that fits the budget, and refuses one that doesn't", () => {
 		expect(canSignWithinWageBudget({ ...base, amount: 10000 })).toBe(true);
 		expect(canSignWithinWageBudget({ ...base, amount: 10002 })).toBe(false);
 	});
 
-	test("like a soft cap, a minimum contract or re-signing a club's own player is always allowed", () => {
+	test("like a hard cap, only a minimum contract can go over", () => {
 		const overBudget = { ...base, payroll: 150000 };
 
 		expect(canSignWithinWageBudget({ ...overBudget, amount: 1000 })).toBe(true);
-		expect(
-			canSignWithinWageBudget({
-				...overBudget,
-				amount: 20000,
-				resigning: true,
-			}),
-		).toBe(true);
 		expect(canSignWithinWageBudget({ ...overBudget, amount: 20000 })).toBe(
 			false,
 		);

@@ -12,7 +12,7 @@ import { academyTransfersBetweenAiClubs } from "./academyTransfers.ts";
 import { loansBetweenAiClubs } from "./loanMoves.ts";
 import { recordTransfer } from "./recordTransfer.ts";
 import {
-	canAffordFee,
+	canAiAffordFee,
 	getContractSeasonsLeft,
 	getSeasonProgress,
 	getTransferFee,
@@ -199,7 +199,7 @@ const attempt = async (
 		return;
 	}
 
-	if (!canAffordFee({ cash: buyerSeason.cash, fee, wageBudget })) {
+	if (!canAiAffordFee({ cash: buyerSeason.cash, fee })) {
 		return;
 	}
 

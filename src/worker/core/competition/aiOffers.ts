@@ -19,7 +19,7 @@ import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
 import teamLink from "./teamLink.ts";
 import {
 	aiWantsAcademyPlayer,
-	canAffordFee,
+	canAiAffordFee,
 	getAiOfferFee,
 	getContractSeasonsLeft,
 	getTransferFee,
@@ -109,7 +109,7 @@ const getBuyerProblem = async ({
 		return `The ${name} can't fit his wages in their budget`;
 	}
 
-	if (!canAffordFee({ cash: buyerSeason.cash, fee, wageBudget })) {
+	if (!canAiAffordFee({ cash: buyerSeason.cash, fee })) {
 		return `The ${name} can't afford the fee`;
 	}
 };

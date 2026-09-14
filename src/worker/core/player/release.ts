@@ -4,6 +4,9 @@ import { g, helpers, logEvent } from "../../util/index.ts";
 import type { Player } from "../../../common/types.ts";
 import { PHASE } from "../../../common/constants.ts";
 import { getNumPlayersTradedAwayNormalizedAll } from "./getNumPlayersTradedAwayNormalized.ts";
+import { isSingleDivision } from "../competition/competitionStructure.ts";
+import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
+import { payOffReleasedContract } from "../competition/releasePayoff.ts";
 
 /**
  * Release player.
@@ -16,6 +19,8 @@ import { getNumPlayersTradedAwayNormalizedAll } from "./getNumPlayersTradedAwayN
  * @return {Promise}
  */
 const release = async (p: Player, justDrafted: boolean) => {
+	let payoff = 0;
+
 	// Keep track of player salary even when he's off the team, but make an exception for players who were just drafted.
 	if (!justDrafted) {
 		// ...and of course for players whose contracts have already expired.
@@ -23,11 +28,17 @@ const release = async (p: Player, justDrafted: boolean) => {
 			p.contract.exp > g.get("season") ||
 			(p.contract.exp === g.get("season") && g.get("phase") < PHASE.PLAYOFFS)
 		) {
-			await idb.cache.releasedPlayers.add({
-				pid: p.pid,
-				tid: p.tid,
-				contract: helpers.deepCopy(p.contract),
-			});
+			// International Soccer Zen GM mod (Epic 8): in a World, the club pays off
+			// the rest of his contract now instead
+			if (!isSingleDivision(getCompetitionStructure())) {
+				payoff = await payOffReleasedContract(p);
+			} else {
+				await idb.cache.releasedPlayers.add({
+					pid: p.pid,
+					tid: p.tid,
+					contract: helpers.deepCopy(p.contract),
+				});
+			}
 		}
 	}
 
@@ -46,7 +57,14 @@ const release = async (p: Player, justDrafted: boolean) => {
 			g.get("teamInfoCache")[p.tid]?.name
 		}</a> released <a href="${helpers.leagueUrl(["player", p.pid])}">${
 			p.firstName
-		} ${p.lastName}</a>.`,
+		} ${p.lastName}</a>.${
+			payoff > 0
+				? ` They paid off the rest of his contract, ${helpers.formatCurrency(
+						payoff / 1000,
+						"M",
+					)}.`
+				: ""
+		}`,
 		showNotification: false,
 		pids: [p.pid],
 		tids: [p.tid],

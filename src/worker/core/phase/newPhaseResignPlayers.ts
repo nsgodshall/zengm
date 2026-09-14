@@ -14,6 +14,10 @@ import { last, orderBy } from "../../../common/utils.ts";
 import { getNumPlayersTradedAwayNormalizedAll } from "../player/getNumPlayersTradedAwayNormalized.ts";
 import { bySport } from "../../../common/sportFunctions.ts";
 import { ValueChangeCalculator } from "../team/ValueChangeCalculator.ts";
+import { isSingleDivision } from "../competition/competitionStructure.ts";
+import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
+import { canSignWithinWageBudget } from "../competition/transferMarket.ts";
+import { getWageBudgets } from "../competition/wageBudgets.ts";
 
 export const FREE_AGENCY_DAYS = 30;
 
@@ -112,7 +116,13 @@ const newPhaseResignPlayers = async (
 
 	const payrollsByTid = new Map<number, number>();
 
-	if (g.get("salaryCapType") === "hard") {
+	// International Soccer Zen GM mod (Epic 8, decided): in a World, AI clubs
+	// only re-sign players within their wage budgets, like a hard cap
+	const wageBudgets = isSingleDivision(getCompetitionStructure())
+		? undefined
+		: await getWageBudgets();
+
+	if (g.get("salaryCapType") === "hard" || wageBudgets) {
 		for (let tid = 0; tid < g.get("numTeams"); tid++) {
 			const payroll = await team.getPayroll(tid);
 			const expiringPayroll = players
@@ -243,6 +253,20 @@ const newPhaseResignPlayers = async (
 				if (draftPick) {
 					reSignPlayer = true;
 				}
+			}
+
+			const wageBudget = wageBudgets?.get(p.tid);
+			if (
+				payroll !== undefined &&
+				wageBudget !== undefined &&
+				!canSignWithinWageBudget({
+					payroll,
+					amount: contract.amount,
+					wageBudget,
+					minContract: g.get("minContract"),
+				})
+			) {
+				reSignPlayer = false;
 			}
 
 			if (reSignPlayer) {

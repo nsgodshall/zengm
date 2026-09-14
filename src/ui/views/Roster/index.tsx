@@ -9,6 +9,7 @@ import { showNotification } from "../../util/showNotification.ts";
 import { toWorker } from "../../util/toWorker.ts";
 import { getCols } from "../../../common/getCols.ts";
 import { useLocal } from "../../util/local.ts";
+import { isWorld } from "../../util/isWorld.ts";
 import PlayingTime, { ptModifiers, ptStyles } from "./PlayingTime.tsx";
 import TopStuff from "./TopStuff.tsx";
 import type {
@@ -115,6 +116,7 @@ const Roster = ({
 	const [prevPlayers, setPrevPlayers] = useState(players);
 	const {
 		challengeNoRatings,
+		competitionDivisions,
 		gender,
 		phase,
 		salaryCapType,
@@ -122,6 +124,7 @@ const Roster = ({
 		userTid,
 	} = useLocal([
 		"challengeNoRatings",
+		"competitionDivisions",
 		"gender",
 		"phase",
 		"salaryCapType",
@@ -234,16 +237,28 @@ const Roster = ({
 					<>
 						Release{" "}
 						<HelpPopover title="Release player">
-							<p>
-								To free up a roster spot, you can release a player from your
-								team. You will still have to pay{" "}
-								{helpers.pronoun(gender, "his")} salary (and have it count
-								against the salary cap) until {helpers.pronoun(gender, "his")}{" "}
-								contract expires (you can view your released players' contracts
-								in your{" "}
-								<a href={helpers.leagueUrl(["team_finances"])}>Team Finances</a>
-								).
-							</p>
+							{isWorld(competitionDivisions) ? (
+								// International Soccer Zen GM mod (Epic 8)
+								<p>
+									To free up a roster spot, you can release a player from your
+									club. You pay off the rest of {helpers.pronoun(gender, "his")}{" "}
+									contract from your cash straight away, so it no longer counts
+									against your wage budget.
+								</p>
+							) : (
+								<p>
+									To free up a roster spot, you can release a player from your
+									team. You will still have to pay{" "}
+									{helpers.pronoun(gender, "his")} salary (and have it count
+									against the salary cap) until {helpers.pronoun(gender, "his")}{" "}
+									contract expires (you can view your released players'
+									contracts in your{" "}
+									<a href={helpers.leagueUrl(["team_finances"])}>
+										Team Finances
+									</a>
+									).
+								</p>
+							)}
 							{salaryCapType === "soft" ? (
 								<p>
 									However, if you just drafted a player and the regular season

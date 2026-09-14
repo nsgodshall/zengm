@@ -665,6 +665,44 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		}
 	});
 
+	test("a club that releases a player pays off the rest of his contract instead of carrying it", async () => {
+		const season = g.get("season");
+		const userTids = g.get("userTids");
+		const p = (await idb.cache.players.getAll()).find(
+			(p) =>
+				p.tid >= 0 &&
+				!userTids.includes(p.tid) &&
+				p.contract.exp > season &&
+				p.loan === undefined,
+		);
+		assert(p, "No AI club player with seasons left on his contract");
+		const tid = p.tid;
+		const { amount, exp } = p.contract;
+
+		const getTeamSeason = async () =>
+			(await idb.cache.teamSeasons.indexGet("teamSeasonsBySeasonTid", [
+				season,
+				tid,
+			]))!;
+		const cashBefore = (await getTeamSeason()).cash;
+		const payrollBefore = await team.getPayroll(tid);
+
+		await player.release(p, false);
+
+		// It's the preseason, so all of this season is still owed
+		assert.strictEqual(
+			(await getTeamSeason()).cash,
+			cashBefore - amount * (exp - season + 1),
+		);
+		assert.strictEqual(await team.getPayroll(tid), payrollBefore - amount);
+		assert.strictEqual(
+			(await idb.cache.releasedPlayers.getAll()).filter(
+				(row) => row.pid === p.pid,
+			).length,
+			0,
+		);
+	});
+
 	test("a club's team page has its stadium, market size rank in its Country, and money", async () => {
 		const currentSeason = g.get("season");
 		for (const t of await idb.cache.teams.getAll()) {

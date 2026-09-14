@@ -8,7 +8,7 @@ import { getAcademyPlayers } from "./academies.ts";
 import { recordTransfer } from "./recordTransfer.ts";
 import {
 	aiWantsAcademyPlayer,
-	canAffordFee,
+	canAiAffordFee,
 	getAcademyAskingPrice,
 	getAcademyTransferFee,
 } from "./transferMarket.ts";
@@ -134,7 +134,7 @@ export const academyTransfersBetweenAiClubs = async (
 			!buyerSeason ||
 			!sellerSeason ||
 			wageBudget === undefined ||
-			!canAffordFee({ cash: buyerSeason.cash, fee, wageBudget })
+			!canAiAffordFee({ cash: buyerSeason.cash, fee })
 		) {
 			continue;
 		}

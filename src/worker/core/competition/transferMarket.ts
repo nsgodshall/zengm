@@ -150,41 +150,66 @@ export const getTransferFee = ({
 	return Math.round(fee / 50) * 50;
 };
 
+// A club in debt has its wage budget cut to pay the debt off over this many
+// seasons
+export const DEBT_REPAYMENT_SEASONS = 3;
+
+// A club with cash to spare can spend this fraction of it on wages each season
+export const SURPLUS_SPENDING_FRACTION = 0.2;
+
 /**
- * A club's wage budget, in thousands of dollars: the league's salary cap scaled
- * by how the club's revenue compares to the league average, so richer clubs can
- * pay more. Before a club has a completed season, its market size (popRank, 1
- * is biggest) stands in for revenue. Kept between half and double the cap, so
- * no club is locked out of the market or unlimited.
+ * A club's wage budget, in thousands of dollars.
  *
- * Before its first season is over, a club's budget also covers its payroll
- * when the World was created (`startingPayroll`), plus STARTING_BUDGET_ROOM of
- * the cap to sign someone, since starting rosters aren't built to any budget.
+ * International Soccer Zen GM mod (Epic 8, decided): once a club has a
+ * completed season, its board lets it spend on wages what last season's
+ * `revenue` left after its `runningCosts` (coaching, facilities, health, and
+ * scouting), so it breaks even. A club in debt (negative `cash`) has that cut
+ * to pay the debt off over DEBT_REPAYMENT_SEASONS, and a club with cash to spare
+ * can spend SURPLUS_SPENDING_FRACTION of it. Kept between `minWageBudget`,
+ * enough to field a squad on minimum contracts, and double the salary cap.
+ * Scaling the cap by revenue instead left most lower-tier clubs hundreds of
+ * millions in debt within 10 seasons while big clubs piled up cash.
+ *
+ * Before a club has a completed season, its market size (popRank, 1 is
+ * biggest) stands in for revenue, scaling the cap, and its budget also covers
+ * its payroll when the World was created (`startingPayroll`), plus
+ * STARTING_BUDGET_ROOM of the cap to sign someone, since starting rosters
+ * aren't built to any budget.
  */
 export const getWageBudget = ({
 	salaryCap,
 	revenue,
-	averageRevenue,
+	runningCosts,
+	cash,
+	minWageBudget,
 	popRank,
 	numTeams,
 	startingPayroll,
 }: {
 	salaryCap: number;
 	revenue: number | undefined;
-	averageRevenue: number;
+	runningCosts: number;
+	cash: number;
+	minWageBudget: number;
 	popRank: number;
 	numTeams: number;
 	startingPayroll?: number;
 }) => {
-	const budget = getRevenueWageBudget({
-		salaryCap,
-		revenue,
-		averageRevenue,
-		popRank,
-		numTeams,
-	});
+	if (revenue !== undefined) {
+		const cashAdjustment =
+			cash < 0
+				? cash / DEBT_REPAYMENT_SEASONS
+				: SURPLUS_SPENDING_FRACTION * cash;
+		return Math.round(
+			Math.min(
+				MAX_WAGE_BUDGET_CAP_MULTIPLE * salaryCap,
+				Math.max(minWageBudget, revenue - runningCosts + cashAdjustment),
+			),
+		);
+	}
 
-	if (revenue === undefined && startingPayroll !== undefined) {
+	const budget = getMarketSizeWageBudget({ salaryCap, popRank, numTeams });
+	if (startingPayroll !== undefined) {
 		return Math.max(
 			budget,
 			Math.round(startingPayroll + STARTING_BUDGET_ROOM * salaryCap),
@@ -198,40 +223,23 @@ export const getWageBudget = ({
 // fraction of the salary cap
 export const STARTING_BUDGET_ROOM = 0.1;
 
-const getRevenueWageBudget = ({
+// Before a club has a completed season: the biggest market gets 1.2x the cap,
+// the smallest 0.8x
+const getMarketSizeWageBudget = ({
 	salaryCap,
-	revenue,
-	averageRevenue,
 	popRank,
 	numTeams,
 }: {
 	salaryCap: number;
-	revenue: number | undefined;
-	averageRevenue: number;
 	popRank: number;
 	numTeams: number;
 }) => {
-	let ratio;
-	if (revenue !== undefined && averageRevenue > 0) {
-		ratio = revenue / averageRevenue;
-	} else {
-		// Biggest market 1.2x the cap, smallest 0.8x
-		const marketSize = numTeams <= 1 ? 0.5 : (popRank - 1) / (numTeams - 1);
-		ratio = 1.2 - 0.4 * marketSize;
-	}
-
-	return Math.round(
-		salaryCap *
-			Math.min(
-				MAX_WAGE_BUDGET_CAP_MULTIPLE,
-				Math.max(MIN_WAGE_BUDGET_CAP_MULTIPLE, ratio),
-			),
-	);
+	const marketSize = numTeams <= 1 ? 0.5 : (popRank - 1) / (numTeams - 1);
+	return Math.round(salaryCap * (1.2 - 0.4 * marketSize));
 };
 
-// Wage budgets stay between these multiples of the salary cap (see
-// getWageBudget), so the upper one is also the most any club can pay in wages
-export const MIN_WAGE_BUDGET_CAP_MULTIPLE = 0.5;
+// Wage budgets are at most this multiple of the salary cap (see getWageBudget),
+// so it's also the most any club can pay in wages
 export const MAX_WAGE_BUDGET_CAP_MULTIPLE = 2;
 
 /**
@@ -269,7 +277,15 @@ export const getTransferFunds = ({
 	wageBudget: number;
 }) => Math.max(0, cash + MAX_DEBT_FRACTION_OF_WAGE_BUDGET * wageBudget);
 
-/** Whether a club can pay a transfer fee (see getTransferFunds) */
+/**
+ * International Soccer Zen GM mod (Epic 8, decided): whether an AI club can pay
+ * a transfer fee. AI clubs only spend cash they have, since debt cuts their
+ * wage budgets (see getWageBudget).
+ */
+export const canAiAffordFee = ({ cash, fee }: { cash: number; fee: number }) =>
+	fee <= cash;
+
+/** Whether the user's club can pay a transfer fee (see getTransferFunds) */
 export const canAffordFee = ({
 	cash,
 	fee,
@@ -386,15 +402,12 @@ export const canSignWithinWageBudget = ({
 	amount,
 	wageBudget,
 	minContract,
-	resigning,
 }: {
 	payroll: number;
 	amount: number;
 	wageBudget: number;
 	minContract: number;
-	resigning: boolean;
-}) =>
-	resigning || amount - 1 <= minContract || payroll + amount - 1 <= wageBudget;
+}) => amount - 1 <= minContract || payroll + amount - 1 <= wageBudget;
 
 // An academy player has no contract to buy out, so his fee is what his
 // potential is worth: his market wage above the minimum (see

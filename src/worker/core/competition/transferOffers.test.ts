@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { PHASE } from "../../../common/constants.ts";
 import {
 	canAffordFee,
+	canAiAffordFee,
 	getAiOfferFee,
 	getAskingPrice,
 	getContractSeasonsLeft,
@@ -93,6 +94,14 @@ describe("canAffordFee", () => {
 		expect(canAffordFee({ cash: 10000, fee: 60001, wageBudget: 100000 })).toBe(
 			false,
 		);
+	});
+});
+
+describe("canAiAffordFee", () => {
+	test("an AI club only spends cash it has", () => {
+		expect(canAiAffordFee({ cash: 50000, fee: 50000 })).toBe(true);
+		expect(canAiAffordFee({ cash: 50000, fee: 50001 })).toBe(false);
+		expect(canAiAffordFee({ cash: -10000, fee: 1000 })).toBe(false);
 	});
 });
 
