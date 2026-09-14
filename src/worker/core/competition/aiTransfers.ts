@@ -2,13 +2,14 @@ import { PHASE } from "../../../common/constants.ts";
 import { choice } from "../../../common/random.ts";
 import type { Player, TeamSeason } from "../../../common/types.ts";
 import { idb } from "../../db/index.ts";
-import { g, helpers, local, logEvent, toUI } from "../../util/index.ts";
+import { g, local, toUI } from "../../util/index.ts";
 import { recomputeLocalUITeamOvrs } from "../../util/recomputeLocalUITeamOvrs.ts";
 import { player, season, team } from "../index.ts";
 import { getTeammateJerseyNumbers } from "../player/genJerseyNumber.ts";
 import { ValueChangeCalculator } from "../team/ValueChangeCalculator.ts";
 import isUntradable from "../trade/isUntradable.ts";
-import teamLink from "./teamLink.ts";
+import { academyTransfersBetweenAiClubs } from "./academyTransfers.ts";
+import { recordTransfer } from "./recordTransfer.ts";
 import {
 	canAffordFee,
 	getContractSeasonsLeft,
@@ -105,33 +106,13 @@ export const processTransfer = async ({
 		);
 	}
 
-	buyerSeason.cash -= fee;
-	sellerSeason.cash += fee;
-	await idb.cache.teamSeasons.putAll([buyerSeason, sellerSeason]);
-
-	const eid = await logEvent({
-		type: "transfer",
-		text: `The ${teamLink(buyerTid)} bought <a href="${helpers.leagueUrl([
-			"player",
-			p.pid,
-		])}">${p.firstName} ${p.lastName}</a> from the ${teamLink(sellerTid)} for ${
-			fee > 0 ? helpers.formatCurrency(fee / 1000, "M") : "free"
-		}.`,
-		showNotification: false,
-		pids: [p.pid],
-		tids: [buyerTid, sellerTid],
-		score: Math.round(helpers.bound(p.valueFuzz - 40, 0, Infinity)),
-	});
-
-	p.transactions ??= [];
-	p.transactions.push({
-		season: g.get("season"),
-		phase: g.get("phase"),
-		tid: buyerTid,
-		type: "transfer",
-		fromTid: sellerTid,
+	await recordTransfer({
+		p,
+		buyerTid,
+		sellerTid,
 		fee,
-		eid,
+		buyerSeason,
+		sellerSeason,
 	});
 	await idb.cache.players.put(p);
 
@@ -269,6 +250,10 @@ const attempt = async (
 	return [buyerTid, sellerTid] as [number, number];
 };
 
+// A whole number of attempts, where a fractional part is a probability
+const randomRound = (float: number) =>
+	Math.floor(float) + (Math.random() < float % 1 ? 1 : 0);
+
 /**
  * International Soccer Zen GM mod (Epic 4): AI clubs in a World buy and sell
  * players for fees, but only while a transfer window is open. Called once a
@@ -281,13 +266,12 @@ const transfersBetweenAiClubs = async () => {
 
 	// Transfers are the main way clubs change rosters, so there are more
 	// attempts than AI trades get: about 1 for every 10 clubs a day, scaled by
-	// the same AI trades setting. A fractional part is a probability.
-	const float = (g.get("aiTradesFactor") * g.get("numActiveTeams")) / 10;
-	let numAttempts = Math.floor(float);
-	if (Math.random() < float % 1) {
-		numAttempts += 1;
-	}
-	if (numAttempts === 0) {
+	// the same AI trades setting. Academy players change hands less often, with
+	// about 1 attempt for every 40 clubs a day.
+	const numClubsFactor = g.get("aiTradesFactor") * g.get("numActiveTeams");
+	const numAttempts = randomRound(numClubsFactor / 10);
+	const numAcademyAttempts = randomRound(numClubsFactor / 40);
+	if (numAttempts === 0 && numAcademyAttempts === 0) {
 		return;
 	}
 
@@ -303,7 +287,12 @@ const transfersBetweenAiClubs = async () => {
 		}
 	}
 
-	if (anyTransfers) {
+	const numAcademyTransfers = await academyTransfersBetweenAiClubs(
+		numAcademyAttempts,
+		await getAITids(),
+	);
+
+	if (anyTransfers || numAcademyTransfers > 0) {
 		await toUI("realtimeUpdate", [["playerMovement"]]);
 		await recomputeLocalUITeamOvrs();
 	}

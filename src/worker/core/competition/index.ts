@@ -14,6 +14,7 @@ import { generatePilotWorld } from "./pilotWorld.ts";
 import getPromotionPlayoffBrackets from "./promotionPlayoffBrackets.ts";
 import getScheduleDivisions from "./scheduleDivisions.ts";
 import { makeTransferOffer } from "./userTransfers.ts";
+import { academyTransfersBetweenAiClubs } from "./academyTransfers.ts";
 import {
 	acceptAiTransferOffer,
 	dailyTransferOffers,
@@ -76,6 +77,7 @@ export default {
 	getPromotionPlayoffBrackets,
 	getScheduleDivisions,
 	makeTransferOffer,
+	academyTransfersBetweenAiClubs,
 	acceptAiTransferOffer,
 	dailyTransferOffers,
 	makeAiTransferOffers,

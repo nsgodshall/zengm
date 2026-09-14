@@ -428,16 +428,21 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			assert.strictEqual(p.ratings.at(-1)!.season, season, `pid ${p.pid}`);
 		}
 
-		// The newest intake joined after last summer's promotions, so it's still
-		// shared out equally
+		// The newest intake joined after last summer's promotions, so it was shared
+		// out equally. Some may have been sold to other academies since, so count
+		// each player for the club he joined.
 		const newestIntake = academyPlayers.filter(
 			(p) => p.draft.year === season + numCohorts - 1,
 		);
 		assert.strictEqual(newestIntake.length, getAcademyIntakeSize(numClubs));
 		assert.strictEqual(season - newestIntake[0]!.born.year, intakeAge + 1);
+		const getIntakeTid = (p: Player) =>
+			(p.transactions ?? []).flatMap((row) =>
+				row.type === "transfer" ? [row] : [],
+			)[0]?.fromTid ?? p.academyTid;
 		const perClub = newestIntake.length / numClubs;
 		for (let tid = 0; tid < numClubs; tid++) {
-			const count = newestIntake.filter((p) => p.academyTid === tid).length;
+			const count = newestIntake.filter((p) => getIntakeTid(p) === tid).length;
 			assert(
 				count >= Math.floor(perClub) && count <= Math.ceil(perClub),
 				`tid ${tid} got ${count}`,
@@ -782,5 +787,71 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			(await idb.cache.players.get(kept.pid))!.transferListed,
 			undefined,
 		);
+	});
+
+	// Changes the league, so it goes last
+	test("the user buys an academy player into their academy, and AI clubs buy academy players from each other", async () => {
+		const season = g.get("season");
+		const userTid = g.get("userTid");
+
+		// Plenty of cash for every club, so only the rules decide
+		const teams = (await idb.cache.teams.getAll()).filter((t) => !t.disabled);
+		for (const t of teams) {
+			const teamSeason = (await idb.cache.teamSeasons.indexGet(
+				"teamSeasonsBySeasonTid",
+				[season, t.tid],
+			))!;
+			teamSeason.cash = 1e9;
+			await idb.cache.teamSeasons.put(teamSeason);
+		}
+
+		const target = (await competition.getAcademyPlayers()).find(
+			(p) => p.academyTid !== userTid && p.draft.year > season,
+		);
+		assert(target, "No academy player to buy");
+		const sellerTid = target.academyTid!;
+
+		// More than any club asks
+		const fee = 1e7;
+		const accepted = await competition.makeTransferOffer({
+			pid: target.pid,
+			fee,
+		});
+		assert.strictEqual(accepted.type, "accept", accepted.message);
+
+		const bought = (await idb.cache.players.get(target.pid))!;
+		assert.strictEqual(bought.tid, PLAYER.UNDRAFTED);
+		assert.strictEqual(bought.academyTid, userTid);
+		const transaction = bought.transactions!.at(-1)!;
+		assert(transaction.type === "transfer");
+		assert.strictEqual(transaction.tid, userTid);
+		assert.strictEqual(transaction.fromTid, sellerTid);
+
+		const aiTids = teams.map((t) => t.tid).filter((tid) => tid !== userTid);
+		const academyTidsBefore = new Map(
+			(await competition.getAcademyPlayers()).map((p) => [
+				p.pid,
+				p.academyTid!,
+			]),
+		);
+		const numTransfers = await competition.academyTransfersBetweenAiClubs(
+			200,
+			aiTids,
+		);
+		assert(numTransfers > 0, "No academy transfers happened");
+
+		let numMoved = 0;
+		for (const p of await competition.getAcademyPlayers()) {
+			const academyTidBefore = academyTidsBefore.get(p.pid)!;
+			if (academyTidBefore === p.academyTid) {
+				continue;
+			}
+			numMoved += 1;
+			assert(aiTids.includes(academyTidBefore));
+			assert(aiTids.includes(p.academyTid!));
+			assert.strictEqual(p.tid, PLAYER.UNDRAFTED);
+			assert.strictEqual(p.transactions!.at(-1)!.tid, p.academyTid);
+		}
+		assert(numMoved > 0 && numMoved <= numTransfers);
 	});
 });

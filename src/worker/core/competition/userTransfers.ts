@@ -5,6 +5,11 @@ import { recomputeLocalUITeamOvrs } from "../../util/recomputeLocalUITeamOvrs.ts
 import { player, season, team } from "../index.ts";
 import { ValueChangeCalculator } from "../team/ValueChangeCalculator.ts";
 import isUntradable from "../trade/isUntradable.ts";
+import {
+	getAcademyPlayerAskingPrice,
+	isAcademyPlayerForSale,
+	processAcademyTransfer,
+} from "./academyTransfers.ts";
 import { getCurrentTransferWindow, processTransfer } from "./aiTransfers.ts";
 import { isSingleDivision } from "./competitionStructure.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
@@ -47,10 +52,12 @@ export type TransferOfferResult =
 
 /**
  * International Soccer Zen GM mod (Epic 4): the user offers a fee, in thousands
- * of dollars, for a player at an AI club. The club accepts its asking price or
- * more (see getAskingPrice), counters with its asking price when the offer is
- * close, and rejects the rest. The player keeps his contract, and the same
- * roster, wage budget, and debt limits apply as for AI clubs.
+ * of dollars, for a player at an AI club, in its first team or its academy. The
+ * club accepts its asking price or more (see getAskingPrice and
+ * getAcademyPlayerAskingPrice), counters with its asking price when the offer is
+ * close, and rejects the rest. A first-team player keeps his contract, and the
+ * same roster, wage budget, and debt limits apply as for AI clubs. An academy
+ * player joins the user's academy, so only the debt limit applies.
  */
 export const makeTransferOffer = async ({
 	pid,
@@ -76,55 +83,20 @@ export const makeTransferOffer = async ({
 
 	const userTid = g.get("userTid");
 	const p = await idb.cache.players.get(pid);
-	if (!p || p.tid < 0) {
+	const sellerTid = p?.academyTid ?? p?.tid;
+	if (!p || sellerTid === undefined || sellerTid < 0) {
 		return error("That player isn't at a club.");
 	}
-	if (g.get("userTids").includes(p.tid)) {
+	if (g.get("userTids").includes(sellerTid)) {
 		return error("That player is already yours.");
 	}
 
-	const sellerTid = p.tid;
+	const inAcademy = p.academyTid !== undefined;
 	const name = `${p.firstName} ${p.lastName}`;
 	const sellerInfo = g.get("teamInfoCache")[sellerTid];
 	const sellerName = `${sellerInfo?.region} ${sellerInfo?.name}`;
-
-	const untradable = isUntradable(p);
-	if (untradable.untradable) {
-		return error(untradable.untradableMsg);
-	}
-
+	const he = helpers.pronoun(g.get("gender"), "he");
 	const currentSeason = g.get("season");
-	const seasonsLeft = getContractSeasonsLeft({
-		exp: p.contract.exp,
-		season: currentSeason,
-		phase: g.get("phase"),
-	});
-	if (seasonsLeft <= 0) {
-		return error(
-			`${name}'s contract is up, so ${helpers.pronoun(
-				g.get("gender"),
-				"he",
-			)} will be a free agent instead.`,
-		);
-	}
-
-	const userRoster = await idb.cache.players.indexGetAll(
-		"playersByTid",
-		userTid,
-	);
-	if (userRoster.length >= g.get("maxRosterSize")) {
-		return error("Your roster is full. Release a player before buying one.");
-	}
-
-	const sellerRoster = await idb.cache.players.indexGetAll(
-		"playersByTid",
-		sellerTid,
-	);
-	if (sellerRoster.length <= g.get("minRosterSize")) {
-		return error(
-			`The ${sellerName} can't sell anyone without going below the minimum roster size.`,
-		);
-	}
 
 	const wageBudget = (await getWageBudgets()).get(userTid);
 	const buyerSeason = await idb.cache.teamSeasons.indexGet(
@@ -139,31 +111,76 @@ export const makeTransferOffer = async ({
 		return error("Your club or theirs has no season to transfer in.");
 	}
 
-	const payroll = await team.getPayroll(userTid);
-	if (payroll + p.contract.amount > wageBudget) {
-		return error(
-			`Your board won't let ${name}'s wages of ${formatFee(
-				p.contract.amount,
-			)} take your payroll over your wage budget of ${formatFee(wageBudget)}.`,
-		);
-	}
+	let askingPrice;
+	if (inAcademy) {
+		if (!isAcademyPlayerForSale(p)) {
+			return error(
+				`${name} is leaving the academy this summer, so ${he} can't be transferred.`,
+			);
+		}
 
-	const sellerValueChange = await new ValueChangeCalculator().evaluate({
-		tid: sellerTid,
-		pidsAdd: [],
-		pidsRemove: [pid],
-		dpidsAdd: [],
-		dpidsRemove: [],
-		tradingPartnerTid: userTid,
-	});
-	const askingPrice = getAskingPrice({
-		fee: getTransferFee({
-			marketWage: player.genContract(p, false).amount,
-			age: currentSeason - p.born.year,
-			seasonsLeft,
-		}),
-		sellerValueChange,
-	});
+		askingPrice = await getAcademyPlayerAskingPrice(p);
+	} else {
+		const untradable = isUntradable(p);
+		if (untradable.untradable) {
+			return error(untradable.untradableMsg);
+		}
+
+		const seasonsLeft = getContractSeasonsLeft({
+			exp: p.contract.exp,
+			season: currentSeason,
+			phase: g.get("phase"),
+		});
+		if (seasonsLeft <= 0) {
+			return error(
+				`${name}'s contract is up, so ${he} will be a free agent instead.`,
+			);
+		}
+
+		const userRoster = await idb.cache.players.indexGetAll(
+			"playersByTid",
+			userTid,
+		);
+		if (userRoster.length >= g.get("maxRosterSize")) {
+			return error("Your roster is full. Release a player before buying one.");
+		}
+
+		const sellerRoster = await idb.cache.players.indexGetAll(
+			"playersByTid",
+			sellerTid,
+		);
+		if (sellerRoster.length <= g.get("minRosterSize")) {
+			return error(
+				`The ${sellerName} can't sell anyone without going below the minimum roster size.`,
+			);
+		}
+
+		const payroll = await team.getPayroll(userTid);
+		if (payroll + p.contract.amount > wageBudget) {
+			return error(
+				`Your board won't let ${name}'s wages of ${formatFee(
+					p.contract.amount,
+				)} take your payroll over your wage budget of ${formatFee(wageBudget)}.`,
+			);
+		}
+
+		const sellerValueChange = await new ValueChangeCalculator().evaluate({
+			tid: sellerTid,
+			pidsAdd: [],
+			pidsRemove: [pid],
+			dpidsAdd: [],
+			dpidsRemove: [],
+			tradingPartnerTid: userTid,
+		});
+		askingPrice = getAskingPrice({
+			fee: getTransferFee({
+				marketWage: player.genContract(p, false).amount,
+				age: currentSeason - p.born.year,
+				seasonsLeft,
+			}),
+			sellerValueChange,
+		});
+	}
 
 	const response = respondToTransferOffer({ offer: fee, askingPrice });
 	if (response !== "accept") {
@@ -199,20 +216,32 @@ export const makeTransferOffer = async ({
 		);
 	}
 
-	await processTransfer({
-		p,
-		buyerTid: userTid,
-		sellerTid,
-		fee,
-		buyerSeason,
-		sellerSeason,
-	});
+	if (inAcademy) {
+		await processAcademyTransfer({
+			p,
+			buyerTid: userTid,
+			fee,
+			buyerSeason,
+			sellerSeason,
+		});
+	} else {
+		await processTransfer({
+			p,
+			buyerTid: userTid,
+			sellerTid,
+			fee,
+			buyerSeason,
+			sellerSeason,
+		});
+	}
 
 	await toUI("realtimeUpdate", [["playerMovement"]]);
 	await recomputeLocalUITeamOvrs();
 
 	return {
 		type: "accept",
-		message: `You bought ${name} from the ${sellerName} for ${formatFee(fee)}.`,
+		message: inAcademy
+			? `You bought ${name} from the ${sellerName} for ${formatFee(fee)}. ${helpers.upperCaseFirstLetter(he)} joins your academy.`
+			: `You bought ${name} from the ${sellerName} for ${formatFee(fee)}.`,
 	};
 };

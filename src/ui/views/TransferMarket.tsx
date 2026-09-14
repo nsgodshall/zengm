@@ -22,6 +22,16 @@ import { toWorker } from "../util/toWorker.ts";
 type MarketPlayer = View<"transferMarket">["players"][number];
 type Offer = View<"transferMarket">["offers"][number];
 
+type OfferTarget = {
+	pid: number;
+	abbrev: string;
+	firstName: string;
+	lastName: string;
+	// Millions of dollars
+	fee: number;
+	academy?: boolean;
+};
+
 // Amounts on this page are in millions of dollars
 const formatMillions = (amount: number) => helpers.formatCurrency(amount, "M");
 
@@ -35,6 +45,7 @@ const showError = (errorMsg: string | undefined | void) => {
 };
 
 const TransferMarket = ({
+	academyPlayers,
 	cash,
 	maxRosterSize,
 	numPlayersOnRoster,
@@ -54,7 +65,7 @@ const TransferMarket = ({
 	const canAct = transferWindow !== undefined && !spectator;
 
 	// fee is in thousands of dollars, like contracts in the worker
-	const submitOffer = async (p: MarketPlayer, fee: number) => {
+	const submitOffer = async (p: OfferTarget, fee: number) => {
 		const result = await toWorker("main", "makeTransferOffer", {
 			pid: p.pid,
 			fee,
@@ -75,9 +86,9 @@ const TransferMarket = ({
 		}
 	};
 
-	const makeOffer = async (p: MarketPlayer) => {
+	const makeOffer = async (p: OfferTarget) => {
 		const input = await confirm(
-			`How much do you offer the ${p.abbrev} for ${p.firstName} ${p.lastName}, in millions of dollars? At market value the fee is about ${formatMillions(p.fee)}, but a club asks more for a player it would miss.`,
+			`How much do you offer the ${p.abbrev} for ${p.firstName} ${p.lastName}, in millions of dollars? At market value the fee is about ${formatMillions(p.fee)}, but ${p.academy ? "a club asks double for the best player in its academy" : "a club asks more for a player it would miss"}.`,
 			{
 				defaultValue: String(p.fee),
 				okText: "Make offer",
@@ -314,6 +325,60 @@ const TransferMarket = ({
 		],
 	}));
 
+	const academyCols = [
+		...getCols(["Name", "Pos", "Age", "Ovr", "Pot", "Team"]),
+		{
+			title: "Division",
+		},
+		{
+			title: "Leaves",
+			desc: "The summer he has to leave his academy, for the first team or free agency",
+			sortSequence: ["asc", "desc"],
+			sortType: "number",
+		} as const,
+		{
+			...feeCol,
+			desc: "Transfer fee at market value, mostly from his potential. A club asks double for the best player in its academy.",
+		},
+		buttonsCol,
+	];
+
+	const academyRows: DataTableRow[] = academyPlayers.map((p) => ({
+		key: p.pid,
+		metadata: {
+			type: "player",
+			pid: p.pid,
+			season,
+			playoffs: "regularSeason",
+		},
+		data: [
+			...playerCells(p),
+			{
+				value: (
+					<a href={helpers.leagueUrl(["academy", `${p.abbrev}_${p.tid}`])}>
+						{p.abbrev}
+					</a>
+				),
+				sortValue: p.abbrev,
+				searchValue: p.abbrev,
+			},
+			p.divisionName,
+			p.graduationSeason,
+			{
+				value: formatMillions(p.fee),
+				sortValue: p.fee,
+			},
+			<button
+				className="btn btn-xs btn-primary"
+				disabled={!canAct}
+				key="offer"
+				onClick={() => makeOffer({ ...p, academy: true })}
+			>
+				Make offer
+			</button>,
+		],
+	}));
+
 	return (
 		<>
 			<p>
@@ -360,6 +425,19 @@ const TransferMarket = ({
 				defaultSort={[9, "desc"]}
 				name="TransferMarket"
 				rows={marketRows}
+			/>
+
+			<h2>Other clubs' academy players</h2>
+			<p>
+				A player you buy from another club's academy joins yours, so he doesn't
+				take a roster spot or count against your wage budget until you promote
+				him.
+			</p>
+			<DataTable
+				cols={academyCols}
+				defaultSort={[8, "desc"]}
+				name="TransferMarketAcademy"
+				rows={academyRows}
 			/>
 		</>
 	);

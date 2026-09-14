@@ -1,6 +1,10 @@
 import type { Player, UpdateEvents } from "../../common/types.ts";
 import { competition, player, team } from "../core/index.ts";
 import {
+	getAcademyPlayerFee,
+	isAcademyPlayerForSale,
+} from "../core/competition/academyTransfers.ts";
+import {
 	getContractSeasonsLeft,
 	getTransferFee,
 } from "../core/competition/transferMarket.ts";
@@ -13,9 +17,9 @@ import addFirstNameShort from "../util/addFirstNameShort.ts";
 /**
  * International Soccer Zen GM mod (Epic 6): the user's transfer business. Offers
  * from AI clubs for the user's players (see competition/aiOffers.ts), the user's
- * own players with their transfer list, and every player at another club to
- * make offers on (see competition/userTransfers.ts), each with his transfer fee
- * at market value.
+ * own players with their transfer list, and every player at another club, in
+ * its first team or its academy, to make offers on (see
+ * competition/userTransfers.ts), each with his transfer fee at market value.
  */
 const updateTransferMarket = async (
 	inputs: unknown,
@@ -131,6 +135,52 @@ const updateTransferMarket = async (
 		);
 
 		const teamInfoCache = g.get("teamInfoCache");
+
+		// Other clubs' academy players, who'd join the user's academy
+		const academyPlayersRaw = (await competition.getAcademyPlayers()).filter(
+			(p) =>
+				!userTids.includes(p.academyTid!) &&
+				divisionNameByTid.has(p.academyTid!) &&
+				isAcademyPlayerForSale(p),
+		);
+		const academyInfoByPid = new Map(
+			academyPlayersRaw.map((p) => [
+				p.pid,
+				{ tid: p.academyTid!, fee: getAcademyPlayerFee(p) },
+			]),
+		);
+		const academyPlayers = addFirstNameShort(
+			(
+				await idb.getCopies.playersPlus(academyPlayersRaw, {
+					attrs: [
+						"pid",
+						"firstName",
+						"lastName",
+						"age",
+						"draft",
+						"injury",
+						"watch",
+					],
+					ratings: ["ovr", "pot", "skills", "pos"],
+					season,
+					showNoStats: true,
+					showRookies: true,
+					fuzz: true,
+				})
+			).map((p) => {
+				const { tid, fee } = academyInfoByPid.get(p.pid)!;
+				return {
+					...p,
+					abbrev: teamInfoCache[tid]?.abbrev ?? "",
+					divisionName: divisionNameByTid.get(tid) ?? "",
+					// Millions of dollars
+					fee: fee / 1000,
+					graduationSeason: p.draft.year as number,
+					tid,
+				};
+			}),
+		);
+
 		const offers = userPlayers.flatMap((p) =>
 			p.transferOffers.map(
 				(offer: NonNullable<Player["transferOffers"]>[number]) => ({
@@ -151,6 +201,7 @@ const updateTransferMarket = async (
 		);
 
 		return {
+			academyPlayers,
 			// Millions of dollars
 			cash: (teamSeason?.cash ?? 0) / 1000,
 			maxRosterSize: g.get("maxRosterSize"),

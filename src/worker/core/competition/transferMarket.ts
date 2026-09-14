@@ -348,3 +348,57 @@ export const canSignWithinWageBudget = ({
 	resigning: boolean;
 }) =>
 	resigning || amount - 1 <= minContract || payroll + amount - 1 <= wageBudget;
+
+// An academy player has no contract to buy out, so his fee is what his
+// potential is worth: his market wage above the minimum (see
+// player.genContract, whose value counts potential heavily for young players)
+// for this many seasons
+export const ACADEMY_FEE_SEASONS = 1;
+
+/**
+ * The fee for an academy player, in thousands of dollars. Never less than a
+ * minimum contract, so no prospect comes free.
+ */
+export const getAcademyTransferFee = ({
+	marketWage,
+	minContract,
+}: {
+	marketWage: number;
+	minContract: number;
+}) => {
+	const fee = Math.max(0, marketWage - minContract) * ACADEMY_FEE_SEASONS;
+
+	// Round to the nearest $50k
+	return Math.max(minContract, Math.round(fee / 50) * 50);
+};
+
+// A club asks this many times the fee for the most valuable player in its
+// academy
+export const BEST_ACADEMY_PLAYER_ASKING_PRICE_MULTIPLE = 2;
+
+/** What a club wants for one of its academy players, in thousands of dollars */
+export const getAcademyAskingPrice = ({
+	fee,
+	isBestInAcademy,
+}: {
+	fee: number;
+	isBestInAcademy: boolean;
+}) => (isBestInAcademy ? BEST_ACADEMY_PLAYER_ASKING_PRICE_MULTIPLE * fee : fee);
+
+// An AI club only buys an academy player who'd be one of this many most
+// valuable players in its academy
+export const AI_ACADEMY_BUY_RANK = 3;
+
+/**
+ * Whether an AI club wants an academy player worth `value`, given the values of
+ * the players already in its academy
+ */
+export const aiWantsAcademyPlayer = ({
+	value,
+	academyValues,
+}: {
+	value: number;
+	academyValues: number[];
+}) =>
+	academyValues.filter((academyValue) => academyValue >= value).length <
+	AI_ACADEMY_BUY_RANK;
