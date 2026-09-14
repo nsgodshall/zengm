@@ -349,8 +349,21 @@ const newPhasePreseason = async (
 
 	// International Soccer Zen GM mod (Epic 5): academy players develop every
 	// season too, unlike draft prospects
+	// International Soccer Zen GM mod (Epic 8): but only once they're older than
+	// the first draft age (see academyPlayerDevelops)
+	const undevelopedAcademyPids = new Set<number>();
 	if (!repeatSeason) {
-		players.push(...(await competition.getAcademyPlayers()));
+		for (const p of await competition.getAcademyPlayers()) {
+			players.push(p);
+			if (
+				!competition.academyPlayerDevelops(
+					newSeason - p.born.year,
+					g.get("draftAges"),
+				)
+			) {
+				undevelopedAcademyPids.add(p.pid);
+			}
+		}
 	}
 
 	// Loop through all non-retired players
@@ -394,7 +407,12 @@ const newPhasePreseason = async (
 		} else {
 			// Update ratings
 			player.addRatingsRow(p, scoutingLevel);
-			await player.develop(p, 1, false, coachingLevels[p.tid]);
+			await player.develop(
+				p,
+				undevelopedAcademyPids.has(p.pid) ? 0 : 1,
+				false,
+				coachingLevels[p.tid],
+			);
 		}
 
 		if (

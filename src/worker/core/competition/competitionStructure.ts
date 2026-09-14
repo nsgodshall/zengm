@@ -349,6 +349,35 @@ export const getNewLeagueCompetition = (
 };
 
 /**
+ * International Soccer Zen GM mod (Epic 8): how many games a World's season is
+ * when its Divisions set their own `numGames`, for the league-wide `numGames`
+ * that finances, contracts, and awards use to know how long a season is. The
+ * most common Division `numGames` (the longest if tied), or undefined if no
+ * Division sets one, in which case the schedule uses the league-wide setting.
+ */
+export const getWorldSeasonLength = (structure: CompetitionStructure) => {
+	const counts = new Map<number, number>();
+	for (const { numGames } of structure.competitionDivisions) {
+		if (numGames !== undefined) {
+			counts.set(numGames, (counts.get(numGames) ?? 0) + 1);
+		}
+	}
+
+	let seasonLength: number | undefined;
+	let seasonLengthCount = 0;
+	for (const [numGames, count] of counts) {
+		if (
+			count > seasonLengthCount ||
+			(count === seasonLengthCount && numGames > seasonLength!)
+		) {
+			seasonLength = numGames;
+			seasonLengthCount = count;
+		}
+	}
+	return seasonLength;
+};
+
+/**
  * Until Epics 2/3/6 move standings, scheduling, playoffs, and the UI over to
  * divisionId, the rest of the app only understands confs/divs. For a World
  * with more than one Division, mirror the structure into them — one conference

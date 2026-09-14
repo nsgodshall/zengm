@@ -12,6 +12,8 @@ import { levelToAmount } from "../../../common/budgetLevels.ts";
 import getWinner from "../../../common/getWinner.ts";
 import { getAdjustedTicketPrice } from "../../../common/getAdjustedTicketPrice.ts";
 import { bySport, isSport } from "../../../common/sportFunctions.ts";
+import { isSingleDivision } from "../competition/competitionStructure.ts";
+import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
 
 const writeTeamStats = async (results: GameResults) => {
 	const allStarGame = results.team[0].id === -1 && results.team[1].id === -2;
@@ -213,8 +215,16 @@ const writeTeamStats = async (results: GameResults) => {
 				winpOld = 0;
 			}
 
+			// International Soccer Zen GM mod (Epic 8): a World has no playoffs to
+			// give back the hype clubs lose with an average record, so an even
+			// record keeps hype level there
+			const hypeBaseline = isSingleDivision(getCompetitionStructure())
+				? 0.55
+				: 0.5;
 			teamSeason.hype =
-				teamSeason.hype + 0.01 * (winp - 0.55) + 0.015 * (winp - winpOld);
+				teamSeason.hype +
+				0.01 * (winp - hypeBaseline) +
+				0.015 * (winp - winpOld);
 			teamSeason.hype = helpers.bound(teamSeason.hype, 0, 1);
 		}
 

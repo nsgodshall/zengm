@@ -6,6 +6,7 @@ import {
 	getDivisionIdForNewClub,
 	getLegacyConfsDivs,
 	getNewLeagueCompetition,
+	getWorldSeasonLength,
 	validateClubDivisions,
 	validateCompetitionStructure,
 } from "./competitionStructure.ts";
@@ -335,6 +336,29 @@ describe("getNewLeagueCompetition", () => {
 			[0, 7],
 			[1, 7],
 		]);
+	});
+});
+
+describe("getWorldSeasonLength", () => {
+	const withNumGames = (numGames: (number | undefined)[]) =>
+		({
+			...pilot,
+			competitionDivisions: pilot.competitionDivisions.map((division, i) => ({
+				...division,
+				numGames: numGames[i],
+			})),
+		}) as CompetitionStructure;
+
+	test("is the most common Division season length, the longest if tied", () => {
+		expect(getWorldSeasonLength(withNumGames([30, 30, 22, 30]))).toBe(30);
+		expect(getWorldSeasonLength(withNumGames([22, 30, 22, 30]))).toBe(30);
+		expect(getWorldSeasonLength(withNumGames([22, undefined, 22, 30]))).toBe(
+			22,
+		);
+	});
+
+	test("is undefined when no Division sets one", () => {
+		expect(getWorldSeasonLength(pilot)).toBeUndefined();
 	});
 });
 

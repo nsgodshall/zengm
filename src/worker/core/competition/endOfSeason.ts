@@ -61,6 +61,9 @@ const crownChampions = async (
 	}
 };
 
+// How much hype a club gains when it's promoted, or loses when it's relegated
+export const PROMOTION_HYPE = 0.05;
+
 /**
  * Only the team changes: this season's team season keeps the Division the club
  * actually played in, and newPhasePreseason copies next season's from the team.
@@ -94,6 +97,22 @@ const applyMoves = async (
 		const from = divisionsById.get(move.fromDivisionId)!;
 		const to = divisionsById.get(move.toDivisionId)!;
 		const promoted = to.tier < from.tier;
+
+		// Promotion excites fans and relegation deflates them, in place of ZenGM's
+		// hype for making or missing the playoffs. Next season's team season
+		// starts from this one's hype.
+		const teamSeason = await idb.cache.teamSeasons.indexGet(
+			"teamSeasonsByTidSeason",
+			[move.tid, g.get("season")],
+		);
+		if (teamSeason) {
+			teamSeason.hype = helpers.bound(
+				teamSeason.hype + (promoted ? PROMOTION_HYPE : -PROMOTION_HYPE),
+				0,
+				1,
+			);
+			await idb.cache.teamSeasons.put(teamSeason);
+		}
 
 		let text;
 		if (!promoted) {

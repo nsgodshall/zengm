@@ -26,6 +26,19 @@ export const getAcademyAges = (draftAges: [number, number]) => {
 };
 
 /**
+ * International Soccer Zen GM mod (Epic 8): whether an academy player develops
+ * in the season he turns `age`. A new academy player gets the ratings ZenGM
+ * gives a draft prospect at the first draft age, so he only develops once he's
+ * older than that. Developing from his intake age on put every graduate years
+ * ahead of a normal league's players, and ratings rose across the whole World
+ * season after season.
+ */
+export const academyPlayerDevelops = (
+	age: number,
+	draftAges: [number, number],
+) => age > draftAges[0];
+
+/**
  * How many players join academies across the whole World each summer. Same as
  * the number of prospects in one of ZenGM's default draft classes, so the
  * World gets as many young players as a normal league does.

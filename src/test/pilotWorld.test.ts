@@ -122,6 +122,9 @@ describe("the pilot World", () => {
 			assert.strictEqual(gamesByTid.get(tid), 30, `tid ${tid}`);
 		}
 
+		// Per-game salaries and revenue go by the league-wide season length
+		assert.strictEqual(g.get("numGames"), 30);
+
 		// Every club is at home against every other club in its Division once
 		assert.strictEqual(
 			meetings.size,

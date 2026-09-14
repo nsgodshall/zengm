@@ -7,6 +7,8 @@ import type {
 	PlayoffSeries,
 } from "../../../common/types.ts";
 import { PHASE } from "../../../common/constants.ts";
+import { isSingleDivision } from "../competition/competitionStructure.ts";
+import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
 
 const newPhasePlayoffs = async (
 	conditions: Conditions,
@@ -78,8 +80,10 @@ const newPhasePlayoffs = async (
 
 			// More hype for making the playoffs
 			teamSeason.hype += 0.05;
-		} else {
-			// Less hype for missing the playoffs
+		} else if (isSingleDivision(getCompetitionStructure())) {
+			// Less hype for missing the playoffs. International Soccer Zen GM mod
+			// (Epic 8): not in a World, which has no playoffs to make (see
+			// competition/endOfSeason.ts for its hype)
 			teamSeason.hype -= 0.05;
 		}
 		teamSeason.hype = helpers.bound(teamSeason.hype, 0, 1);

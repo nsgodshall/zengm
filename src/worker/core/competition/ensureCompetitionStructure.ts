@@ -2,11 +2,13 @@ import fastDeepEqual from "fast-deep-equal";
 import { defaultGameAttributes } from "../../../common/defaultGameAttributes.ts";
 import { idb } from "../../db/index.ts";
 import { g } from "../../util/index.ts";
+import { league } from "../index.ts";
 import { getWorldAwards } from "./worldAwards.ts";
 import {
 	type CompetitionStructure,
 	getDefaultCompetitionStructure,
 	getDivisionIdForNewClub,
+	getWorldSeasonLength,
 	isSingleDivision,
 } from "./competitionStructure.ts";
 
@@ -130,6 +132,19 @@ const ensureCompetitionStructure = async () => {
 			value: true,
 		});
 		g.setWithoutSavingToDB("worldAwardsPerDivision", true);
+	}
+
+	// International Soccer Zen GM mod (Epic 8): a World made before its
+	// league-wide season length matched its Divisions' own paid salaries and
+	// earned revenue per game as if seasons were 82 games. Match them, from next
+	// season if this one has started.
+	const seasonLength = getWorldSeasonLength(structure);
+	if (
+		!isSingleDivision(structure) &&
+		seasonLength !== undefined &&
+		g.get("numGames", g.get("season") + 1) !== seasonLength
+	) {
+		await league.setGameAttributes({ numGames: seasonLength });
 	}
 };
 

@@ -3,6 +3,7 @@ import { DEFAULT_LEVEL, MAX_LEVEL } from "../../../common/budgetLevels.ts";
 import { PHASE } from "../../../common/constants.ts";
 import {
 	ACADEMY_TIER_PENALTY,
+	academyPlayerDevelops,
 	allocateAcademyProspects,
 	getAcademyAges,
 	getAcademyCohortSeasons,
@@ -28,6 +29,17 @@ describe("getAcademyAges", () => {
 			graduationAge: 20,
 			numCohorts: 1,
 		});
+	});
+});
+
+describe("academyPlayerDevelops", () => {
+	test("only once he's older than the first draft age, like a draft prospect", () => {
+		for (const age of [16, 17, 18, 19]) {
+			expect(academyPlayerDevelops(age, [19, 22])).toBe(false);
+		}
+		for (const age of [20, 21, 22]) {
+			expect(academyPlayerDevelops(age, [19, 22])).toBe(true);
+		}
 	});
 });
 

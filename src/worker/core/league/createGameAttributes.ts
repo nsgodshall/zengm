@@ -22,6 +22,7 @@ import { last } from "../../../common/utils.ts";
 import {
 	getLegacyConfsDivs,
 	getNewLeagueCompetition,
+	getWorldSeasonLength,
 	isSingleDivision,
 } from "../competition/competitionStructure.ts";
 import { getWorldAwards } from "../competition/worldAwards.ts";
@@ -348,6 +349,13 @@ const createGameAttributes = async (
 			// competition/worldAwards.ts and ensureCompetitionStructure)
 			gameAttributes.awards = getWorldAwards(gameAttributes.awards);
 			gameAttributes.worldAwardsPerDivision = true;
+
+			// Per-game salaries and revenue, contracts, and awards go by the
+			// league-wide season length, so it has to match the Divisions' own
+			const seasonLength = getWorldSeasonLength(structure);
+			if (seasonLength !== undefined) {
+				gameAttributes.numGames = wrapFromStart(seasonLength);
+			}
 		}
 
 		for (const t of teamInfos) {

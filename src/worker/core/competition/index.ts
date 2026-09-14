@@ -7,6 +7,7 @@ import doAcademySummer, {
 	releaseUndecidedGraduates,
 } from "./academies.ts";
 import computeDivisionTable from "./computeDivisionTable.ts";
+import { academyPlayerDevelops } from "./youthAcademy.ts";
 import getWorldTables from "./worldTables.ts";
 import { makePlayersMostlyLocal } from "./localPlayers.ts";
 import { assignStartingSquads } from "./startingSquads.ts";
@@ -88,6 +89,7 @@ import resolvePromotionRelegation, {
 // Division tables to feed them. A World's economy (Epics 4-5: transfers, wage
 // budgets, youth academies) lives here too.
 export default {
+	academyPlayerDevelops,
 	buildDivisionTables,
 	computeDivisionTable,
 	doAcademySummer,

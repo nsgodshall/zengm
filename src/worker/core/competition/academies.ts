@@ -12,6 +12,7 @@ import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
 import { makePlayersMostlyLocal } from "./localPlayers.ts";
 import teamLink from "./teamLink.ts";
 import {
+	academyPlayerDevelops,
 	allocateAcademyProspects,
 	getAcademyAges,
 	getAcademyCohortSeasons,
@@ -145,7 +146,17 @@ const addIntake = async (graduationSeason: number, clubs: AcademyClub[]) => {
 		// Just for ovr/pot
 		await player.develop(p, 0);
 		for (let years = intakeAge; years < age; years++) {
-			await player.develop(p, 1, true);
+			// Like in the preseason, only once he's old enough to. Developing a new
+			// player ages him too, so a year without development still has to.
+			if (academyPlayerDevelops(years + 1, g.get("draftAges"))) {
+				await player.develop(p, 1, true);
+			} else {
+				p.born.year -= 1;
+			}
+		}
+		if (age > intakeAge) {
+			// ovr/pot at his real age
+			await player.develop(p, 0);
 		}
 
 		prospects.push(p);
