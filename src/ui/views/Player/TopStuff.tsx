@@ -32,6 +32,7 @@ import {
 	useNegotiaionModal,
 } from "../../components/NegotiationModal.tsx";
 import { useLocal } from "../../util/local.ts";
+import { isWorld } from "../../util/isWorld.ts";
 
 const Relatives = ({
 	gender,
@@ -311,13 +312,15 @@ const TopStuff = ({
 	season?: number;
 	showRatings: boolean;
 }) => {
-	const { gender, godMode, phase, spectator, userTid } = useLocal([
-		"gender",
-		"godMode",
-		"phase",
-		"spectator",
-		"userTid",
-	]);
+	const { competitionDivisions, gender, godMode, phase, spectator, userTid } =
+		useLocal([
+			"competitionDivisions",
+			"gender",
+			"godMode",
+			"phase",
+			"spectator",
+			"userTid",
+		]);
 
 	const freeAgent = player.tid === PLAYER.FREE_AGENT;
 	const injured = player.injury.gamesRemaining > 0;
@@ -325,8 +328,10 @@ const TopStuff = ({
 		player.tid !== PLAYER.UNDRAFTED &&
 		player.tid !== PLAYER.UNDRAFTED_FANTASY_TEMP &&
 		player.tid !== PLAYER.RETIRED;
-	const showTradeFor = player.tid !== userTid && player.tid >= 0;
-	const showTradingBlock = player.tid === userTid;
+	// International Soccer Zen GM mod (Epic 4): a World has transfers instead of trades
+	const world = isWorld(competitionDivisions);
+	const showTradeFor = !world && player.tid !== userTid && player.tid >= 0;
+	const showTradingBlock = !world && player.tid === userTid;
 
 	let draftInfo: ReactNode = null;
 	if (player.draft.round > 0) {

@@ -1513,6 +1513,15 @@ const afterDBStream = async ({
 				teams,
 			});
 
+	// International Soccer Zen GM mod (Epic 7): most of a new World's players are from their club's Country
+	if (!fileHasPlayers) {
+		await competition.makePlayersMostlyLocal(
+			activePlayers,
+			(p) => p.tid,
+			teams,
+		);
+	}
+
 	// If players are specified for some team on import (from CustomizeTeams), replace the randomly generated players
 	const replaceTids = new Set();
 	const extraActivePlayers: PlayerWithoutKey[] = [];

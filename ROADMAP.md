@@ -143,11 +143,11 @@ Stage C, selling, landed.
 - **AI offers** (`competition/aiOffers.ts`): once a day while a window is open, alongside AI transfers (so on regular season and free agency days), AI clubs attempt about 0.5 offers for each user club, scaled by the AI trades setting. A club only offers for a player who'd make it better, and whom it can afford and fit in its roster and wage budget. The user gets a notification, and each offer stays open for 3 days. All offers are withdrawn when the window closes, and none are made while the AI runs the user's clubs.
 - **Transfer list:** a listed player is 5 times as likely to draw an offer, at 75–100% of his fee. An unlisted player draws offers at 90–120% of it.
 - **Accepting** checks the buyer's roster, budget, and cash again, and withdraws an offer the club can no longer follow through on. A sold player keeps his contract, and his offers and listing are cleared.
+- **No trade buttons:** in a World, the Trade for and Trade away buttons on roster and player pages, the Trade With column on League Finances, and the Saved Trades menu link are hidden, since trades are refused. Players are bought on the Transfer Market instead.
 - **Tested:** unit tests for offer fees and expiry. The World test accepts and rejects offers, lists and unlists a player, and checks that AI clubs only make well-formed offers for the user's players.
 
 Still to do:
 
-- The Trade For buttons on player and roster pages still lead to ZenGM's trade screen, which refuses trades in a World.
 - Academy players can't be bought or sold.
 - **Stage D — loans:** sending a player to another club for a season.
 - **Tuning:** the AI's thresholds (the buyer must improve; the seller can't lose more than 5 value) and the fee formula are first guesses. In the multi-season World test (24 clubs, 10-game seasons) they gave about 10 transfers a season, averaging about $24M, with the biggest at $122M against a $150M salary cap. Almost all happened during free agency, the only offseason phase with days to simulate. The winter window only lasts a day or two in a season that short, and saw 1 transfer in 3 seasons. Check volume and fees again with real season lengths. Clubs also start with only $10M cash, which limits early spending.
@@ -222,11 +222,13 @@ What landed:
 
 - **Pilot World** (`competition/pilotWorld.ts`): England and Spain, each with a First and a Second Division of 16 clubs playing 30-game double round robins. In each Country the bottom 3 of the top tier go down, the top 2 of the second tier go up, and 3rd–6th play off for one more place. Clubs get generated names (English towns with United, City, Athletic and so on; Spanish towns with CF or FC, sometimes after Real, Atlético, or similar), three letter abbreviations, kit colors, and market sizes. Top-tier clubs are bigger, and the biggest few much bigger than the rest, so there are traditional big clubs. Countries use their real flags, since `CountryFlag` knows England and Spain.
 - **New League → World** (`/new_league/world`, also on the dashboard and in the command palette): the page lists the pilot World's clubs to pick from, and creates the league with its competition structure (passed like a league file's game attributes) and random players. Customizing the teams is hidden, since editing them would break the structure.
-- **Tested:** unit tests for the structure (valid, 16 clubs per Division, the promotion and relegation rules), unique club names and abbreviations, bigger top-tier clubs, and the same World from the same random numbers.
+- **Mostly local players** (`competition/nationality.ts`, `competition/localPlayers.ts`): about 70% of each club's starting players, and of its share of every academy intake, are from its Country, picked at random and given a name, birthplace, college, and face from ZenGM's name data for it. The share rounds up or down at random, so a club's one or two prospects a year still average 70%. The rest of its players, and every free agent, come from ZenGM's usual worldwide mix. A Country with no names in ZenGM's name data keeps the worldwide mix.
+- **Tested:** unit tests for the structure (valid, 16 clubs per Division, the promotion and relegation rules), unique club names and abbreviations, bigger top-tier clubs, the same World from the same random numbers, and the local share. An integration test (`src/test/pilotWorld.test.ts`) creates the pilot World and starts its first season: 16 clubs in each Division, double round robins, first wage budgets that cover payrolls, academies, and 60–90% of first-team and academy players from their club's Country. Tests use a stub of ZenGM's name data with no English names, so the test also checks that English clubs keep the worldwide mix.
+
+Decided: about 70% of a club's starting players and academy intakes are from its Country.
 
 Still open:
 
-- Players come from ZenGM's usual worldwide mix, rather than mostly from each club's Country.
 - Clubs have no logos, and every stadium is the default size.
 - The multi-season World test still uses its small 2×2×6 World for speed, so a full pilot-sized season hasn't been run in tests.
 

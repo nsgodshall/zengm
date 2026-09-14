@@ -1,5 +1,5 @@
 import { PHASE, POSITIONS } from "../../common/constants.ts";
-import { finances, season, team } from "../core/index.ts";
+import { competition, finances, season, team } from "../core/index.ts";
 import { idb } from "../db/index.ts";
 import { g, helpers } from "../util/index.ts";
 import type {
@@ -374,14 +374,17 @@ const updateRoster = async (
 				inputs.tid === g.get("userTid") &&
 				g.get("spectator"),
 			showRelease,
+			// International Soccer Zen GM mod (Epic 4): a World has transfers instead of trades
 			showTradeFor:
 				inputs.season === g.get("season") &&
 				inputs.tid !== g.get("userTid") &&
-				!g.get("spectator"),
+				!g.get("spectator") &&
+				competition.isSingleDivision(competition.getCompetitionStructure()),
 			showTradingBlock:
 				inputs.season === g.get("season") &&
 				inputs.tid === g.get("userTid") &&
-				!g.get("spectator"),
+				!g.get("spectator") &&
+				competition.isSingleDivision(competition.getCompetitionStructure()),
 			stats,
 			t: t2,
 			tid: inputs.tid,

@@ -9,6 +9,7 @@ import { getNumPlayersTradedAwayNormalizedAll } from "../player/getNumPlayersTra
 import { dropPlayers } from "../team/checkRosterSizes.ts";
 import { isSingleDivision } from "./competitionStructure.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
+import { makePlayersMostlyLocal } from "./localPlayers.ts";
 import teamLink from "./teamLink.ts";
 import {
 	allocateAcademyProspects,
@@ -125,6 +126,16 @@ const addIntake = async (graduationSeason: number, clubs: AcademyClub[]) => {
 	});
 	for (const [i, p] of prospects.entries()) {
 		p.academyTid = tids[i];
+	}
+
+	// Most of a club's academy players are from its Country
+	await makePlayersMostlyLocal(
+		prospects,
+		(p) => p.academyTid,
+		await idb.cache.teams.getAll(),
+	);
+
+	for (const p of prospects) {
 		await idb.cache.players.add(p);
 
 		// idb.cache.players.add will create the "pid" property, transforming PlayerWithoutKey to Player

@@ -2,12 +2,13 @@ import "fake-indexeddb/auto";
 import { deleteDB } from "@dumbmatter/idb";
 import { afterAll, assert, beforeAll, describe, test } from "vitest";
 import { LEAGUE_DATABASE_VERSION, PHASE } from "../common/constants.ts";
+import type { Player } from "../common/types.ts";
 import { PILOT_CLUBS_PER_DIVISION } from "../worker/core/competition/pilotWorld.ts";
 import { getWageBudgets } from "../worker/core/competition/wageBudgets.ts";
 import { competition, league, phase, season } from "../worker/core/index.ts";
 import createStreamFromLeagueObject from "../worker/core/league/create/createStreamFromLeagueObject.ts";
 import { idb } from "../worker/db/index.ts";
-import { g, helpers } from "../worker/util/index.ts";
+import { g, helpers, local } from "../worker/util/index.ts";
 import { getDefaultSettings } from "../worker/views/newLeague.ts";
 
 // International Soccer Zen GM mod (Epic 7): create the pilot World the way New
@@ -125,6 +126,65 @@ describe("the pilot World", () => {
 			assert(t.startingPayroll !== undefined, `tid ${t.tid}`);
 			assert(wageBudgets.get(t.tid)! > t.startingPayroll, `tid ${t.tid}`);
 		}
+	});
+
+	test("most players are from their club's Country, if it has names", async () => {
+		const structure = competition.getCompetitionStructure();
+		const countryNameByDivisionId = new Map(
+			structure.competitionDivisions.map((division) => [
+				division.divisionId,
+				structure.countries.find(
+					(country) => country.countryId === division.countryId,
+				)!.name,
+			]),
+		);
+		const countryNameByTid = new Map(
+			(await idb.cache.teams.getAll()).map((t) => [
+				t.tid,
+				countryNameByDivisionId.get(t.divisionId!),
+			]),
+		);
+
+		const firstTeamPlayers = await idb.cache.players.indexGetAll(
+			"playersByTid",
+			[0, Infinity],
+		);
+		const academyPlayers = await competition.getAcademyPlayers();
+
+		// Tests use stub name data (see loadNames), with names for Spain but not
+		// England
+		let numCountriesWithNames = 0;
+		for (const { name } of structure.countries) {
+			const getLocalShare = (
+				players: Player[],
+				getTid: (p: Player) => number,
+			) => {
+				const clubPlayers = players.filter(
+					(p) => countryNameByTid.get(getTid(p)) === name,
+				);
+				return (
+					clubPlayers.filter((p) => p.born.loc === name).length /
+					clubPlayers.length
+				);
+			};
+			const shares = {
+				firstTeams: getLocalShare(firstTeamPlayers, (p) => p.tid),
+				academies: getLocalShare(academyPlayers, (p) => p.academyTid!),
+			};
+
+			if (local.playerBioInfo?.countries[name]) {
+				numCountriesWithNames += 1;
+				for (const [key, share] of Object.entries(shares)) {
+					assert(share > 0.6 && share < 0.9, `${name} ${key} ${share}`);
+				}
+			} else {
+				// Without names, a Country's clubs keep the worldwide mix
+				for (const [key, share] of Object.entries(shares)) {
+					assert(share < 0.1, `${name} ${key} ${share}`);
+				}
+			}
+		}
+		assert(numCountriesWithNames > 0);
 	});
 
 	test("every club has a youth academy", async () => {

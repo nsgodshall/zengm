@@ -8,6 +8,7 @@ import { wrappedTeamLogoAndName } from "../components/TeamLogoAndName.tsx";
 import type { DataTableRow } from "../components/DataTable/index.tsx";
 import { wrappedCurrency } from "../components/wrappedCurrency.ts";
 import { useLocal } from "../util/local.ts";
+import { isWorld } from "../util/isWorld.ts";
 
 const LeagueFinances = ({ season, teams }: View<"leagueFinances">) => {
 	useTitleBar({
@@ -20,6 +21,7 @@ const LeagueFinances = ({ season, teams }: View<"leagueFinances">) => {
 
 	const {
 		budget,
+		competitionDivisions,
 		luxuryPayroll,
 		luxuryTax,
 		minPayroll,
@@ -29,6 +31,7 @@ const LeagueFinances = ({ season, teams }: View<"leagueFinances">) => {
 		userTid,
 	} = useLocal([
 		"budget",
+		"competitionDivisions",
 		"luxuryPayroll",
 		"luxuryTax",
 		"minPayroll",
@@ -50,6 +53,9 @@ const LeagueFinances = ({ season, teams }: View<"leagueFinances">) => {
 	// Same for ticket price
 	const showTicketPrice = season === currentSeason && budget;
 
+	// International Soccer Zen GM mod (Epic 4): a World has transfers instead of trades
+	const tradeColNames = isWorld(competitionDivisions) ? [] : ["Trade"];
+
 	const cols = budget
 		? getCols([
 				"Team",
@@ -63,7 +69,7 @@ const LeagueFinances = ({ season, teams }: View<"leagueFinances">) => {
 				...capSpaceColNames,
 				"Roster Spots",
 				"Strategy",
-				"Trade",
+				...tradeColNames,
 				"Scouting",
 				"Coaching",
 				"Health",
@@ -77,7 +83,7 @@ const LeagueFinances = ({ season, teams }: View<"leagueFinances">) => {
 				...capSpaceColNames,
 				"Roster Spots",
 				"Strategy",
-				"Trade",
+				...tradeColNames,
 			]);
 
 	const rows = teams.map((t) => {
@@ -118,15 +124,19 @@ const LeagueFinances = ({ season, teams }: View<"leagueFinances">) => {
 			data.push(null, null);
 		}
 
+		if (tradeColNames.length > 0) {
+			data.push(
+				<button
+					className="btn btn-light-bordered btn-xs"
+					onClick={async () => {
+						await toWorker("actions", "tradeFor", { tid: t.seasonAttrs.tid });
+					}}
+				>
+					Trade With
+				</button>,
+			);
+		}
 		data.push(
-			<button
-				className="btn btn-light-bordered btn-xs"
-				onClick={async () => {
-					await toWorker("actions", "tradeFor", { tid: t.seasonAttrs.tid });
-				}}
-			>
-				Trade With
-			</button>,
 			t.seasonAttrs.expenseLevels.scouting,
 			t.seasonAttrs.expenseLevels.coaching,
 			t.seasonAttrs.expenseLevels.health,

@@ -430,6 +430,7 @@ export const menuItems: (MenuItemLink | MenuItemHeader)[] = [
 				active: (pageID) => pageID === "savedTrades",
 				league: true,
 				commandPalette: true,
+				world: false,
 				path: ["saved_trades"],
 				text: "Saved Trades",
 			},
