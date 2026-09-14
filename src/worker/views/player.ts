@@ -250,7 +250,15 @@ export const getCommon = async (
 		p.tid === PLAYER.UNDRAFTED ||
 		p.tid === PLAYER.UNDRAFTED_FANTASY_TEMP
 	) {
-		teamName = "Draft Prospect";
+		// International Soccer Zen GM mod (Epic 6): a World's prospects are in
+		// clubs' academies
+		const academyInfo =
+			p.academyTid === undefined
+				? undefined
+				: g.get("teamInfoCache")[p.academyTid];
+		teamName = academyInfo
+			? `${academyInfo.region} ${academyInfo.name} Academy`
+			: "Draft Prospect";
 	} else if (p.tid === PLAYER.RETIRED) {
 		teamName = "Retired";
 	}
@@ -370,6 +378,15 @@ export const getCommon = async (
 		customMenuInfo = {
 			title: "Free Agents",
 			players: await idb.cache.players.indexGetAll("playersByTid", p.tid),
+		};
+	} else if (p.tid === PLAYER.UNDRAFTED && p.academyTid !== undefined) {
+		// International Soccer Zen GM mod (Epic 6): ...in the same academy
+
+		customMenuInfo = {
+			title: "Academy",
+			players: (
+				await idb.cache.players.indexGetAll("playersByTid", p.tid)
+			).filter((p2) => p2.academyTid === p.academyTid),
 		};
 	} else if (p.tid === PLAYER.UNDRAFTED) {
 		// ...in same draft class
