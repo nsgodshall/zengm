@@ -152,6 +152,7 @@ const TopStuff = ({
 	t,
 	tid,
 	usePts,
+	worldDivision,
 }: Pick<
 	View<"roster">,
 	| "abbrev"
@@ -167,6 +168,7 @@ const TopStuff = ({
 	| "t"
 	| "tid"
 	| "usePts"
+	| "worldDivision"
 > & {
 	currentSeason: number;
 	openRosterSpots: number;
@@ -281,7 +283,21 @@ const TopStuff = ({
 									</a>
 								</div>
 							) : null}
-							{t.rank !== undefined ? (
+							{worldDivision ? (
+								// International Soccer Zen GM mod (Epic 6): a World club's Division
+								<div>
+									{worldDivision.played > 0
+										? `${helpers.ordinal(worldDivision.position)} of ${worldDivision.numClubs} in the `
+										: "Plays in the "}
+									<a
+										className="fw-bold"
+										href={helpers.leagueUrl(["standings", season])}
+									>
+										{worldDivision.divisionName}
+									</a>{" "}
+									({worldDivision.countryName}, tier {worldDivision.tier})
+								</div>
+							) : t.rank !== undefined ? (
 								<div>
 									{helpers.ordinal(t.rank)} in{" "}
 									{playoffsByConf ? "conference" : "league"}

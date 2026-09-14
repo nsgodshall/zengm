@@ -1,3 +1,4 @@
+import { competition } from "../core/index.ts";
 import { idb } from "../db/index.ts";
 import { g, helpers } from "../util/index.ts";
 import type {
@@ -364,6 +365,8 @@ const updateTeamHistory = async (
 			abbrev: inputs.abbrev,
 			tid: inputs.tid,
 			retiredJerseyNumbers: retiredJerseyNumbers2,
+			// International Soccer Zen GM mod (Epic 6)
+			leagueHistory: await competition.getLeagueHistory(inputs.tid),
 		};
 	}
 };

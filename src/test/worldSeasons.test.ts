@@ -400,6 +400,47 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		);
 	});
 
+	test("a club's league history follows its Divisions and table positions", async () => {
+		const tierByDivisionId = new Map(
+			structure.competitionDivisions.map((division) => [
+				division.divisionId,
+				division.tier,
+			]),
+		);
+
+		for (const t of await idb.cache.teams.getAll()) {
+			const leagueHistory = (await competition.getLeagueHistory(t.tid))!;
+
+			// It's the preseason, so this season hasn't had a game yet
+			assert.deepStrictEqual(
+				leagueHistory.seasons.map((row) => row.season),
+				completedSeasons,
+			);
+			assert.strictEqual(leagueHistory.numPlaces, 2 * CLUBS_PER_DIVISION);
+
+			for (const row of leagueHistory.seasons) {
+				const table = (await competition.getDivisionTables(row.season))[
+					row.divisionId
+				]!;
+				assert.strictEqual(table[row.position - 1]!.tid, t.tid);
+				assert.strictEqual(row.tier, tierByDivisionId.get(row.divisionId));
+				assert.strictEqual(
+					row.pyramidPosition,
+					(row.tier - 1) * CLUBS_PER_DIVISION + row.position,
+				);
+				assert.strictEqual(row.inProgress, false);
+			}
+
+			const info = (await competition.getClubDivisionInfo(
+				t.tid,
+				g.get("season"),
+			))!;
+			assert.strictEqual(info.divisionId, t.divisionId);
+			assert.strictEqual(info.tier, tierByDivisionId.get(t.divisionId!));
+			assert.strictEqual(info.numClubs, CLUBS_PER_DIVISION);
+		}
+	});
+
 	test("every club has a youth academy, and there are no draft classes", async () => {
 		const players: Player[] = await idb.league.getAll("players");
 		const season = g.get("season");

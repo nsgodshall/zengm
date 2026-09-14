@@ -8,6 +8,7 @@ import { MoreLinks } from "../../components/MoreLinks.tsx";
 import HideableSection from "../../components/HideableSection.tsx";
 import { useLocal } from "../../util/local.ts";
 import { Championships } from "./Championships.tsx";
+import { LeagueHistoryChart } from "./LeagueHistoryChart.tsx";
 
 const TeamHistory = ({
 	abbrev,
@@ -15,6 +16,7 @@ const TeamHistory = ({
 	championships,
 	finalsAppearances,
 	history,
+	leagueHistory,
 	players,
 	playoffAppearances,
 	retiredJerseyNumbers,
@@ -64,6 +66,12 @@ const TeamHistory = ({
 					</HideableSection>
 				</div>
 				<div className="col-sm-7 col-md-9 mt-3 mt-sm-0">
+					{/* International Soccer Zen GM mod (Epic 6) */}
+					{leagueHistory && leagueHistory.seasons.length > 0 ? (
+						<HideableSection title="League history" className="mb-3">
+							<LeagueHistoryChart leagueHistory={leagueHistory} />
+						</HideableSection>
+					) : null}
 					<RetiredJerseyNumbers
 						godMode={godMode}
 						players={players}

@@ -100,6 +100,7 @@ const Roster = ({
 	showSpectatorWarning,
 	showRelease,
 	showTradeFor,
+	worldDivision,
 	showTradingBlock,
 	stats,
 	t,
@@ -400,6 +401,7 @@ const Roster = ({
 				payroll={payroll}
 				profit={profit}
 				showTradeFor={showTradeFor}
+				worldDivision={worldDivision}
 				showTradingBlock={showTradingBlock}
 				t={t}
 				tid={tid}
