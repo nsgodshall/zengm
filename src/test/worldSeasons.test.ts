@@ -15,6 +15,7 @@ import {
 } from "../worker/core/competition/youthAcademy.ts";
 import { competition, league, player, team } from "../worker/core/index.ts";
 import { getWageBudgets } from "../worker/core/competition/wageBudgets.ts";
+import { LOAN_MAX_AGE } from "../worker/core/competition/loans.ts";
 import createStreamFromLeagueObject from "../worker/core/league/create/createStreamFromLeagueObject.ts";
 import { idb } from "../worker/db/index.ts";
 import { g, helpers, local, lock } from "../worker/util/index.ts";
@@ -910,5 +911,89 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			}
 		}
 		assert.strictEqual(numOffersFound, numOffers);
+	});
+
+	// Changes the league, so it goes last
+	test("AI clubs loan young players to each other, and loans end in the summer", async () => {
+		const season = g.get("season");
+		const userTid = g.get("userTid");
+		const maxRosterSize = g.get("maxRosterSize");
+
+		// Loans made during auto play ended on time
+		for (const p of await idb.cache.players.indexGetAll("playersByTid", [
+			0,
+			Infinity,
+		])) {
+			if (p.loan) {
+				assert(
+					p.loan.season >= season,
+					`pid ${p.pid}'s loan ended in ${p.loan.season}`,
+				);
+				assert.notStrictEqual(p.loan.tid, p.tid);
+			}
+		}
+
+		// Every AI club one below the roster limit, so it can lend and borrow
+		const aiTids = (await idb.cache.teams.getAll())
+			.filter((t) => !t.disabled && t.tid !== userTid)
+			.map((t) => t.tid);
+		for (const tid of aiTids) {
+			const roster = (
+				await idb.cache.players.indexGetAll("playersByTid", tid)
+			).sort((a, b) => a.value - b.value);
+			const numOver = roster.length - (maxRosterSize - 1);
+			for (const p of roster.slice(0, Math.max(0, numOver))) {
+				await player.addToFreeAgents(p, {});
+				await idb.cache.players.put(p);
+			}
+		}
+
+		const tidsBefore = new Map(
+			(await idb.cache.players.indexGetAll("playersByTid", [0, Infinity])).map(
+				(p) => [p.pid, p.tid],
+			),
+		);
+		const numLoans = await competition.loansBetweenAiClubs(500, aiTids);
+		assert(numLoans > 0, "No loans happened");
+
+		const loaned = (
+			await idb.cache.players.indexGetAll("playersByTid", [0, Infinity])
+		).filter((p) => p.loan !== undefined && tidsBefore.get(p.pid) !== p.tid);
+		assert(loaned.length > 0 && loaned.length <= numLoans);
+		const borrowerTids = new Map(loaned.map((p) => [p.pid, p.tid]));
+		for (const p of loaned) {
+			const lenderTid = tidsBefore.get(p.pid)!;
+			assert.strictEqual(p.loan!.tid, lenderTid);
+			assert.strictEqual(p.loan!.season, season);
+			assert(aiTids.includes(p.tid));
+			assert(season - p.born.year <= LOAN_MAX_AGE);
+			const transaction = p.transactions!.at(-1)!;
+			assert(transaction.type === "loan");
+			assert.strictEqual(transaction.tid, p.tid);
+			assert.strictEqual(transaction.fromTid, lenderTid);
+		}
+		for (const tid of aiTids) {
+			assert(
+				(await idb.cache.players.indexGetAll("playersByTid", tid)).length <=
+					maxRosterSize,
+			);
+		}
+
+		// Loans made in the preseason end this summer
+		await competition.returnLoans();
+		for (const { pid } of loaned) {
+			const p = (await idb.cache.players.get(pid))!;
+			assert.strictEqual(p.loan, undefined);
+			const transaction = p.transactions!.at(-1)!;
+			assert(transaction.type === "loanReturn");
+			assert.strictEqual(transaction.tid, tidsBefore.get(pid));
+			assert.strictEqual(transaction.fromTid, borrowerTids.get(pid));
+
+			// Back at his club, unless it went over the roster limit and released him
+			assert(
+				p.tid === tidsBefore.get(pid) || p.tid === PLAYER.FREE_AGENT,
+				`pid ${pid} is at tid ${p.tid}`,
+			);
+		}
 	});
 });

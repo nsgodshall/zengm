@@ -121,6 +121,13 @@ export const makeTransferOffer = async ({
 
 		askingPrice = await getAcademyPlayerAskingPrice(p);
 	} else {
+		if (p.loan) {
+			const lenderInfo = g.get("teamInfoCache")[p.loan.tid];
+			return error(
+				`${name} is on loan from the ${lenderInfo?.region} ${lenderInfo?.name}, so ${he} can't be transferred until ${he} goes back.`,
+			);
+		}
+
 		const untradable = isUntradable(p);
 		if (untradable.untradable) {
 			return error(untradable.untradableMsg);

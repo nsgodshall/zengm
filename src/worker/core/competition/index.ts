@@ -16,6 +16,13 @@ import getScheduleDivisions from "./scheduleDivisions.ts";
 import { makeTransferOffer } from "./userTransfers.ts";
 import { academyTransfersBetweenAiClubs } from "./academyTransfers.ts";
 import {
+	canBeLoaned,
+	loansBetweenAiClubs,
+	processLoan,
+	returnLoan,
+	returnLoans,
+} from "./loanMoves.ts";
+import {
 	acceptAiTransferOffer,
 	dailyTransferOffers,
 	makeAiTransferOffers,
@@ -78,6 +85,11 @@ export default {
 	getScheduleDivisions,
 	makeTransferOffer,
 	academyTransfersBetweenAiClubs,
+	canBeLoaned,
+	loansBetweenAiClubs,
+	processLoan,
+	returnLoan,
+	returnLoans,
 	acceptAiTransferOffer,
 	dailyTransferOffers,
 	makeAiTransferOffers,

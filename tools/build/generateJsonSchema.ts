@@ -1926,6 +1926,19 @@ export const generateJsonSchema = (sport: Sport | "test") => {
 						transferListed: {
 							type: "boolean",
 						},
+						// International Soccer Zen GM mod (Epic 4)
+						loan: {
+							type: "object",
+							properties: {
+								tid: {
+									type: "integer",
+								},
+								season: {
+									type: "integer",
+								},
+							},
+							required: ["tid", "season"],
+						},
 						transferOffers: {
 							type: "array",
 							items: {

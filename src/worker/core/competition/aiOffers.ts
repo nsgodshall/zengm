@@ -142,7 +142,9 @@ export const makeAiTransferOffers = async (
 	const candidates = (await getUserPlayers(academy)).filter((p) =>
 		academy
 			? isAcademyPlayerForSale(p)
-			: !isUntradable(p).untradable &&
+			: // A player on loan belongs to another club
+				p.loan === undefined &&
+				!isUntradable(p).untradable &&
 				getContractSeasonsLeft({ exp: p.contract.exp, season, phase }) > 0,
 	);
 	if (aiTids.length === 0 || candidates.length === 0) {

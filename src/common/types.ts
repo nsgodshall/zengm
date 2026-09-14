@@ -989,6 +989,7 @@ export type LogEventType =
 	| "trade"
 	| "transfer"
 	| "academy"
+	| "loan"
 	| "tragedy"
 	| "upgrade"
 	| "luxuryTax"
@@ -1272,6 +1273,13 @@ export type PlayerWithoutKey<PlayerRatings = MinimalPlayerRatings> = {
 		daysLeft: number;
 	}[];
 	transferListed?: true;
+	// International Soccer Zen GM mod (Epic 4): a player on loan at another club
+	// (his tid) from the club he goes back to (loan.tid) in the draft phase of
+	// loan.season (see competition/loanMoves.ts)
+	loan?: {
+		tid: number;
+		season: number;
+	};
 	awards: PlayerAward[];
 	born: {
 		year: number;
@@ -1363,6 +1371,16 @@ export type PlayerWithoutKey<PlayerRatings = MinimalPlayerRatings> = {
 				fromTid: number;
 				// Thousands of dollars, like contracts
 				fee: number;
+				eid?: number;
+		  }
+		| {
+				season: number;
+				phase: Phase;
+				tid: number;
+				// International Soccer Zen GM mod (Epic 4): a loan to tid from fromTid,
+				// or the player going back to tid from his loan at fromTid
+				type: "loan" | "loanReturn";
+				fromTid: number;
 				eid?: number;
 		  }
 		| {

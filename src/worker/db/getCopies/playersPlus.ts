@@ -360,6 +360,25 @@ const processAttrs = (
 				} else if (transaction.type === "academy") {
 					// International Soccer Zen GM mod (Epic 5)
 					output.latestTransaction = `Academy graduate in ${transaction.season}`;
+				} else if (
+					transaction.type === "transfer" ||
+					transaction.type === "loan" ||
+					transaction.type === "loanReturn"
+				) {
+					// International Soccer Zen GM mod (Epic 4)
+					const abbrev =
+						abbrevsCache?.get(transaction.season, transaction.fromTid) ?? "???";
+					const link = `<a href="${helpers.leagueUrl([
+						"roster",
+						`${abbrev}_${transaction.fromTid}`,
+						transaction.season,
+					])}">${abbrev} in ${transaction.season}</a>`;
+					output.latestTransaction =
+						transaction.type === "transfer"
+							? `Transfer from ${link}`
+							: transaction.type === "loan"
+								? `Loan from ${link}`
+								: `Back from loan at ${link}`;
 				} else if (transaction.type === "sisyphus") {
 					const abbrev =
 						abbrevsCache?.get(transaction.season, transaction.fromTid) ?? "???";
@@ -1435,7 +1454,12 @@ const getCopies = async (
 				const transaction = getLatestTransaction(p.transactions, season, tid);
 				if (
 					transaction &&
-					(transaction.type === "trade" || transaction.type === "sisyphus")
+					(transaction.type === "trade" ||
+						transaction.type === "sisyphus" ||
+						// International Soccer Zen GM mod (Epic 4)
+						transaction.type === "transfer" ||
+						transaction.type === "loan" ||
+						transaction.type === "loanReturn")
 				) {
 					abbrevsCache.add(transaction.season, transaction.fromTid);
 				}

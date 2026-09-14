@@ -75,8 +75,9 @@ const updateTransferMarket = async (
 						age: season - p.born.year,
 						seasonsLeft,
 					});
-					const untradableMsg =
-						seasonsLeft <= 0
+					const untradableMsg = p.loan
+						? "On loan from another club"
+						: seasonsLeft <= 0
 							? "Contract is up, so he'll be a free agent instead"
 							: isUntradable(p).untradableMsg;
 					return [p.pid, { fee, untradableMsg }];

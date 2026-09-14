@@ -9,6 +9,7 @@ import { getTeammateJerseyNumbers } from "../player/genJerseyNumber.ts";
 import { ValueChangeCalculator } from "../team/ValueChangeCalculator.ts";
 import isUntradable from "../trade/isUntradable.ts";
 import { academyTransfersBetweenAiClubs } from "./academyTransfers.ts";
+import { loansBetweenAiClubs } from "./loanMoves.ts";
 import { recordTransfer } from "./recordTransfer.ts";
 import {
 	canAffordFee,
@@ -154,7 +155,8 @@ const attempt = async (
 				"playersByTid",
 				tid,
 			)) {
-				if (!isUntradable(p).untradable) {
+				// A player on loan belongs to another club
+				if (!isUntradable(p).untradable && p.loan === undefined) {
 					candidates.push(p);
 				}
 			}
@@ -267,11 +269,13 @@ const transfersBetweenAiClubs = async () => {
 	// Transfers are the main way clubs change rosters, so there are more
 	// attempts than AI trades get: about 1 for every 10 clubs a day, scaled by
 	// the same AI trades setting. Academy players change hands less often, with
-	// about 1 attempt for every 40 clubs a day.
+	// about 1 attempt for every 40 clubs a day, and there's about 1 attempt at a
+	// loan for every 20 clubs a day.
 	const numClubsFactor = g.get("aiTradesFactor") * g.get("numActiveTeams");
 	const numAttempts = randomRound(numClubsFactor / 10);
 	const numAcademyAttempts = randomRound(numClubsFactor / 40);
-	if (numAttempts === 0 && numAcademyAttempts === 0) {
+	const numLoanAttempts = randomRound(numClubsFactor / 20);
+	if (numAttempts === 0 && numAcademyAttempts === 0 && numLoanAttempts === 0) {
 		return;
 	}
 
@@ -287,12 +291,14 @@ const transfersBetweenAiClubs = async () => {
 		}
 	}
 
+	const aiTids = await getAITids();
 	const numAcademyTransfers = await academyTransfersBetweenAiClubs(
 		numAcademyAttempts,
-		await getAITids(),
+		aiTids,
 	);
+	const numLoans = await loansBetweenAiClubs(numLoanAttempts, aiTids);
 
-	if (anyTransfers || numAcademyTransfers > 0) {
+	if (anyTransfers || numAcademyTransfers > 0 || numLoans > 0) {
 		await toUI("realtimeUpdate", [["playerMovement"]]);
 		await recomputeLocalUITeamOvrs();
 	}

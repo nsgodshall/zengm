@@ -3316,6 +3316,13 @@ const releasePlayer = async ({ pids }: { pids: number[] }) => {
 	}
 
 	for (const p of players) {
+		// International Soccer Zen GM mod (Epic 4): releasing a player on loan
+		// sends him back to his club instead
+		if (p.loan) {
+			await competition.returnLoan(p);
+			continue;
+		}
+
 		const justDrafted = helpers.justDrafted(p, g.get("phase"), g.get("season"));
 
 		await player.release(p, justDrafted);
