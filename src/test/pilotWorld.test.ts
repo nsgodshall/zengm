@@ -10,7 +10,14 @@ import {
 	MIN_STADIUM_CAPACITY,
 	WORLD_MAX_ROSTER_SIZE,
 } from "../worker/core/competition/worldSettings.ts";
-import { competition, league, phase, season } from "../worker/core/index.ts";
+import { last } from "../common/utils.ts";
+import {
+	competition,
+	league,
+	phase,
+	season,
+	team,
+} from "../worker/core/index.ts";
 import createStreamFromLeagueObject from "../worker/core/league/create/createStreamFromLeagueObject.ts";
 import { idb } from "../worker/db/index.ts";
 import { g, helpers, local } from "../worker/util/index.ts";
@@ -190,6 +197,44 @@ describe("the pilot World", () => {
 			}
 		}
 		assert(numCountriesWithNames > 0);
+	});
+
+	test("top-tier clubs start with stronger squads, with only a few exceptions", async () => {
+		const tierByDivisionId = new Map(
+			competition
+				.getCompetitionStructure()
+				.competitionDivisions.map((division) => [
+					division.divisionId,
+					division.tier,
+				]),
+		);
+
+		const clubs = [];
+		for (const t of await idb.cache.teams.getAll()) {
+			const players = await idb.cache.players.indexGetAll(
+				"playersByTid",
+				t.tid,
+			);
+			clubs.push({
+				tier: tierByDivisionId.get(t.divisionId!)!,
+				ovr: team.ovr(
+					players.map((p) => ({
+						pid: p.pid,
+						injury: p.injury,
+						value: p.value,
+						ratings: last(p.ratings),
+					})),
+				),
+			});
+		}
+
+		const strongestFirst = clubs.sort((a, b) => b.ovr - a.ovr);
+		const numTopTier = strongestFirst.filter((club) => club.tier === 1).length;
+		const numSecondTierInTopHalf = strongestFirst
+			.slice(0, numTopTier)
+			.filter((club) => club.tier === 2).length;
+		assert.strictEqual(strongestFirst[0]!.tier, 1);
+		assert(numSecondTierInTopHalf <= 5, `${numSecondTierInTopHalf}`);
 	});
 
 	test("rosters are bigger than ZenGM's, with room to grow", async () => {

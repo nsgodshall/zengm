@@ -1095,6 +1095,28 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		}
 		assert(borrowerTid !== undefined, "No AI club with room to borrow");
 
+		// Room in the borrower's wage budget too, since it pays his wages
+		for (const releasedPlayer of await idb.cache.releasedPlayers.indexGetAll(
+			"releasedPlayersByTid",
+			borrowerTid,
+		)) {
+			await idb.cache.releasedPlayers.delete(releasedPlayer.rid);
+		}
+		const borrowerWageBudget = (await getWageBudgets()).get(borrowerTid)!;
+		const borrowerRoster = (
+			await idb.cache.players.indexGetAll("playersByTid", borrowerTid)
+		).sort((a, b) => b.contract.amount - a.contract.amount);
+		for (const p of borrowerRoster) {
+			if (
+				(await team.getPayroll(borrowerTid)) + lent.contract.amount <=
+				borrowerWageBudget
+			) {
+				break;
+			}
+			await player.addToFreeAgents(p, {});
+			await idb.cache.players.put(p);
+		}
+
 		lent.transferOffers = [
 			{ tid: borrowerTid, fee: 0, daysLeft: 3, loan: true },
 		];

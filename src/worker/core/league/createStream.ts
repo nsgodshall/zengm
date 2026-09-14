@@ -1523,8 +1523,11 @@ const afterDBStream = async ({
 				teams,
 			});
 
-	// International Soccer Zen GM mod (Epic 7): most of a new World's players are from their club's Country
+	// International Soccer Zen GM mod (Epic 7): a new World's strongest squads go
+	// to its top-tier and biggest clubs, and most players are from their club's
+	// Country
 	if (!fileHasPlayers) {
+		await competition.assignStartingSquads(activePlayers, teams);
 		await competition.makePlayersMostlyLocal(
 			activePlayers,
 			(p) => p.tid,
