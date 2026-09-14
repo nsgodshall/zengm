@@ -76,6 +76,11 @@ const generate = (tm: any): Team => {
 		t.divisionId = tm.divisionId;
 	}
 
+	// International Soccer Zen GM mod (Epic 7)
+	if (tm.location !== undefined) {
+		t.location = tm.location;
+	}
+
 	if (isSport("football") && tm.depth === undefined) {
 		t.depth = {
 			QB: [],

@@ -4,6 +4,14 @@ import {
 	getCrestDataUrl,
 	pickCrestPattern,
 } from "./crests.ts";
+import {
+	ENGLISH_TOWNS,
+	isRealClubName,
+	type PilotTown,
+	REAL_ENGLISH_CLUB_NAMES,
+	REAL_SPANISH_CLUB_NAMES,
+	SPANISH_TOWNS,
+} from "./pilotTowns.ts";
 import { getStadiumCapacity } from "./worldSettings.ts";
 
 // International Soccer Zen GM mod (Epic 7): the pilot World, a real-country
@@ -14,46 +22,6 @@ export const PILOT_CLUBS_PER_DIVISION = 16;
 // A double round robin
 const PILOT_NUM_GAMES = 2 * (PILOT_CLUBS_PER_DIVISION - 1);
 
-const ENGLISH_TOWN_STARTS = [
-	"Ash",
-	"Beck",
-	"Bram",
-	"Brook",
-	"Castle",
-	"Clay",
-	"Dun",
-	"Eld",
-	"Fair",
-	"Glen",
-	"Hart",
-	"High",
-	"Kings",
-	"Lang",
-	"Mill",
-	"North",
-	"Oak",
-	"Ridge",
-	"Rock",
-	"Sand",
-	"Stone",
-	"Thorn",
-	"West",
-	"White",
-];
-const ENGLISH_TOWN_ENDS = [
-	"bury",
-	"by",
-	"field",
-	"ford",
-	"ham",
-	"ley",
-	"mouth",
-	"port",
-	"stead",
-	"ton",
-	"wick",
-	"worth",
-];
 const ENGLISH_CLUB_NAMES = [
 	"Albion",
 	"Athletic",
@@ -67,38 +35,6 @@ const ENGLISH_CLUB_NAMES = [
 	"Wanderers",
 ];
 
-const SPANISH_TOWN_STARTS = [
-	"Alta",
-	"Arro",
-	"Bena",
-	"Cala",
-	"Campo",
-	"Casa",
-	"Fuente",
-	"Mira",
-	"Monte",
-	"Puerto",
-	"Rio",
-	"Sierra",
-	"Torre",
-	"Valle",
-	"Vega",
-	"Villa",
-];
-const SPANISH_TOWN_ENDS = [
-	"alba",
-	"blanca",
-	" del Mar",
-	"dorada",
-	"hermosa",
-	"llana",
-	"mar",
-	"nueva",
-	"real",
-	"rica",
-	"sol",
-	"verde",
-];
 // An empty prefix is just the town, and is the most common
 const SPANISH_CLUB_PREFIXES = [
 	"",
@@ -142,16 +78,73 @@ const shuffled = <T>(items: T[], random: () => number) => {
 };
 
 /**
- * `count` different town names from every combination of `starts` and `ends`
+ * `count` different towns from `pool`, biggest first, give or take. Bigger
+ * towns are more likely to be picked (by the square root of their population),
+ * and each town's population is jittered by up to 30% either way when they're
+ * ordered, so the biggest towns lean towards the top tier without always
+ * getting there.
  */
-const getTowns = (
-	starts: string[],
-	ends: string[],
+const chooseTowns = (
+	pool: PilotTown[],
 	count: number,
 	random: () => number,
 ) => {
-	const all = starts.flatMap((start) => ends.map((end) => `${start}${end}`));
-	return shuffled(all, random).slice(0, count);
+	const remaining = [...pool];
+	const chosen: { town: PilotTown; size: number }[] = [];
+	while (chosen.length < count && remaining.length > 0) {
+		const weights = remaining.map((town) => Math.sqrt(town.pop));
+		let r = random() * weights.reduce((sum, weight) => sum + weight, 0);
+		let index = weights.findIndex((weight) => {
+			r -= weight;
+			return r < 0;
+		});
+		if (index < 0) {
+			index = remaining.length - 1;
+		}
+		const [town] = remaining.splice(index, 1);
+		chosen.push({ town: town!, size: town!.pop * (0.7 + 0.6 * random()) });
+	}
+	return chosen.sort((a, b) => b.size - a.size).map(({ town }) => town);
+};
+
+/**
+ * A soccer-style name for a club in `town` that doesn't copy a real club (see
+ * isRealClubName) or a club already in this World: an English town with United,
+ * City, and so on, or a Spanish town with CF or FC, sometimes after Real,
+ * Atlético, or similar
+ */
+const nameClub = ({
+	town,
+	english,
+	random,
+	takenNames,
+}: {
+	town: PilotTown;
+	english: boolean;
+	random: () => number;
+	takenNames: Set<string>;
+}) => {
+	const clubTown = town.clubName ?? town.name;
+	const candidates = english
+		? shuffled(ENGLISH_CLUB_NAMES, random).map((name) => ({
+				region: clubTown,
+				name,
+			}))
+		: shuffled(SPANISH_CLUB_PREFIXES, random).flatMap((prefix) =>
+				shuffled(SPANISH_CLUB_NAMES, random).map((name) => ({
+					region: prefix ? `${prefix} ${clubTown}` : clubTown,
+					name,
+				})),
+			);
+	const realNames = english ? REAL_ENGLISH_CLUB_NAMES : REAL_SPANISH_CLUB_NAMES;
+
+	const club =
+		candidates.find(({ region, name }) => {
+			const fullName = `${region} ${name}`;
+			return !takenNames.has(fullName) && !isRealClubName(fullName, realNames);
+		}) ?? candidates[0]!;
+	takenNames.add(`${club.region} ${club.name}`);
+	return club;
 };
 
 /**
@@ -198,8 +191,9 @@ const getPop = (tier: number, place: number, random: () => number) => {
  * The pilot World: England and Spain, each with two tiers of
  * PILOT_CLUBS_PER_DIVISION clubs playing a double round robin. In each Country
  * the bottom 3 of the top tier go down, and the top 2 of the second tier go up
- * along with the winner of a playoff among the next 4. Clubs get generated
- * soccer-style names, three letter abbreviations, kit colors, and market sizes.
+ * along with the winner of a playoff among the next 4. Clubs are in real towns
+ * (see pilotTowns.ts), with invented soccer-style names, three letter
+ * abbreviations, kit colors, and market sizes.
  * `random` is uniform on [0, 1), so passing the same numbers makes the same
  * World.
  */
@@ -252,20 +246,11 @@ export const generatePilotWorld = (random: () => number = Math.random) => {
 	};
 
 	const numTowns = 2 * PILOT_CLUBS_PER_DIVISION;
-	const englishTowns = getTowns(
-		ENGLISH_TOWN_STARTS,
-		ENGLISH_TOWN_ENDS,
-		numTowns,
-		random,
-	);
-	const spanishTowns = getTowns(
-		SPANISH_TOWN_STARTS,
-		SPANISH_TOWN_ENDS,
-		numTowns,
-		random,
-	);
+	const englishTowns = chooseTowns(ENGLISH_TOWNS, numTowns, random);
+	const spanishTowns = chooseTowns(SPANISH_TOWNS, numTowns, random);
 
 	const takenAbbrevs = new Set<string>();
+	const takenNames = new Set<string>();
 
 	const clubs = structure.competitionDivisions.flatMap((division, did) => {
 		const english = division.countryId === 0;
@@ -275,18 +260,13 @@ export const generatePilotWorld = (random: () => number = Math.random) => {
 		return towns
 			.slice(firstTown, firstTown + PILOT_CLUBS_PER_DIVISION)
 			.map((town, place) => {
-				let region;
-				let name;
-				if (english) {
-					region = town;
-					name = pick(ENGLISH_CLUB_NAMES, random);
-				} else {
-					const prefix = pick(SPANISH_CLUB_PREFIXES, random);
-					region = prefix ? `${prefix} ${town}` : town;
-					name = pick(SPANISH_CLUB_NAMES, random);
-				}
-
-				const abbrev = makeAbbrev(town, takenAbbrevs);
+				const { region, name } = nameClub({
+					town,
+					english,
+					random,
+					takenNames,
+				});
+				const abbrev = makeAbbrev(town.clubName ?? town.name, takenAbbrevs);
 				const pop = getPop(division.tier, place, random);
 				const colors = pick(KIT_COLORS, random);
 				const crest = generateCrestSvg({
@@ -307,6 +287,11 @@ export const generatePilotWorld = (random: () => number = Math.random) => {
 					cid: division.countryId,
 					did,
 					divisionId: division.divisionId,
+					location: {
+						town: town.name,
+						country: english ? "England" : "Spain",
+						wikipedia: town.wikipedia,
+					},
 				};
 			});
 	});

@@ -2434,6 +2434,22 @@ export const generateJsonSchema = (sport: Sport | "test") => {
 						startingPayroll: {
 							type: "number",
 						},
+						// International Soccer Zen GM mod (Epic 7)
+						location: {
+							type: "object",
+							properties: {
+								town: {
+									type: "string",
+								},
+								country: {
+									type: "string",
+								},
+								wikipedia: {
+									type: "string",
+								},
+							},
+							required: ["town", "country", "wikipedia"],
+						},
 						// International Soccer Zen GM mod (Epic 1)
 						divisionId: {
 							type: "integer",

@@ -170,6 +170,8 @@ const updateRoster = async (
 					"name",
 					"keepRosterSorted",
 					"playThroughInjuries",
+					// International Soccer Zen GM mod (Epic 7)
+					"location",
 				],
 				seasonAttrs,
 				stats: ["pts", "oppPts", "gp"],

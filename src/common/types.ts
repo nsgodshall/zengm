@@ -1704,6 +1704,13 @@ export type Team = {
 	// International Soccer Zen GM mod (Epic 4): the club's payroll when its World
 	// was created, which its wage budget covers until its first season is over
 	startingPayroll?: number;
+	// International Soccer Zen GM mod (Epic 7): the real town a World's club is
+	// in, with the title of its English Wikipedia article
+	location?: {
+		town: string;
+		country: string;
+		wikipedia: string;
+	};
 	tid: number;
 	cid: number;
 	did: number;

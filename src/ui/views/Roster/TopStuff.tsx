@@ -256,6 +256,31 @@ const TopStuff = ({
 					<div>
 						<div>
 							<div style={fontSizeLarger}>{recordAndPlayoffs}</div>
+							{/* International Soccer Zen GM mod (Epic 7): where a World's club is */}
+							{t.location ? (
+								<div>
+									{t.location.town}, {t.location.country} ·{" "}
+									<a
+										href={`https://en.wikipedia.org/wiki/${encodeURIComponent(
+											t.location.wikipedia,
+										)}`}
+										rel="noopener noreferrer"
+										target="_blank"
+									>
+										Wikipedia
+									</a>{" "}
+									·{" "}
+									<a
+										href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+											`${t.location.town}, ${t.location.country}`,
+										)}`}
+										rel="noopener noreferrer"
+										target="_blank"
+									>
+										Map
+									</a>
+								</div>
+							) : null}
 							{t.rank !== undefined ? (
 								<div>
 									{helpers.ordinal(t.rank)} in{" "}
