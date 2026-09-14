@@ -92,6 +92,8 @@ export const getPlayer = async (
 				salariesTotal: any;
 				untradable: any;
 				untradableMsg?: string;
+				// International Soccer Zen GM mod (Epic 4)
+				loan?: Player["loan"];
 				ratings: (MinimalPlayerRatings & {
 					abbrev: string;
 					age: number;
@@ -132,6 +134,8 @@ export const getPlayer = async (
 			"watch",
 			"college",
 			"relatives",
+			// International Soccer Zen GM mod (Epic 4)
+			"loan",
 			"untradable",
 			"jerseyNumber",
 			"experience",

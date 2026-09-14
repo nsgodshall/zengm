@@ -21,6 +21,9 @@ import {
 	processLoan,
 	returnLoan,
 	returnLoans,
+	makeAiLoanRequests,
+	requestLoan,
+	setLoanListed,
 } from "./loanMoves.ts";
 import {
 	acceptAiTransferOffer,
@@ -90,6 +93,9 @@ export default {
 	processLoan,
 	returnLoan,
 	returnLoans,
+	makeAiLoanRequests,
+	requestLoan,
+	setLoanListed,
 	acceptAiTransferOffer,
 	dailyTransferOffers,
 	makeAiTransferOffers,

@@ -89,6 +89,8 @@ const updateTransferMarket = async (
 					"pid",
 					"tid",
 					"abbrev",
+					"loan",
+					"loanListed",
 					"firstName",
 					"lastName",
 					"age",
@@ -112,6 +114,9 @@ const updateTransferMarket = async (
 					return {
 						...p,
 						divisionName: divisionNameByTid.get(p.tid) ?? "",
+						// The season a player on loan goes back to his club after
+						loanEndSeason: p.loan?.season as number | undefined,
+						loanListed: !!p.loanListed,
 						// Millions of dollars, like contracts in the UI
 						fee: info.fee / 1000,
 						transferListed: !!p.transferListed,
@@ -133,6 +138,13 @@ const updateTransferMarket = async (
 		);
 		const userPlayers = await getMarketPlayers(
 			allPlayers.filter((p) => userTids.includes(p.tid)),
+		);
+
+		// The user's players out on loan at other clubs
+		const outOnLoan = await getMarketPlayers(
+			allPlayers.filter(
+				(p) => p.loan !== undefined && userTids.includes(p.loan.tid),
+			),
 		);
 
 		const teamInfoCache = g.get("teamInfoCache");
@@ -207,6 +219,7 @@ const updateTransferMarket = async (
 					buyerDivisionName: divisionNameByTid.get(offer.tid) ?? "",
 					buyerTid: offer.tid,
 					daysLeft: offer.daysLeft,
+					loan: !!offer.loan,
 					// Millions of dollars
 					offerFee: offer.fee / 1000,
 				}),
@@ -227,6 +240,7 @@ const updateTransferMarket = async (
 				await idb.cache.players.indexGetAll("playersByTid", userTid)
 			).length,
 			offers,
+			outOnLoan,
 			payroll: (await team.getPayroll(userTid)) / 1000,
 			players,
 			season,

@@ -13,6 +13,7 @@ import {
 	processAcademyTransfer,
 } from "./academyTransfers.ts";
 import { getCurrentTransferWindow, processTransfer } from "./aiTransfers.ts";
+import { acceptLoanRequest, makeAiLoanRequests } from "./loanMoves.ts";
 import { isSingleDivision } from "./competitionStructure.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
 import teamLink from "./teamLink.ts";
@@ -33,6 +34,9 @@ import { getWageBudgets } from "./wageBudgets.ts";
 // academy. A fractional part is a probability.
 const OFFER_ATTEMPTS_PER_USER_CLUB = 0.5;
 const ACADEMY_OFFER_ATTEMPTS_PER_USER_CLUB = 0.125;
+
+// And about this many requests to borrow the players on the user's loan list
+const LOAN_REQUEST_ATTEMPTS_PER_USER_CLUB = 0.25;
 
 const formatFee = (fee: number) => helpers.formatCurrency(fee / 1000, "M");
 
@@ -295,6 +299,9 @@ export const dailyTransferOffers = async () => {
 		randomRound(ACADEMY_OFFER_ATTEMPTS_PER_USER_CLUB * numUserClubsFactor),
 		true,
 	);
+	await makeAiLoanRequests(
+		randomRound(LOAN_REQUEST_ATTEMPTS_PER_USER_CLUB * numUserClubsFactor),
+	);
 };
 
 const getUserPlayer = async (pid: number) => {
@@ -332,6 +339,10 @@ export const acceptAiTransferOffer = async ({
 	}
 	if (!(await getCurrentTransferWindow())) {
 		return "The transfer window is closed.";
+	}
+
+	if (offer.loan) {
+		return acceptLoanRequest(p, tid);
 	}
 
 	const academy = p.academyTid !== undefined;

@@ -698,12 +698,17 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		const season = g.get("season");
 		const userTid = g.get("userTid");
 
+		// The user's two lowest paid players, made tradable, so only the offers
+		// decide. Late free agent signings often can't be traded yet.
 		const [sold, kept] = (
 			await idb.cache.players.indexGetAll("playersByTid", userTid)
-		)
-			.filter((p) => p.gamesUntilTradable === 0 && p.contract.exp >= season)
-			.sort((a, b) => a.contract.amount - b.contract.amount);
+		).sort((a, b) => a.contract.amount - b.contract.amount);
 		assert(sold && kept, "Not enough players to sell");
+		for (const p of [sold, kept]) {
+			p.gamesUntilTradable = 0;
+			p.contract.exp = Math.max(p.contract.exp, season);
+			await idb.cache.players.put(p);
+		}
 
 		// An AI club with plenty of cash and room in its roster and wage budget,
 		// so only the offer decides
@@ -899,6 +904,13 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			(await idb.cache.players.get(listed.pid))!.transferListed,
 			true,
 		);
+		// Worth more than any academy player, so every AI club would want him
+		const listedPlayer = (await idb.cache.players.get(listed.pid))!;
+		listedPlayer.value =
+			Math.max(...(await competition.getAcademyPlayers()).map((p) => p.value)) +
+			1;
+		await idb.cache.players.put(listedPlayer);
+
 		const numOffers = await competition.makeAiTransferOffers(200, true);
 		assert(numOffers > 0, "No offers for academy players");
 		let numOffersFound = 0;
@@ -994,6 +1006,134 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 				p.tid === tidsBefore.get(pid) || p.tid === PLAYER.FREE_AGENT,
 				`pid ${pid} is at tid ${p.tid}`,
 			);
+		}
+	});
+
+	// Changes the league, so it goes last
+	test("the user borrows a player from an AI club, and lends one to an AI club that asks", async () => {
+		const season = g.get("season");
+		const userTid = g.get("userTid");
+		const minContract = g.get("minContract");
+
+		// A young player on the bench at an AI club, with a contract through the
+		// season
+		const aiTeams = (await idb.cache.teams.getAll()).filter(
+			(t) => !t.disabled && t.tid !== userTid,
+		);
+		let lenderTid: number | undefined;
+		for (const t of aiTeams) {
+			const roster = await idb.cache.players.indexGetAll("playersByTid", t.tid);
+			if (roster.length >= 12) {
+				lenderTid = t.tid;
+				break;
+			}
+		}
+		assert(lenderTid !== undefined, "No AI club with a big enough roster");
+		const lenderRoster = await idb.cache.players.indexGetAll(
+			"playersByTid",
+			lenderTid,
+		);
+		const bench = lenderRoster
+			.filter((p) => p.loan === undefined)
+			.sort((a, b) => a.valueNoPot - b.valueNoPot)[0]!;
+		bench.born.year = season - 20;
+		bench.gamesUntilTradable = 0;
+		bench.contract.amount = minContract;
+		bench.contract.exp = Math.max(bench.contract.exp, season);
+		await idb.cache.players.put(bench);
+
+		const borrowed = await competition.requestLoan({ pid: bench.pid });
+		assert.strictEqual(borrowed.type, "accept", borrowed.message);
+		const p1 = (await idb.cache.players.get(bench.pid))!;
+		assert.strictEqual(p1.tid, userTid);
+		assert.deepStrictEqual(p1.loan, { tid: lenderTid, season });
+
+		// Clubs don't lend out older players
+		const veteran = lenderRoster.find(
+			(p) =>
+				p.pid !== bench.pid &&
+				p.loan === undefined &&
+				season - p.born.year > LOAN_MAX_AGE &&
+				p.gamesUntilTradable === 0 &&
+				p.contract.exp >= season,
+		);
+		if (veteran) {
+			veteran.contract.amount = minContract;
+			await idb.cache.players.put(veteran);
+			const refused = await competition.requestLoan({ pid: veteran.pid });
+			assert.strictEqual(refused.type, "reject", refused.message);
+		}
+
+		// A player on loan goes back to his club when released
+		await competition.returnLoan(p1);
+		assert.strictEqual(
+			(await idb.cache.players.get(bench.pid))!.tid,
+			lenderTid,
+		);
+
+		// The user lends a player to an AI club that asked, with room for him
+		const lent = (await idb.cache.players.indexGetAll("playersByTid", userTid))
+			.filter((p) => p.loan === undefined)
+			.sort((a, b) => a.value - b.value)[0];
+		assert(lent, "No user player to lend");
+		lent.gamesUntilTradable = 0;
+		lent.contract.amount = minContract;
+		lent.contract.exp = Math.max(lent.contract.exp, season);
+		await idb.cache.players.put(lent);
+		assert.strictEqual(
+			await competition.setLoanListed({ pid: lent.pid, listed: true }),
+			undefined,
+		);
+
+		let borrowerTid: number | undefined;
+		for (const t of aiTeams) {
+			const roster = await idb.cache.players.indexGetAll("playersByTid", t.tid);
+			if (roster.length < g.get("maxRosterSize")) {
+				borrowerTid = t.tid;
+				break;
+			}
+		}
+		assert(borrowerTid !== undefined, "No AI club with room to borrow");
+
+		lent.transferOffers = [
+			{ tid: borrowerTid, fee: 0, daysLeft: 3, loan: true },
+		];
+		await idb.cache.players.put(lent);
+		assert.strictEqual(
+			await competition.acceptAiTransferOffer({
+				pid: lent.pid,
+				tid: borrowerTid,
+			}),
+			undefined,
+		);
+		const p2 = (await idb.cache.players.get(lent.pid))!;
+		assert.strictEqual(p2.tid, borrowerTid);
+		assert.deepStrictEqual(p2.loan, { tid: userTid, season });
+		assert.strictEqual(p2.loanListed, undefined);
+		assert.strictEqual(p2.transferOffers, undefined);
+
+		// AI clubs' requests for players on the user's loan list are well-formed
+		for (const p of await idb.cache.players.indexGetAll(
+			"playersByTid",
+			userTid,
+		)) {
+			if (p.loan === undefined) {
+				p.loanListed = true;
+				await idb.cache.players.put(p);
+			}
+		}
+		await competition.makeAiLoanRequests(200);
+		for (const p of await idb.cache.players.indexGetAll(
+			"playersByTid",
+			userTid,
+		)) {
+			for (const offer of p.transferOffers ?? []) {
+				if (offer.loan) {
+					assert.notStrictEqual(offer.tid, userTid);
+					assert.strictEqual(offer.fee, 0);
+					assert.strictEqual(offer.daysLeft, 3);
+				}
+			}
 		}
 	});
 });

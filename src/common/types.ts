@@ -1271,8 +1271,14 @@ export type PlayerWithoutKey<PlayerRatings = MinimalPlayerRatings> = {
 		tid: number;
 		fee: number;
 		daysLeft: number;
+		// A request to borrow him until the summer, with no fee (see
+		// competition/loanMoves.ts)
+		loan?: true;
 	}[];
 	transferListed?: true;
+	// Whether the user has put him on their loan list, for AI clubs to ask to
+	// borrow him
+	loanListed?: true;
 	// International Soccer Zen GM mod (Epic 4): a player on loan at another club
 	// (his tid) from the club he goes back to (loan.tid) in the draft phase of
 	// loan.season (see competition/loanMoves.ts)

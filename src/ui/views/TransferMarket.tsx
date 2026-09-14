@@ -50,6 +50,7 @@ const TransferMarket = ({
 	maxRosterSize,
 	numPlayersOnRoster,
 	offers,
+	outOnLoan,
 	payroll,
 	players,
 	season,
@@ -108,11 +109,22 @@ const TransferMarket = ({
 		await submitOffer(p, Math.round(millions * 1000));
 	};
 
+	const requestLoan = async (p: OfferTarget) => {
+		const result = await toWorker("main", "requestLoan", { pid: p.pid });
+		showNotification({
+			type: result.type === "accept" ? "success" : "error",
+			text: result.message,
+		});
+	};
+
 	const acceptOffer = async (offer: Offer) => {
+		const name = `${offer.firstName} ${offer.lastName}`;
 		const proceed = await confirm(
-			`Sell ${offer.firstName} ${offer.lastName} to the ${offer.buyerAbbrev} for ${formatMillions(offer.offerFee)}?`,
+			offer.loan
+				? `Loan ${name} to the ${offer.buyerAbbrev} until the summer? They'll play him and pay his wages.`
+				: `Sell ${name} to the ${offer.buyerAbbrev} for ${formatMillions(offer.offerFee)}?`,
 			{
-				okText: "Sell",
+				okText: offer.loan ? "Loan" : "Sell",
 			},
 		);
 		if (proceed) {
@@ -203,7 +215,7 @@ const TransferMarket = ({
 			teamCell(offer.buyerAbbrev, offer.buyerTid),
 			offer.buyerDivisionName,
 			{
-				value: formatMillions(offer.offerFee),
+				value: offer.loan ? "Loan" : formatMillions(offer.offerFee),
 				sortValue: offer.offerFee,
 			},
 			offer.daysLeft,
@@ -280,11 +292,45 @@ const TransferMarket = ({
 		</button>
 	);
 
+	const loanListCol = {
+		title: "Loan list",
+		desc: "Clubs ask to borrow players on your loan list until the summer",
+		sortSequence: [],
+	};
+
+	const loanListButton = (p: {
+		pid: number;
+		loanListed: boolean;
+		loanEndSeason: number | undefined;
+	}) =>
+		p.loanEndSeason !== undefined ? null : (
+			<button
+				className={
+					p.loanListed
+						? "btn btn-xs btn-secondary"
+						: "btn btn-xs btn-light-bordered"
+				}
+				disabled={spectator}
+				key="loanList"
+				onClick={async () => {
+					showError(
+						await toWorker("main", "setLoanListed", {
+							pid: p.pid,
+							listed: !p.loanListed,
+						}),
+					);
+				}}
+			>
+				{p.loanListed ? "Listed" : "List"}
+			</button>
+		);
+
 	const userCols = [
 		...getCols(["Name", "Pos", "Age", "Ovr", "Pot", "Contract", "Exp"]),
 		feeCol,
 		offersCol,
 		transferListCol,
+		loanListCol,
 	];
 
 	const userRows: DataTableRow[] = userPlayers.map((p) => ({
@@ -305,6 +351,7 @@ const TransferMarket = ({
 			},
 			p.transferOffers.length,
 			transferListButton(p),
+			loanListButton(p),
 		],
 	}));
 
@@ -336,6 +383,37 @@ const TransferMarket = ({
 		],
 	}));
 
+	const outOnLoanCols = [
+		...getCols(["Name", "Pos", "Age", "Ovr", "Pot", "Team"]),
+		{
+			title: "Division",
+		},
+		...getCols(["Contract"]),
+		{
+			title: "Until",
+			desc: "He goes back to your club in the summer of this season",
+			sortSequence: ["asc", "desc"],
+			sortType: "number",
+		} as const,
+	];
+
+	const outOnLoanRows: DataTableRow[] = outOnLoan.map((p) => ({
+		key: p.pid,
+		metadata: {
+			type: "player",
+			pid: p.pid,
+			season,
+			playoffs: "regularSeason",
+		},
+		data: [
+			...playerCells(p),
+			teamCell(p.abbrev, p.tid),
+			p.divisionName,
+			wrappedContractAmount(p),
+			p.loanEndSeason,
+		],
+	}));
+
 	const marketCols = [
 		...getCols(["Name", "Pos", "Age", "Ovr", "Pot", "Team"]),
 		{
@@ -364,15 +442,27 @@ const TransferMarket = ({
 				value: formatMillions(p.fee),
 				sortValue: p.fee,
 			},
-			<button
-				className="btn btn-xs btn-primary"
-				disabled={!canAct || p.untradableMsg !== undefined}
-				key="offer"
-				onClick={() => makeOffer(p)}
-				title={p.untradableMsg}
-			>
-				Make offer
-			</button>,
+			<div className="d-flex gap-1" key="buttons">
+				<button
+					className="btn btn-xs btn-primary"
+					disabled={!canAct || p.untradableMsg !== undefined}
+					onClick={() => makeOffer(p)}
+					title={p.untradableMsg}
+				>
+					Make offer
+				</button>
+				<button
+					className="btn btn-xs btn-light-bordered"
+					disabled={!canAct || p.untradableMsg !== undefined}
+					onClick={() => requestLoan(p)}
+					title={
+						p.untradableMsg ??
+						"Ask to borrow him until the summer. You'd pay his wages."
+					}
+				>
+					Borrow
+				</button>
+			</div>,
 		],
 	}));
 
@@ -451,6 +541,12 @@ const TransferMarket = ({
 			)}
 
 			<h2>Your players</h2>
+			<p>
+				Put players on your transfer list for clubs to make offers for them, or
+				on your loan list for clubs to ask to borrow them until the summer. A
+				player on loan plays for the club that borrows him, which pays his
+				wages.
+			</p>
 			<DataTable
 				cols={userCols}
 				defaultSort={[7, "desc"]}
@@ -470,10 +566,24 @@ const TransferMarket = ({
 				rows={userAcademyRows}
 			/>
 
+			{outOnLoanRows.length > 0 ? (
+				<>
+					<h2>Your players out on loan</h2>
+					<DataTable
+						cols={outOnLoanCols}
+						defaultSort={[0, "asc"]}
+						name="TransferMarketOutOnLoan"
+						rows={outOnLoanRows}
+					/>
+				</>
+			) : null}
+
 			<h2>Other clubs' players</h2>
 			<p>
 				Make an offer for a player at another club: it accepts its asking price,
-				counters a close offer with it, and turns down the rest.
+				counters a close offer with it, and turns down the rest. Or ask to
+				borrow him until the summer, for no fee: clubs only lend players 23 or
+				younger who aren't in their rotation.
 			</p>
 			<DataTable
 				cols={marketCols}

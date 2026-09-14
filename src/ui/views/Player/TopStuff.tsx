@@ -312,15 +312,27 @@ const TopStuff = ({
 	season?: number;
 	showRatings: boolean;
 }) => {
-	const { competitionDivisions, gender, godMode, phase, spectator, userTid } =
-		useLocal([
-			"competitionDivisions",
-			"gender",
-			"godMode",
-			"phase",
-			"spectator",
-			"userTid",
-		]);
+	const {
+		competitionDivisions,
+		gender,
+		godMode,
+		phase,
+		spectator,
+		teamInfoCache,
+		userTid,
+	} = useLocal([
+		"competitionDivisions",
+		"gender",
+		"godMode",
+		"phase",
+		"spectator",
+		"teamInfoCache",
+		"userTid",
+	]);
+
+	// International Soccer Zen GM mod (Epic 4): the club a player on loan goes
+	// back to
+	const loanTeamInfo = player.loan ? teamInfoCache[player.loan.tid] : undefined;
 
 	const freeAgent = player.tid === PLAYER.FREE_AGENT;
 	const injured = player.injury.gamesRemaining > 0;
@@ -561,6 +573,21 @@ const TopStuff = ({
 								<CountryFlag className="ms-1" country={player.born.loc} />
 							</a>
 							<br />
+							{player.loan && loanTeamInfo ? (
+								<>
+									On loan from{" "}
+									<a
+										href={helpers.leagueUrl([
+											"roster",
+											`${loanTeamInfo.abbrev}_${player.loan.tid}`,
+										])}
+									>
+										{loanTeamInfo.region} {loanTeamInfo.name}
+									</a>{" "}
+									until the end of the {player.loan.season} season
+									<br />
+								</>
+							) : null}
 							{player.ageAtDeath === null || season !== undefined ? (
 								<>
 									Age: {player.age}

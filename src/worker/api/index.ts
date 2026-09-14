@@ -3267,6 +3267,14 @@ const setTransferListed = (params: { pid: number; listed: boolean }) => {
 	return competition.setTransferListed(params);
 };
 
+const requestLoan = (params: { pid: number }) => {
+	return competition.requestLoan(params);
+};
+
+const setLoanListed = (params: { pid: number; listed: boolean }) => {
+	return competition.setLoanListed(params);
+};
+
 const promoteAcademyPlayer = async ({ pid }: { pid: number }) => {
 	const p = await getUserAcademyPlayer(pid);
 	if (typeof p === "string") {
@@ -5458,6 +5466,8 @@ export default {
 		acceptTransferOffer,
 		makeTransferOffer,
 		rejectTransferOffer,
+		requestLoan,
+		setLoanListed,
 		setTransferListed,
 		promoteAcademyPlayer,
 		releaseAcademyPlayer,
