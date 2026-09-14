@@ -391,6 +391,11 @@ const updateRoster = async (
 			t: t2,
 			tid: inputs.tid,
 			usePts,
+			// International Soccer Zen GM mod (Epic 6): a World club's academy, now
+			academy:
+				inputs.season === g.get("season")
+					? await competition.getAcademySummary(inputs.tid)
+					: undefined,
 			// International Soccer Zen GM mod (Epic 6): a World club's Division
 			worldDivision: await competition.getClubDivisionInfo(
 				inputs.tid,

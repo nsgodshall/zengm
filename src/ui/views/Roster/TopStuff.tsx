@@ -153,6 +153,7 @@ const TopStuff = ({
 	tid,
 	usePts,
 	worldDivision,
+	academy,
 }: Pick<
 	View<"roster">,
 	| "abbrev"
@@ -169,6 +170,7 @@ const TopStuff = ({
 	| "tid"
 	| "usePts"
 	| "worldDivision"
+	| "academy"
 > & {
 	currentSeason: number;
 	openRosterSpots: number;
@@ -320,6 +322,32 @@ const TopStuff = ({
 											)}
 										</>
 									)}
+								</div>
+							) : null}
+							{academy ? (
+								// International Soccer Zen GM mod (Epic 6): the club's academy
+								<div>
+									<a
+										className="fw-bold"
+										href={helpers.leagueUrl(["academy", `${abbrev}_${tid}`])}
+									>
+										Academy
+									</a>
+									: {academy.numPlayers}{" "}
+									{academy.numPlayers === 1 ? "player" : "players"}
+									{academy.best ? (
+										<>
+											, best prospect{" "}
+											<a href={helpers.leagueUrl(["player", academy.best.pid])}>
+												{academy.best.name}
+											</a>{" "}
+											({academy.best.pos}, {academy.best.age}
+											{!challengeNoRatings
+												? `, ${academy.best.ovr}/${academy.best.pot}`
+												: null}
+											)
+										</>
+									) : null}
 								</div>
 							) : null}
 							{!challengeNoRatings ? (

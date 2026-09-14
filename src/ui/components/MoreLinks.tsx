@@ -94,6 +94,10 @@ export const MoreLinks = (
 						: ["roster", `${abbrev}_${tid}`],
 				name: "Roster",
 			},
+			// International Soccer Zen GM mod (Epic 6): a World club's academy
+			...(isWorld(competitionDivisions)
+				? [{ url: ["academy", `${abbrev}_${tid}`], name: "Academy" }]
+				: []),
 			{
 				url: ["team_finances", `${abbrev}_${tid}`],
 				name: "Finances",

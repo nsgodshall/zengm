@@ -441,6 +441,16 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		}
 	});
 
+	test("a club's team page summary counts its academy players and names its best prospect", async () => {
+		for (const t of await idb.cache.teams.getAll()) {
+			const academyPlayers = await competition.getAcademyPlayers(t.tid);
+			const summary = (await competition.getAcademySummary(t.tid))!;
+			assert.strictEqual(summary.numPlayers, academyPlayers.length);
+			assert(summary.best, `tid ${t.tid} has no best prospect`);
+			assert(academyPlayers.some((p) => p.pid === summary.best!.pid));
+		}
+	});
+
 	test("every club has a youth academy, and there are no draft classes", async () => {
 		const players: Player[] = await idb.league.getAll("players");
 		const season = g.get("season");
