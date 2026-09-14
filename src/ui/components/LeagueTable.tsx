@@ -50,6 +50,17 @@ const Form = ({ form }: { form: TableRow["form"] }) => (
 	</div>
 );
 
+// Epic 8: what a club's season actually led to, once it's over
+const RESULTS = {
+	promoted: { className: "text-success", symbol: "▲", title: "Promoted" },
+	promotedViaPlayoff: {
+		className: "text-success",
+		symbol: "▲",
+		title: "Promoted through the promotion playoff",
+	},
+	relegated: { className: "text-danger", symbol: "▼", title: "Relegated" },
+} as const;
+
 const Club = ({
 	champion,
 	includeName,
@@ -81,6 +92,16 @@ const Club = ({
 				<span className="fw-bold" title="Champion">
 					{" "}
 					(C)
+				</span>
+			) : null}
+			{row.result ? (
+				<span
+					className={RESULTS[row.result].className}
+					title={RESULTS[row.result].title}
+				>
+					{" "}
+					{RESULTS[row.result].symbol}
+					{row.result === "promotedViaPlayoff" ? " (P)" : null}
 				</span>
 			) : null}
 		</div>
@@ -230,6 +251,12 @@ const Legend = ({
 			</div>
 		))}
 		{seasonOver ? <div>(C) Champion</div> : null}
+		{seasonOver ? (
+			<div>
+				<span className="text-success">▲</span> Promoted (P: through the
+				playoff), <span className="text-danger">▼</span> Relegated
+			</div>
+		) : null}
 		<div>Form: last 5 games, oldest first</div>
 	</div>
 );

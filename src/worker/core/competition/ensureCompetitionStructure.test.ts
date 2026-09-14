@@ -81,6 +81,8 @@ test("in a multi-Division World, only fills in what's missing, using each row's 
 		structure.competitionDivisions,
 	);
 	g.setWithoutSavingToDB("promotionRelegationLinks", []);
+	// Already has crests, rosters, and stadiums, which this test isn't about
+	g.setWithoutSavingToDB("worldContentFilled", true);
 
 	await resetCache({
 		teams: [

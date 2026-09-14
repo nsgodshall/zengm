@@ -44,6 +44,43 @@ const expectNoClubTwiceInARound = (rounds: Round[]) => {
 
 const makeTids = (numClubs: number) => range(numClubs).map((i) => 100 + i);
 
+// The longest run of home or away games any club has. Resting doesn't end a
+// run.
+const getLongestStreak = (rounds: Round[], tids: number[]) => {
+	let longest = 0;
+	for (const tid of tids) {
+		let streak = 0;
+		let lastWhere: "home" | "away" | undefined;
+		for (const round of rounds) {
+			const game = round.find(
+				([homeTid, awayTid]) => homeTid === tid || awayTid === tid,
+			);
+			if (!game) {
+				continue;
+			}
+			const where = game[0] === tid ? "home" : "away";
+			streak = where === lastWhere ? streak + 1 : 1;
+			lastWhere = where;
+			longest = Math.max(longest, streak);
+		}
+	}
+	return longest;
+};
+
+// Whether any two clubs meet in back-to-back rounds
+const meetBackToBack = (rounds: Round[]) =>
+	rounds
+		.slice(1)
+		.some((round, i) =>
+			round.some(([homeTid, awayTid]) =>
+				rounds[i]!.some(
+					([prevHomeTid, prevAwayTid]) =>
+						(homeTid === prevHomeTid && awayTid === prevAwayTid) ||
+						(homeTid === prevAwayTid && awayTid === prevHomeTid),
+				),
+			),
+		);
+
 describe("getRoundRobinRounds", () => {
 	test.each([2, 3, 4, 7, 8, 20])(
 		"%i clubs: everyone plays everyone exactly once, at most once a round",
@@ -91,6 +128,16 @@ describe("getRoundRobinRounds", () => {
 		expect(getRoundRobinRounds([])).toEqual([]);
 		expect(getRoundRobinRounds([5])).toEqual([]);
 	});
+
+	test.each([4, 6, 7, 8, 16, 19, 20])(
+		"%i clubs: no club plays more than 2 home or away games in a row",
+		(numClubs) => {
+			const tids = makeTids(numClubs);
+			expect(
+				getLongestStreak(getRoundRobinRounds(tids), tids),
+			).toBeLessThanOrEqual(2);
+		},
+	);
 });
 
 describe("getDivisionRounds", () => {
@@ -155,6 +202,19 @@ describe("getDivisionRounds", () => {
 		expect(getDivisionRounds([1], 10)).toEqual([]);
 		expect(getDivisionRounds(makeTids(4), 0)).toEqual([]);
 	});
+
+	test.each([6, 7, 10, 16, 19, 20])(
+		"%i clubs, double round robin: no club plays more than 3 home or away games in a row, and no two clubs meet in back-to-back rounds",
+		(numClubs) => {
+			// The clubs are shuffled into the round robin, so try it a few times
+			for (let i = 0; i < 10; i++) {
+				const tids = makeTids(numClubs);
+				const rounds = getDivisionRounds(tids, 2 * (numClubs - 1));
+				expect(getLongestStreak(rounds, tids)).toBeLessThanOrEqual(3);
+				expect(meetBackToBack(rounds)).toBe(false);
+			}
+		},
+	);
 });
 
 describe("mergeRoundsIntoDays", () => {

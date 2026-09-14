@@ -349,6 +349,7 @@ const createGameAttributes = async (
 			// competition/worldAwards.ts and ensureCompetitionStructure)
 			gameAttributes.awards = getWorldAwards(gameAttributes.awards);
 			gameAttributes.worldAwardsPerDivision = true;
+			gameAttributes.worldContentFilled = true;
 
 			// Per-game salaries and revenue, contracts, and awards go by the
 			// league-wide season length, so it has to match the Divisions' own

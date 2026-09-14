@@ -411,7 +411,9 @@ const newPhasePreseason = async (
 				p,
 				undevelopedAcademyPids.has(p.pid) ? 0 : 1,
 				false,
-				coachingLevels[p.tid],
+				// International Soccer Zen GM mod (Epic 8): an academy player develops
+				// with his club's coaching
+				coachingLevels[p.academyTid ?? p.tid],
 			);
 		}
 

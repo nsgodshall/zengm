@@ -137,10 +137,13 @@ const updateDailySchedule = async (
 				? [
 						{
 							key: "all",
-							value: makeResponsiveDropdownOption(
-								"All confs",
-								"All conferences",
-							),
+							// International Soccer Zen GM mod (Epic 8): a World's conferences
+							// are its Countries
+							value: competition.isSingleDivision(
+								competition.getCompetitionStructure(),
+							)
+								? makeResponsiveDropdownOption("All confs", "All conferences")
+								: "All countries",
 						},
 						...confs.map((conf) => {
 							// Shorten "Eastern Conference" to "Eastern Conf" on mobile

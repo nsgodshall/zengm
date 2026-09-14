@@ -84,11 +84,9 @@ What landed:
 - **Tables** (`competition/divisionTables.ts`): `getDivisionTables(season)` builds one table per Division from each club's regular season record, with points for/against (every sport's team stats have `pts`/`oppPts`) standing in for goals. In a multi-Division World, the standings page ranks each Division by its table.
 - **Sport-specific pacing:** `newWorldSchedule` takes an optional `pacing` hook applied to the finished calendar, so the generator itself has no `isSport` checks. No sport needs a hook yet.
 
-Still open:
+- **Home and away runs:** the first pair in each round of the circle method alternates home and away by round, and every other pair by its place in the circle, so no club plays more than 2 home or away games in a row within a round robin. Every round robin in a season plays its rounds in the same order, with home and away swapped in the second, so the same two clubs never meet back to back where one ends and the next begins, and a double round robin has runs of at most 3 (tested for 6 to 20 clubs).
 
-- Playoffs in a multi-Division World still follow ZenGM's conference-based playoff settings. Epic 3 decides per-Division playoffs, or none.
-- A Division without its own `numGames` inherits the league-wide setting, which is 82 for basketball. Epic 7's pilot content should set each Division's season length.
-- The calendar only guarantees a club never plays twice in a day. Nothing yet prevents long runs of home or away games, or the same two clubs meeting back to back where one round robin ends and the next begins.
+Settled since: a World has no ZenGM playoffs (Epic 3), and its Divisions set their own season length, with the league-wide `numGames` matched to them (Epic 8).
 
 ### Epic 3 — Season flow & promotion/relegation engine
 
@@ -107,7 +105,8 @@ Still open:
 - Several full seasons now run through the real game code in Epic 8's integration test (`src/test/worldSeasons.test.ts`), but nobody has played a World through the UI yet.
 - Promotion playoff games have scores and a bracket (Epic 6), but no box scores or player stats.
 - ZenGM's awards other than the per-Division ones (Defensive Player of the Year, Rookie of the Year, and so on) still treat the whole World as one league, and conference-level awards are per Country.
-- The settings page can still turn ZenGM's playoffs back on for a World, which would bracket clubs from different tiers together again.
+
+Fixed since: the settings page hides ZenGM's playoff settings (playoff games, byes, play-in, splitting by conference, guaranteed places per division, and reseeding) in an existing World, so they can't bracket clubs from different tiers together again.
 
 ### Epic 4 — Transfer market & wages (replacing the draft and salary cap)
 
@@ -157,16 +156,17 @@ Still to do:
 
 ### Epic 5 — Youth academies (replacing the draft prospect pool)
 
-**Status: academies, the AI running them, the user's academy screen (Epic 6), and buying and selling academy players (Epic 4 stage C) done.** Loans (Epic 4 stage D) are still to do.
+**Status: academies, the AI running them, the user's academy screen (Epic 6), and buying and selling academy players (Epic 4 stage C) done.** Loaning academy players is still to do (first-team loans are Epic 4 stage D).
 
 Decided: every club has its own academy squad, separate from the first team. How good a club's academy is comes from its scouting budget, plus a bonus for being in a higher tier. Every club gets about the same number of prospects. A graduate signs for the minimum wage for 3 seasons.
 
 What landed:
 
 - **No draft classes:** in a World, `draft.genPlayers` does nothing, and a new World skips ZenGM's draft prospects, so young players only come through academies.
-- **Academy players** (`competition/academies.ts`) are draft prospects (`PLAYER.UNDRAFTED`) with a new `academyTid` on the player. That keeps them off first-team rosters, payrolls, and games, and lists them on the draft scouting page by the season they have to graduate. Unlike draft prospects, they develop every preseason. They join at 16 and leave in the summer they turn 22 (3 years below the bottom of `draftAges`, up to its top), so an academy holds 6 yearly intakes.
+- **Academy players** (`competition/academies.ts`) are draft prospects (`PLAYER.UNDRAFTED`) with a new `academyTid` on the player. That keeps them off first-team rosters, payrolls, and games. In a World the draft scouting page (no longer linked) says young players come through academies and links to the academy page instead of listing prospects. Unlike draft prospects, they develop every preseason, with their own club's coaching budget. They join at 16 and leave in the summer they turn 22 (3 years below the bottom of `draftAges`, up to its top), so an academy holds 6 yearly intakes.
 - **Intake** (`competition/youthAcademy.ts`): each summer the World takes in as many 16-year-olds as a default draft class (56 for 24 clubs), and every club gets the same number, give or take one. They're shared out in rounds: each round, clubs take the best prospect left (by true potential) in order of academy strength plus luck. Strength is the scouting budget's effect (3-season average expense level, about −1.1 to 1.1) minus 0.5 for each tier below the top, and luck is up to ±0.75. A new World, or a World from before academies, gets all 6 intakes at once, developed to their ages.
 - **Promotion**, in the draft phase before re-signing: an AI club promotes a younger academy player early only if, on current ratings (`valueNoPot`), he'd already be in its rotation: its best 10 players, twice the players on court. Promising players who aren't ready yet stay in the academy. At graduation it's keep him or lose him: the club keeps a graduate worth more than its worst first-team player counting potential (`value`), or any graduate while it's below the minimum roster size. If that takes it over the roster limit, it releases its lowest value players straight away. Graduates nobody promotes become free agents when re-signing starts, like ZenGM's undrafted prospects. A promoted player signs a rookie contract, so he can be released for free until the regular season, and the promotion shows in the news and his transactions.
+- **Expansion clubs:** a club added to an existing World gets a full academy straight away, all 6 intakes developed to their ages, like a new World (`fillAcademyForNewClub`).
 - **The user's club:** the AI never decides for it. The user promotes and releases academy players on the academy page (Epic 6), and graduates they haven't decided on by the start of free agency become free agents. Auto play and spectator mode run the user's academy the way the AI runs its own.
 - **Tested:** unit tests for academy ages, intake size and sharing out, strength, promotion decisions, and contracts. The multi-season World test checks that every club has an academy of the right ages that develops every season, the newest intake is shared out equally, there are no draft classes, and promotions show up in transactions and the news.
 
@@ -178,12 +178,9 @@ Decisions:
 
 Still open:
 
-- The draft scouting page still lists every club's academy players together, though it's no longer linked in a World.
 - **Loaning academy players** (Epic 4 stage D). Academy players can be bought and sold (see Epic 4).
 - **Tuning academy fees:** market wages are capped at the maximum contract, so the best few dozen prospects all cost the same (about $48.8M with a $50M maximum). First-team fees share that cap.
 - Clubs only make academy decisions in the summer.
-- Academy players develop at the default coaching level, not their club's.
-- An expansion club has no academy until the next summer's intake.
 - **Tuning:** the promotion rules, the tier penalty, and the luck in sharing out intakes are first guesses. In the World test (24 clubs, 10-game seasons), clubs promoted about 40 academy players a season, roughly half early and half at graduation, out of an intake of 56. The first summer had about 110, because a new World's full academies still hold every ready player in their older intakes; seeding them smaller could smooth that out. Transfers stayed about where they were before academies (7, 13, and 6 in 3 seasons, against 10, 3, and 13), but AI rosters go into the preseason with 13–19 players instead of 10–14, since promoted players add to them. Academies ended up with 8–16 players each.
 
 ### Epic 6 — UI/UX rework
@@ -219,20 +216,18 @@ What landed:
 - **Academy on the team page** (from playtest notes): in a World, a club's links include Academy, and its team page shows how many players its academy has and its best prospect, with ratings fuzzed by the user's scouting (`competition.getAcademySummary`), linking to the academy page.
 - **League on the team page** (from playtest notes): a World club's team page names its Division, Country, and tier, with its position in the Division table once it's played ("3rd of 16 in the Spanish First Division (Spain, tier 1)"), linking to the league tables, in place of ZenGM's place in its conference (`competition.getClubDivisionInfo`).
 - **League history chart** (`ui/views/TeamHistory/LeagueHistoryChart.tsx`, `competition/leagueHistory.ts`, `competition/pyramidPositions.ts`): a club's history page shows its place in its Country's pyramid every season it has played, like the charts on soccer clubs' Wikipedia pages: its position in its Division after every club in the tiers above, so 1 is the top of the top tier, over shaded bands for each tier named after its Division. Promotions and relegations show as the line crossing bands. A season still being played is a hollow point, and hovering a point shows the Division and position. Positions come from each season's Division tables, since team seasons keep the Division a club played in.
-- **Daily Schedule:** in a World, a day's games are grouped under Division headings, the user's Division first (`competition/scheduleDivisions.ts`). Every Division already plays on the same calendar, so this is the World calendar.
+- **Results on the tables:** once the regular season is over, each table marks the clubs that actually went up (▲) or down (▼), with (P) for the promotion playoff winner, from the season summary (`getWorldSeasonSummary`), alongside the zones.
+- **Daily Schedule:** in a World, a day's games are grouped under Division headings, the user's Division first (`competition/scheduleDivisions.ts`), and the filter's choices are "All countries" and each Country. Every Division already plays on the same calendar, so this is the World calendar.
 - **Tested:** unit tests for zones, form, and Division order. The multi-season World test checks the tables against the season's results, the number of places in each zone against the links, and that the user's Division comes first.
 
 Still open for league tables:
 
 - Not yet looked at in a browser. The dev server's game worker is shared by every tab, so testing a World there switches whatever league is open in other tabs.
-- Zones show places, not results: after the season, a table doesn't mark which clubs actually went up or down, or who won the promotion playoff.
-- Countries have no flags: `CountryFlag` only knows real country names.
 - A "favorites" view showing just the Divisions of followed clubs.
 
 Still to do:
 
 - Club/country identity: flags, kit colors, and naming conventions appropriate to soccer club culture rather than NBA franchise conventions.
-- The Daily Schedule's filter still calls its choices conferences, though in a World they're Countries.
 
 ### Epic 7 — Content for the MVP pilot (2 countries × 2 tiers)
 
@@ -250,6 +245,7 @@ What landed:
 - **More Countries, configurable Worlds** (`competition/worldCountries.ts`, `competition/worldTowns.ts`, `generateWorld`): decided, a World can have any of 7 Countries, chosen on the New World page: England, Spain, the USA (3 tiers), Mexico, Italy, Germany, and Japan (2 tiers each, with the same promotion and relegation rules), with 10 to 20 clubs in each Division (16 by default, with England and Spain chosen). The page shows how many clubs a World has and warns past ZenGM's 200-team limit, where it skips some slow extras (relatives for starting players, the settings page's schedule check). Each Country has its own pool of real towns, club name patterns in its style (Spanish CF and FC, American FC and SC, Mexican Club and Atlético, Italian AC, US, Virtus, and Pro, German FC, SV, Borussia, and Eintracht, Japanese FC and nicknames), and list of real clubs not to copy. Club name matching also ignores club types like AC, SV, and VfL, numbers, and punctuation. Decided: it's basketball, so the USA starts strongest, then roughly by basketball standing: Germany, Spain, Italy, Mexico, Japan, England (`startingStrengthPenalty` on the Country, 0 to 0.5 of a tier, added to getSquadOrder). American markets are 30% bigger, and Mexican and Japanese ones a bit smaller. Every Country's top tier still starts stronger than its own second tier.
 - **Real towns** (`competition/pilotTowns.ts`, from playtest notes): decided, clubs are based in real towns with invented names. Each Country has a pool of about 60 real towns with rough populations and their English Wikipedia articles, and a World picks 32 of them, bigger towns more likely (by the square root of population), with bigger towns leaning towards the top tier (populations jittered by up to 30% when ordering). Club names are generated as before, but a name that matches a real club is skipped (`isRealClubName`, comparing without accents, capitals, and words like CF, FC, "de", and "la"), so there's no Stoke City or Real Zaragoza. That list covers professional clubs and some well-known others, and can't cover every amateur club. A club's team page shows its town and country, with links to Wikipedia and Google Maps (`Team.location`, optional, so no migration).
 - **Club crests** (`competition/crests.ts`): every pilot club gets a generated crest, a shield in its kit colors with one of five patterns (plain, stripes, a band, a sash, or halves) and its abbreviation, stored as an SVG data URL in the team's `imgURL`, so it shows wherever ZenGM shows team logos.
+- **Older Worlds catch up:** a World made before crests, bigger rosters, and stadiums by market gets them once when it loads (`worldContentFilled`, a game attribute, so no migration), but only where it still has ZenGM's defaults: an 18-player roster limit if its limit is still 15, a stadium by market for a club whose stadium is still the default size, and a crest for a club with no logo. A new World is marked as already filled.
 - **Mostly local players** (`competition/nationality.ts`, `competition/localPlayers.ts`): about 70% of each club's starting players, and of its share of every academy intake, are from its Country, picked at random and given a name, birthplace, college, and face from ZenGM's name data for it. The share rounds up or down at random, so a club's one or two prospects a year still average 70%. The rest of its players, and every free agent, come from ZenGM's usual worldwide mix. A Country with no names in ZenGM's name data keeps the worldwide mix.
 - **Tested:** unit tests for the structure (valid, 16 clubs per Division, the promotion and relegation rules), unique club names and abbreviations, bigger top-tier clubs, the same World from the same random numbers, and the local share. An integration test (`src/test/pilotWorld.test.ts`) creates the pilot World and starts its first season: 16 clubs in each Division, double round robins, first wage budgets that cover payrolls, academies, and 60–90% of first-team and academy players from their club's Country. Tests use a stub of ZenGM's name data with no English names, so the test also checks that English clubs keep the worldwide mix.
 
@@ -257,9 +253,8 @@ Decided: about 70% of a club's starting players and academy intakes are from its
 
 Still open:
 
-- Worlds created before bigger rosters and stadiums keep ZenGM's roster limit and default stadiums.
-- Worlds created before crests have no club logos, and ones created before real towns keep their invented towns, with no location on team pages.
-- The multi-season World test still uses its small 2×2×6 World for speed, so a full pilot-sized season hasn't been run in tests.
+- Worlds created before real towns keep their invented towns, with no location on team pages.
+- The multi-season World test still uses its small 2×2×6 World for speed. Full-size Worlds (112 clubs) are played for 10 seasons by the long run (Epic 8), which isn't part of the normal test suite.
 
 ### Epic 8 — Testing & QA
 

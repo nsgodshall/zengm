@@ -5,6 +5,12 @@ import { g } from "../../util/index.ts";
 import { league } from "../index.ts";
 import { getWorldAwards } from "./worldAwards.ts";
 import {
+	generateCrestSvg,
+	getCrestDataUrl,
+	pickCrestPattern,
+} from "./crests.ts";
+import { getStadiumCapacity, WORLD_MAX_ROSTER_SIZE } from "./worldSettings.ts";
+import {
 	type CompetitionStructure,
 	getDefaultCompetitionStructure,
 	getDivisionIdForNewClub,
@@ -145,6 +151,67 @@ const ensureCompetitionStructure = async () => {
 		g.get("numGames", g.get("season") + 1) !== seasonLength
 	) {
 		await league.setGameAttributes({ numGames: seasonLength });
+	}
+
+	// International Soccer Zen GM mod (Epic 8): a World made before crests,
+	// bigger rosters, and stadiums by market gets them once, where it still has
+	// ZenGM's defaults
+	if (
+		!isSingleDivision(structure) &&
+		!(g as unknown as { worldContentFilled?: true }).worldContentFilled
+	) {
+		if (g.get("maxRosterSize") === defaultGameAttributes.maxRosterSize) {
+			await league.setGameAttributes({ maxRosterSize: WORLD_MAX_ROSTER_SIZE });
+		}
+
+		const season = g.get("season");
+		let logosChanged = false;
+		for (const t of await idb.cache.teams.getAll()) {
+			const teamSeason = await idb.cache.teamSeasons.indexGet(
+				"teamSeasonsBySeasonTid",
+				[season, t.tid],
+			);
+			let changed = false;
+			if (!t.imgURL) {
+				t.imgURL = getCrestDataUrl(
+					generateCrestSvg({
+						abbrev: t.abbrev,
+						colors: t.colors,
+						pattern: pickCrestPattern(),
+					}),
+				);
+				changed = true;
+				logosChanged = true;
+			}
+			if (teamSeason && t.stadiumCapacity === g.get("defaultStadiumCapacity")) {
+				t.stadiumCapacity = getStadiumCapacity(teamSeason.pop);
+				changed = true;
+			}
+			if (changed) {
+				await idb.cache.teams.put(t);
+				if (teamSeason) {
+					teamSeason.imgURL = t.imgURL;
+					teamSeason.stadiumCapacity = t.stadiumCapacity;
+					await idb.cache.teamSeasons.put(teamSeason);
+				}
+			}
+		}
+
+		if (logosChanged) {
+			const teams = await idb.cache.teams.getAll();
+			await league.setGameAttributes({
+				teamInfoCache: g.get("teamInfoCache").map((info, tid) => ({
+					...info,
+					imgURL: teams.find((t) => t.tid === tid)?.imgURL ?? info.imgURL,
+				})),
+			});
+		}
+
+		await idb.cache.gameAttributes.put({
+			key: "worldContentFilled",
+			value: true,
+		});
+		g.setWithoutSavingToDB("worldContentFilled", true);
 	}
 };
 

@@ -55,6 +55,9 @@ type Setting = {
 		hasPlayers?: boolean;
 		newLeague?: boolean;
 		realPlayers?: boolean;
+		// International Soccer Zen GM mod (Epic 3): an existing World, which has no
+		// playoff bracket
+		world?: boolean;
 	}) => boolean | undefined;
 	customForm?: (props: {
 		disabled: boolean;
@@ -385,6 +388,7 @@ export const settings: Setting[] = (
 			key: "numGamesPlayoffSeries",
 			name: "# Playoff Games",
 			godModeRequired: "existingLeagueOnly",
+			showOnlyIf: ({ world }) => !world,
 			descriptionLong: (
 				<>
 					<p>
@@ -487,6 +491,7 @@ export const settings: Setting[] = (
 			key: "numPlayoffByes",
 			name: "# First Round Byes",
 			godModeRequired: "existingLeagueOnly",
+			showOnlyIf: ({ world }) => !world,
 			type: "int",
 			descriptionLong:
 				'Number of playoff teams who will get a bye in the first round. If "Split By Conference" is enabled, byes will be divided evenly into each conference, and it will round up if necessary so every conference gets the same number of byes. For instance if you have 4 conferences and you put "2" in here, it will round up to 4 total byes (one in each conference).',
@@ -501,6 +506,7 @@ export const settings: Setting[] = (
 			key: "playIn",
 			name: "Play-In Tournament",
 			godModeRequired: "existingLeagueOnly",
+			showOnlyIf: ({ world }) => !world,
 			type: "bool",
 			description:
 				"NBA-like tournament to determine the lowest seeded playoff teams.",
@@ -1470,6 +1476,7 @@ export const settings: Setting[] = (
 			key: "playoffsByConf",
 			name: "Split By Conference",
 			godModeRequired: "existingLeagueOnly",
+			showOnlyIf: ({ world }) => !world,
 			descriptionLong: (
 				<>
 					<p>
@@ -1491,6 +1498,7 @@ export const settings: Setting[] = (
 			key: "playoffsNumTeamsDiv",
 			name: "# Guaranteed Per Division",
 			godModeRequired: "existingLeagueOnly",
+			showOnlyIf: ({ world }) => !world,
 			description:
 				"The number of teams per division that automatically make the playoffs as the top seeds.",
 			type: "int",
@@ -1500,6 +1508,7 @@ export const settings: Setting[] = (
 			key: "playoffsReseed",
 			name: "Reseed Rounds",
 			godModeRequired: "existingLeagueOnly",
+			showOnlyIf: ({ world }) => !world,
 			description:
 				"When enabled, the matchups in each round of the playoffs will be reset so the best team always plays the worst team.",
 			type: "bool",

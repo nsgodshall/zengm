@@ -256,6 +256,31 @@ export const ensureAcademies = async () => {
 };
 
 /**
+ * International Soccer Zen GM mod (Epic 8): a club joining a World (like an
+ * expansion club) gets a full academy straight away, one intake for each age,
+ * instead of waiting for next summer's intake
+ */
+export const fillAcademyForNewClub = async (tid: number) => {
+	if (!isWorld() || (await getAcademyPlayers(tid)).length > 0) {
+		return;
+	}
+
+	const club = (await getAcademyClubs()).find((club) => club.tid === tid);
+	if (!club) {
+		return;
+	}
+
+	const { numCohorts } = getAcademyAges(g.get("draftAges"));
+	for (const graduationSeason of getAcademyCohortSeasons({
+		season: g.get("season"),
+		phase: g.get("phase"),
+		numCohorts,
+	})) {
+		await addIntake(graduationSeason, [club]);
+	}
+};
+
+/**
  * Moves an academy player up to his club's first team, on a minimum-wage rookie
  * contract (see getAcademyContract)
  */

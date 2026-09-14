@@ -4,6 +4,7 @@ import { g } from "../../util/index.ts";
 import { isSingleDivision } from "./competitionStructure.ts";
 import { getDivisionTables } from "./divisionTables.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
+import { getWorldSeasonSummary } from "./seasonSummary.ts";
 import {
 	getRecentForm,
 	getTableZones,
@@ -17,7 +18,8 @@ const NUM_FORM_GAMES = 5;
  * need for one season of a World: a table per Division, in the order to show
  * them (the user's Division first, see orderDivisionsForDisplay), with each
  * club's record, recent form, and the promotion/relegation zone its position
- * is in. Undefined outside a World.
+ * is in, and once the season is over, whether it was actually promoted or
+ * relegated. Undefined outside a World.
  */
 const getWorldTables = async (season: number) => {
 	const structure = getCompetitionStructure();
@@ -56,6 +58,26 @@ const getWorldTables = async (season: number) => {
 	const userDivisionId = teamByTid.get(g.get("userTid"))?.seasonAttrs
 		.divisionId;
 
+	// Epic 8: once the season is over, which clubs actually went up or down
+	const seasonOver =
+		season < g.get("season") || g.get("phase") > PHASE.PLAYOFFS;
+	const resultByTid = new Map<
+		number,
+		"promoted" | "promotedViaPlayoff" | "relegated"
+	>();
+	if (seasonOver) {
+		for (const country of (await getWorldSeasonSummary(season)) ?? []) {
+			for (const division of country.divisions) {
+				for (const { tid, viaPlayoff } of division.promoted) {
+					resultByTid.set(tid, viaPlayoff ? "promotedViaPlayoff" : "promoted");
+				}
+				for (const tid of division.relegated) {
+					resultByTid.set(tid, "relegated");
+				}
+			}
+		}
+	}
+
 	const divisions = orderDivisionsForDisplay(structure, userDivisionId).map(
 		(division) => {
 			const table = tables[division.divisionId] ?? [];
@@ -87,6 +109,7 @@ const getWorldTables = async (season: number) => {
 						points: row.points,
 						form: getRecentForm(games, row.tid, NUM_FORM_GAMES),
 						zone: zones[i],
+						result: resultByTid.get(row.tid),
 					};
 				}),
 			};
@@ -96,7 +119,7 @@ const getWorldTables = async (season: number) => {
 	return {
 		divisions,
 		// A Division's champion is only decided once the regular season is over
-		seasonOver: season < g.get("season") || g.get("phase") > PHASE.PLAYOFFS,
+		seasonOver,
 		userDivisionId,
 	};
 };

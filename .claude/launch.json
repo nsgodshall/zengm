@@ -1,0 +1,11 @@
+{
+	"version": "0.0.1",
+	"configurations": [
+		{
+			"name": "zengm-basketball",
+			"runtimeExecutable": "/home/nick/.local/share/fnm/node-versions/v24.18.0/installation/bin/node",
+			"runtimeArgs": ["--run", "dev"],
+			"port": 3000
+		}
+	]
+}

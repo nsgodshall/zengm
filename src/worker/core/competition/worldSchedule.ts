@@ -12,6 +12,8 @@ export type Round = Matchup[];
  * per round. Uses the circle method, which also balances home and away: with
  * an even number of clubs everyone's home and away counts differ by at most 1,
  * and with an odd number (one club rests each round) they're exactly equal.
+ * Home and away mostly alternate round to round, so no club has a long run of
+ * either.
  */
 export const getRoundRobinRounds = (tids: number[]): Round[] => {
 	if (tids.length < 2) {
@@ -34,10 +36,13 @@ export const getRoundRobinRounds = (tids: number[]): Round[] => {
 				continue;
 			}
 
-			// Every rotating club passes through each slot once per round robin, so
-			// hosting from the top row gives it half its games at home. The fixed
-			// club alternates instead.
-			const topIsHome = i > 0 || roundIndex % 2 === 0;
+			// Epic 8: a rotating club moves one slot along each round, so hosting
+			// from even pair positions on the top row and odd ones on the bottom row
+			// makes its games alternate home and away (with a break where it passes
+			// the fixed club), and still gives it half its games at home. Hosting
+			// from the whole top row gave clubs half a round robin at home in a
+			// row. The fixed club alternates by round.
+			const topIsHome = i === 0 ? roundIndex % 2 === 0 : i % 2 === 0;
 			round.push(topIsHome ? [top, bottom] : [bottom, top]);
 		}
 		rounds.push(round);
@@ -61,6 +66,11 @@ const flipRound = (round: Round): Round =>
  * full round robin come from the start of another one: with an even number of
  * clubs everyone still plays exactly `numGames`, but with an odd number the
  * clubs resting during those extra rounds end up a game short.
+ *
+ * Every round robin keeps the same order of rounds, which keeps home and away
+ * alternating and means two clubs never meet in back-to-back rounds where one
+ * round robin ends and the next begins. The fixtures vary season to season
+ * because the clubs are shuffled into the round robin's slots.
  */
 export const getDivisionRounds = (
 	tids: number[],
@@ -84,7 +94,6 @@ export const getDivisionRounds = (
 			i % 2 === 0
 				? [...roundRobin]
 				: roundRobin.map((round) => flipRound(round));
-		shuffle(cycle);
 
 		if (i < numFullRoundRobins) {
 			rounds.push(...cycle);

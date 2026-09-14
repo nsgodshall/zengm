@@ -19,6 +19,10 @@ import { competition, league, player, team } from "../worker/core/index.ts";
 import { getWageBudgets } from "../worker/core/competition/wageBudgets.ts";
 import { LOAN_MAX_AGE } from "../worker/core/competition/loans.ts";
 import { getTvShare } from "../worker/core/competition/worldRevenue.ts";
+import {
+	getStadiumCapacity,
+	WORLD_MAX_ROSTER_SIZE,
+} from "../worker/core/competition/worldSettings.ts";
 import { RELEGATION_CLAUSE_SETTINGS } from "../worker/core/competition/relegationClauses.ts";
 import createStreamFromLeagueObject from "../worker/core/league/create/createStreamFromLeagueObject.ts";
 import { idb } from "../worker/db/index.ts";
@@ -608,6 +612,34 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		await competition.ensureCompetitionStructure();
 		assert.deepStrictEqual(g.get("awards"), worldAwards);
 		assert.strictEqual(g.get("worldAwardsPerDivision"), true);
+	});
+
+	test("a World made before crests, bigger rosters, and stadiums by market gets them when it loads", async () => {
+		const t = (await idb.cache.teams.getAll())[0]!;
+		t.imgURL = "";
+		t.stadiumCapacity = g.get("defaultStadiumCapacity");
+		await idb.cache.teams.put(t);
+		g.setWithoutSavingToDB(
+			"maxRosterSize",
+			defaultGameAttributes.maxRosterSize,
+		);
+		delete (g as unknown as { worldContentFilled?: true }).worldContentFilled;
+
+		await competition.ensureCompetitionStructure();
+
+		const filled = (await idb.cache.teams.get(t.tid))!;
+		assert(filled.imgURL?.startsWith("data:image/svg+xml"), filled.imgURL);
+		const teamSeason = (await idb.cache.teamSeasons.indexGet(
+			"teamSeasonsBySeasonTid",
+			[g.get("season"), t.tid],
+		))!;
+		assert.strictEqual(
+			filled.stadiumCapacity,
+			getStadiumCapacity(teamSeason.pop),
+		);
+		assert.strictEqual(teamSeason.imgURL, filled.imgURL);
+		assert.strictEqual(g.get("maxRosterSize"), WORLD_MAX_ROSTER_SIZE);
+		assert.strictEqual(g.get("worldContentFilled"), true);
 	});
 
 	test("every club gets a board objective each season, and is judged on it and on promotion and relegation", async () => {

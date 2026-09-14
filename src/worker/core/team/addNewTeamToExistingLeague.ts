@@ -3,7 +3,7 @@ import type { Team } from "../../../common/types.ts";
 import generate from "./generate.ts";
 import genSeasonRow from "./genSeasonRow.ts";
 import genStatsRow from "./genStatsRow.ts";
-import { draft, league } from "../index.ts";
+import { competition, draft, league } from "../index.ts";
 import { idb } from "../../db/index.ts";
 import { PHASE } from "../../../common/constants.ts";
 import { last } from "../../../common/utils.ts";
@@ -124,6 +124,10 @@ const addNewTeamToExistingLeague = async (
 		// Generate scrubs only!
 		await draft.genPlayers(draftYear, undefined, true);
 	}
+
+	// International Soccer Zen GM mod (Epic 8): a new World club gets an academy
+	// straight away, since a World has no draft classes
+	await competition.fillAcademyForNewClub(t.tid);
 
 	logEvent({
 		text: `A new team called the ${t.region} ${t.name} ${

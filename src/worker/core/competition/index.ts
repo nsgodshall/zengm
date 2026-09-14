@@ -1,5 +1,6 @@
 import doAcademySummer, {
 	ensureAcademies,
+	fillAcademyForNewClub,
 	getAcademyClubs,
 	getAcademyPlayers,
 	promoteAcademyPlayer,
@@ -127,6 +128,7 @@ export default {
 	rejectAiTransferOffer,
 	setTransferListed,
 	ensureAcademies,
+	fillAcademyForNewClub,
 	getAcademyClubs,
 	getAcademyPlayers,
 	promoteAcademyPlayer,

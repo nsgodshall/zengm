@@ -4,21 +4,37 @@ import useTitleBar from "../../hooks/useTitleBar.tsx";
 import type { View } from "../../../common/types.ts";
 import { MoreLinks } from "../../components/MoreLinks.tsx";
 import { useLocal } from "../../util/local.ts";
+import { helpers } from "../../util/helpers.ts";
+import { isWorld } from "../../util/isWorld.ts";
 
 const PAGE_SIZE = 3;
 
 const DraftScouting = ({ fantasyDraft, seasons }: View<"draftScouting">) => {
-	const { challengeNoRatings, draftType, godMode } = useLocal([
-		"challengeNoRatings",
-		"draftType",
-		"godMode",
-	]);
+	const { challengeNoRatings, competitionDivisions, draftType, godMode } =
+		useLocal([
+			"challengeNoRatings",
+			"competitionDivisions",
+			"draftType",
+			"godMode",
+		]);
 
 	const noDraft = draftType === "freeAgents";
 
 	useTitleBar({ title: !noDraft ? "Draft Scouting" : "Upcoming Prospects" });
 
 	const [page, setPage] = useState(0);
+
+	// International Soccer Zen GM mod (Epic 5): a World's young players come up
+	// through club academies, not a draft class
+	if (isWorld(competitionDivisions)) {
+		return (
+			<p>
+				Young players join clubs through their{" "}
+				<a href={helpers.leagueUrl(["academy"])}>youth academies</a>, so there
+				are no prospects to scout here.
+			</p>
+		);
+	}
 
 	if (seasons.length <= PAGE_SIZE && page !== 0) {
 		setPage(0);

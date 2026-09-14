@@ -4,7 +4,8 @@ import { ActionButton } from "../../components/ActionButton.tsx";
 import { helpers } from "../../util/helpers.ts";
 import { showNotification } from "../../util/showNotification.ts";
 import { toWorker } from "../../util/toWorker.ts";
-import { localActions } from "../../util/local.ts";
+import { localActions, useLocal } from "../../util/local.ts";
+import { isWorld } from "../../util/isWorld.ts";
 import { settings } from "./settings.tsx";
 import type { Key, Values } from "./types.ts";
 import type { Settings } from "../../../worker/views/settings.ts";
@@ -341,6 +342,10 @@ const SettingsForm = ({
 
 	const [filterText, setFilterText] = useState("");
 
+	// International Soccer Zen GM mod (Epic 3)
+	const { competitionDivisions } = useLocal(["competitionDivisions"]);
+	const world = !newLeague && isWorld(competitionDivisions);
+
 	// Filter out the new league only ones when appropriate
 	const filteredSettings = settings.filter((setting) => {
 		return (
@@ -350,6 +355,7 @@ const SettingsForm = ({
 					hasPlayers,
 					newLeague,
 					realPlayers,
+					world,
 				}))
 		);
 	});

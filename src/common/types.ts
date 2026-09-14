@@ -672,6 +672,10 @@ export type GameAttributesLeague = {
 	// International Soccer Zen GM mod (Epic 6): set once a World's awards have been
 	// switched to per-Division awards (see ensureCompetitionStructure)
 	worldAwardsPerDivision?: true;
+	// International Soccer Zen GM mod (Epic 8): set once a World made before
+	// crests, bigger rosters, and stadiums by market has been given them (see
+	// ensureCompetitionStructure)
+	worldContentFilled?: true;
 	promotionPlayoffResults?: {
 		season: number;
 		linkId: number;
