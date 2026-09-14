@@ -346,7 +346,38 @@ const TopStuff = ({
 	const showTradingBlock = !world && player.tid === userTid;
 
 	let draftInfo: ReactNode = null;
-	if (player.draft.round > 0) {
+	if (world) {
+		// International Soccer Zen GM mod (Epic 6): a World has youth academies
+		// instead of a draft, so name the academy a player is in or came from. A
+		// graduate is recorded like an undrafted player of the club that promoted
+		// him (see competition.promoteAcademyPlayer).
+		const academyTid =
+			player.academyTid ??
+			(player.draft.round === 0 && player.draft.tid >= 0
+				? player.draft.tid
+				: undefined);
+		const academyTeamInfo =
+			academyTid === undefined ? undefined : teamInfoCache[academyTid];
+		if (academyTid !== undefined && academyTeamInfo) {
+			draftInfo = (
+				<>
+					{player.academyTid !== undefined ? "Academy" : "Academy graduate"}:{" "}
+					<a
+						href={helpers.leagueUrl([
+							"academy",
+							`${academyTeamInfo.abbrev}_${academyTid}`,
+						])}
+					>
+						{academyTeamInfo.region} {academyTeamInfo.name}
+					</a>
+					{player.academyTid !== undefined
+						? `, leaves in ${player.draft.year}`
+						: ` in ${player.draft.year}`}
+					<br />
+				</>
+			);
+		}
+	} else if (player.draft.round > 0) {
 		draftInfo = (
 			<>
 				Draft:{" "}
@@ -605,7 +636,8 @@ const TopStuff = ({
 								relatives={player.relatives}
 							/>
 							{draftInfo}
-							{isSport("hockey") && college === "None" ? null : (
+							{/* International Soccer Zen GM mod (Epic 6): no colleges in a World */}
+							{world || (isSport("hockey") && college === "None") ? null : (
 								<>
 									College:{" "}
 									<a

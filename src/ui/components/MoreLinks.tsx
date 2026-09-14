@@ -6,6 +6,7 @@ import {
 import type { DraftType, PlayerStatType } from "../../common/types.ts";
 import { helpers } from "../util/helpers.ts";
 import { useLocal } from "../util/local.ts";
+import { isWorld } from "../util/isWorld.ts";
 import { bySport, isSport } from "../../common/sportFunctions.ts";
 
 export const MoreLinks = (
@@ -71,7 +72,11 @@ export const MoreLinks = (
 ) => {
 	const { keepSelfLink, page } = props;
 
-	const { godMode, season: currentSeason } = useLocal(["godMode", "season"]);
+	const {
+		competitionDivisions,
+		godMode,
+		season: currentSeason,
+	} = useLocal(["competitionDivisions", "godMode", "season"]);
 
 	let links: {
 		url: (string | number | undefined)[] | string;
@@ -100,7 +105,10 @@ export const MoreLinks = (
 						: ["game_log", `${abbrev}_${tid}`],
 				name: "Game Log",
 			},
-			{ url: ["draft_picks", `${abbrev}_${tid}`], name: "Draft Picks" },
+			// International Soccer Zen GM mod (Epic 6): a World has no draft picks
+			...(isWorld(competitionDivisions)
+				? []
+				: [{ url: ["draft_picks", `${abbrev}_${tid}`], name: "Draft Picks" }]),
 			{
 				url: ["team_history", `${abbrev}_${tid}`],
 				name: "History",

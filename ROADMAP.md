@@ -178,7 +178,7 @@ Decisions:
 
 Still open:
 
-- The draft scouting page still lists every club's academy players together, and a player page still calls an academy player a draft prospect instead of naming his academy.
+- The draft scouting page still lists every club's academy players together, though it's no longer linked in a World.
 - **Loaning academy players** (Epic 4 stage D). Academy players can be bought and sold (see Epic 4).
 - **Tuning academy fees:** market wages are capped at the maximum contract, so the best few dozen prospects all cost the same (about $48.8M with a $50M maximum). First-team fees share that cap.
 - Clubs only make academy decisions in the summer.
@@ -201,6 +201,7 @@ What landed:
 - **World-only menu items:** menu links can be marked `world`, and the top menu, sidebar, and command palette hide them outside a World. `competitionDivisions` is now synced to the UI for this. Links marked `world: false` are hidden inside a World instead.
 - **Transfer Market** (`ui/views/TransferMarket.tsx`, `worker/views/transferMarket.ts`, under Players, in place of Trade): open offers for the user's players, with Accept and Reject; the user's own players, each with a button for the transfer list; and every player at another club with his club, Division, contract, and fee at market value. Make offer asks for a fee in millions and shows the club's answer, with a button to pay the asking price after a counter-offer. The page also shows whether a window is open, and the user's cash, payroll, wage budget, and roster spots.
 - **Promotion playoff results:** each game's score is saved for the season (`promotionPlayoffResults`, a game attribute, so no database migration), without box scores or player stats, and gets a news item. In a World the Playoffs page becomes Promotion Playoffs (`competition/promotionPlayoffBrackets.ts`, `ui/components/PromotionPlayoffs.tsx`): each playoff's clubs by seed before it's played, and its games round by round with scores after.
+- **ZenGM holdovers hidden** (from playtest notes): in a World the Draft menu link and the draft pages in the command palette are hidden, a team's links leave out Draft Picks, and a player page drops College and Draft. It names the academy a player is in (and the summer he leaves) or graduated from instead. The New World team picker groups clubs by Division and shows the picked club's Division.
 - **Daily Schedule:** in a World, a day's games are grouped under Division headings, the user's Division first (`competition/scheduleDivisions.ts`). Every Division already plays on the same calendar, so this is the World calendar.
 - **Tested:** unit tests for zones, form, and Division order. The multi-season World test checks the tables against the season's results, the number of places in each zone against the links, and that the user's Division comes first.
 

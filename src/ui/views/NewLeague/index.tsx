@@ -1425,17 +1425,40 @@ const NewLeague = (props: View<"newLeague">) => {
 											});
 										}}
 									>
-										{sortedDisplayedTeams.map((t) => {
-											return (
-												<option key={t.tid} value={t.tid}>
-													{showLoadingIndicator
-														? "Loading..."
-														: `${t.region} ${t.name}${
-																t.season !== undefined ? ` (${t.season})` : ""
-															}`}
-												</option>
-											);
-										})}
+										{props.world
+											? // International Soccer Zen GM mod (Epic 7): a World's clubs,
+												// grouped by Division
+												props.world.gameAttributes.competitionDivisions.map(
+													(division) => (
+														<optgroup
+															key={division.divisionId}
+															label={division.name}
+														>
+															{sortedDisplayedTeams
+																.filter(
+																	(t) => t.divisionId === division.divisionId,
+																)
+																.map((t) => (
+																	<option key={t.tid} value={t.tid}>
+																		{t.region} {t.name}
+																	</option>
+																))}
+														</optgroup>
+													),
+												)
+											: sortedDisplayedTeams.map((t) => {
+													return (
+														<option key={t.tid} value={t.tid}>
+															{showLoadingIndicator
+																? "Loading..."
+																: `${t.region} ${t.name}${
+																		t.season !== undefined
+																			? ` (${t.season})`
+																			: ""
+																	}`}
+														</option>
+													);
+												})}
 									</select>
 									{(state.customize === "default" ||
 										state.customize === "crossEra") &&
@@ -1465,6 +1488,18 @@ const NewLeague = (props: View<"newLeague">) => {
 										Random
 									</button>
 								</div>
+								{props.world ? (
+									<div className="text-body-secondary">
+										{
+											props.world.gameAttributes.competitionDivisions.find(
+												(division) =>
+													division.divisionId ===
+													sortedDisplayedTeams.find((t) => t.tid === state.tid)
+														?.divisionId,
+											)?.name
+										}
+									</div>
+								) : null}
 								{!state.settings.equalizeRegions ? (
 									<PopText
 										className="text-body-secondary"
