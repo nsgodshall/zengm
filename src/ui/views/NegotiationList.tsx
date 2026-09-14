@@ -44,6 +44,7 @@ const NegotiationList = ({
 	stats,
 	sumContracts,
 	userPlayers,
+	wageBudget,
 }: View<"negotiationList">) => {
 	const { challengeNoRatings, minContract, salaryCapType, spectator, season } =
 		useLocal([
@@ -208,6 +209,7 @@ const NegotiationList = ({
 				capSpace={capSpace}
 				numRosterSpots={numRosterSpots}
 				payroll={payroll}
+				wageBudget={wageBudget}
 			/>
 
 			<p>

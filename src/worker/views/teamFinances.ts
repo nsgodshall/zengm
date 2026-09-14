@@ -1,5 +1,6 @@
 import { PHASE } from "../../common/constants.ts";
-import { finances, team } from "../core/index.ts";
+import { competition, finances, team } from "../core/index.ts";
+import { getWageBudgets } from "../core/competition/wageBudgets.ts";
 import { idb } from "../db/index.ts";
 import { g, helpers } from "../util/index.ts";
 import type {
@@ -238,6 +239,12 @@ const updateTeamFinances = async (
 			t,
 			barData,
 			payroll,
+			// International Soccer Zen GM mod (Epic 4): undefined outside a World
+			wageBudget: competition.isSingleDivision(
+				competition.getCompetitionStructure(),
+			)
+				? undefined
+				: ((await getWageBudgets()).get(inputs.tid) ?? 0) / 1000,
 			contracts,
 			contractTotals,
 			salariesSeasons,

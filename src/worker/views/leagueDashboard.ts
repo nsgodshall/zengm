@@ -1,5 +1,6 @@
 import { PHASE, PLAYER } from "../../common/constants.ts";
 import { competition, season, team } from "../core/index.ts";
+import { getWageBudgets } from "../core/competition/wageBudgets.ts";
 import { idb } from "../db/index.ts";
 import { g, helpers } from "../util/index.ts";
 import type { Player, UpdateEvents } from "../../common/types.ts";
@@ -65,6 +66,13 @@ const updateTeam = async (inputs: unknown, updateEvents: UpdateEvents) => {
 			cash: latestSeason ? latestSeason.cash : 0,
 			playoffRoundsWon,
 			roundsWonText,
+			// International Soccer Zen GM mod (Epic 6): the user's Division and the
+			// transfer window, undefined outside a World
+			worldDivision: await competition.getClubDivisionInfo(
+				g.get("userTid"),
+				g.get("season"),
+			),
+			transferWindow: await competition.getCurrentTransferWindow(),
 		};
 	}
 };
@@ -72,11 +80,19 @@ const updateTeam = async (inputs: unknown, updateEvents: UpdateEvents) => {
 const updatePayroll = async (inputs: unknown, updateEvents: UpdateEvents) => {
 	if (
 		updateEvents.includes("firstRun") ||
-		updateEvents.includes("playerMovement")
+		updateEvents.includes("playerMovement") ||
+		// International Soccer Zen GM mod (Epic 4): wage budgets change every season
+		updateEvents.includes("newPhase")
 	) {
 		const payroll = await team.getPayroll(g.get("userTid"));
 		return {
 			payroll, // [millions of dollars]
+			// International Soccer Zen GM mod (Epic 4): undefined outside a World
+			wageBudget: competition.isSingleDivision(
+				competition.getCompetitionStructure(),
+			)
+				? undefined
+				: (await getWageBudgets()).get(g.get("userTid")),
 		};
 	}
 };

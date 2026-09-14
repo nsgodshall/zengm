@@ -666,6 +666,9 @@ export type GameAttributesLeague = {
 	promotionRelegationLinks?: PromotionRelegationLink[];
 	// International Soccer Zen GM mod (Epic 6): every promotion playoff game
 	// played, with its score, for showing results. Rounds start at 0.
+	// International Soccer Zen GM mod (Epic 4): set once a World's minimum payroll
+	// fine and luxury tax have been turned off (see ensureCompetitionStructure)
+	worldPayrollRulesOff?: true;
 	promotionPlayoffResults?: {
 		season: number;
 		linkId: number;

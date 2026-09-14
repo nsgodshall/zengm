@@ -6,7 +6,8 @@ import type {
 	ViewInput,
 } from "../../common/types.ts";
 import { orderBy } from "../../common/utils.ts";
-import { player, team } from "../core/index.ts";
+import { competition, player, team } from "../core/index.ts";
+import { getWageBudgets } from "../core/competition/wageBudgets.ts";
 import { idb } from "../db/index.ts";
 import { g } from "../util/index.ts";
 import addFirstNameShort from "../util/addFirstNameShort.ts";
@@ -231,6 +232,12 @@ const updateFreeAgents = async (
 
 		return {
 			capSpace,
+			// International Soccer Zen GM mod (Epic 4): undefined outside a World
+			wageBudget: competition.isSingleDivision(
+				competition.getCompetitionStructure(),
+			)
+				? undefined
+				: ((await getWageBudgets()).get(userTid) ?? 0) / 1000,
 			challengeNoFreeAgents: g.get("challengeNoFreeAgents"),
 			freeAgencySeason,
 			numRosterSpots: g.get("maxRosterSize") - userPlayers.length,

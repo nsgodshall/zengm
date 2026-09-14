@@ -575,9 +575,10 @@ const PayrollInfo = ({
 	luxuryTaxAmount,
 	minPayrollAmount,
 	payroll,
+	wageBudget,
 }: Pick<
 	View<"teamFinances">,
-	"luxuryTaxAmount" | "minPayrollAmount" | "payroll"
+	"luxuryTaxAmount" | "minPayrollAmount" | "payroll" | "wageBudget"
 >) => {
 	const {
 		luxuryPayroll,
@@ -594,6 +595,19 @@ const PayrollInfo = ({
 		"salaryCap",
 		"salaryCapType",
 	]);
+
+	// International Soccer Zen GM mod (Epic 4): a World's only payroll limit is a
+	// club's wage budget
+	if (wageBudget !== undefined) {
+		return (
+			<p>
+				The current payroll (<b>{helpers.formatCurrency(payroll, "M")}</b>) is{" "}
+				{payroll > wageBudget ? "above" : "below"} the club's wage budget (
+				<b>{helpers.formatCurrency(wageBudget, "M")}</b>), the most its board
+				lets it spend on wages.
+			</p>
+		);
+	}
 
 	const parts = [
 		<>
@@ -732,6 +746,7 @@ const TeamFinances = ({
 	show,
 	t,
 	tid,
+	wageBudget,
 }: View<"teamFinances">) => {
 	useTitleBar({
 		title: "Team Finances",
@@ -853,6 +868,7 @@ const TeamFinances = ({
 				luxuryTaxAmount={luxuryTaxAmount}
 				minPayrollAmount={minPayrollAmount}
 				payroll={payroll}
+				wageBudget={wageBudget}
 			/>
 
 			{budget ? null : (

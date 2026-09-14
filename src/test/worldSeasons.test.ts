@@ -7,6 +7,7 @@ import type {
 	GameAttributesLeague,
 	HeadToHead,
 	Player,
+	TeamSeason,
 } from "../common/types.ts";
 import type { CompetitionStructure } from "../worker/core/competition/competitionStructure.ts";
 import {
@@ -398,6 +399,27 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			events.filter((event) => event.type === "transfer").length,
 			transfers.length,
 		);
+	});
+
+	test("a World has no minimum payroll fine or luxury tax, even one made before that was decided", async () => {
+		assert.strictEqual(g.get("luxuryTax"), 0);
+		assert.strictEqual(g.get("minPayroll"), 0);
+
+		const teamSeasons: TeamSeason[] = await idb.league.getAll("teamSeasons");
+		for (const teamSeason of teamSeasons) {
+			assert.strictEqual(teamSeason.expenses.luxuryTax ?? 0, 0);
+			assert.strictEqual(teamSeason.expenses.minTax ?? 0, 0);
+		}
+
+		// An older World still has ZenGM's payroll rules until it's loaded
+		g.setWithoutSavingToDB("luxuryTax", 1.5);
+		g.setWithoutSavingToDB("minPayroll", 95000);
+		delete (g as unknown as { worldPayrollRulesOff?: true })
+			.worldPayrollRulesOff;
+		await competition.ensureCompetitionStructure();
+		assert.strictEqual(g.get("luxuryTax"), 0);
+		assert.strictEqual(g.get("minPayroll"), 0);
+		assert.strictEqual(g.get("worldPayrollRulesOff"), true);
 	});
 
 	test("a club's league history follows its Divisions and table positions", async () => {

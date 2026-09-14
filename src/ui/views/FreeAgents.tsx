@@ -116,6 +116,7 @@ const FreeAgents = ({
 	stats,
 	type,
 	userPlayers,
+	wageBudget,
 }: View<"freeAgents">) => {
 	const seasonsFreeAgents = useSeasonsFreeAgents();
 
@@ -319,6 +320,7 @@ const FreeAgents = ({
 						capSpace={capSpace}
 						numRosterSpots={numRosterSpots}
 						payroll={payroll}
+						wageBudget={wageBudget}
 					/>
 
 					{showShowPlayersAffordButton ? (

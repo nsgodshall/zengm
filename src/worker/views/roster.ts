@@ -1,5 +1,6 @@
 import { PHASE, POSITIONS } from "../../common/constants.ts";
 import { competition, finances, season, team } from "../core/index.ts";
+import { getWageBudgets } from "../core/competition/wageBudgets.ts";
 import { idb } from "../db/index.ts";
 import { g, helpers } from "../util/index.ts";
 import type {
@@ -391,6 +392,12 @@ const updateRoster = async (
 			t: t2,
 			tid: inputs.tid,
 			usePts,
+			// International Soccer Zen GM mod (Epic 4): a World club's wage budget, now
+			wageBudget:
+				inputs.season === g.get("season") &&
+				!competition.isSingleDivision(competition.getCompetitionStructure())
+					? ((await getWageBudgets()).get(inputs.tid) ?? 0) / 1000
+					: undefined,
 			// International Soccer Zen GM mod (Epic 6): a World club's academy, now
 			academy:
 				inputs.season === g.get("season")

@@ -1,5 +1,6 @@
 import { PLAYER } from "../../common/constants.ts";
-import { team } from "../core/index.ts";
+import { competition, team } from "../core/index.ts";
+import { getWageBudgets } from "../core/competition/wageBudgets.ts";
 import { idb } from "../db/index.ts";
 import { g } from "../util/index.ts";
 import addFirstNameShort from "../util/addFirstNameShort.ts";
@@ -79,6 +80,12 @@ const updateNegotiationList = async () => {
 
 	return {
 		capSpace,
+		// International Soccer Zen GM mod (Epic 4): undefined outside a World
+		wageBudget: competition.isSingleDivision(
+			competition.getCompetitionStructure(),
+		)
+			? undefined
+			: ((await getWageBudgets()).get(userTid) ?? 0) / 1000,
 		draftPickAutoContract: g.get("draftPickAutoContract"),
 		numRosterSpots: g.get("maxRosterSize") - userPlayersAll.length,
 		payroll: payroll / 1000,

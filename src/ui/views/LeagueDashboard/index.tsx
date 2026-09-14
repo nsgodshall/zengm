@@ -41,8 +41,11 @@ const LeagueDashboard = ({
 	teamStats,
 	teams,
 	tied,
+	transferWindow,
 	usePts,
+	wageBudget,
 	won,
+	worldDivision,
 	worldTable,
 	worldTableSeasonOver,
 }: View<"leagueDashboard">) => {
@@ -99,7 +102,16 @@ const LeagueDashboard = ({
 								</span>
 								<br />
 								<span style={{ fontSize: "1.5rem" }}>
-									{playoffRoundsWon < 0 ? (
+									{worldDivision && playoffRoundsWon < 0 ? (
+										// International Soccer Zen GM mod (Epic 6): the user's place in
+										// their Division
+										<span>
+											{worldDivision.played > 0
+												? `${helpers.ordinal(worldDivision.position)} in the `
+												: ""}
+											{worldDivision.divisionName}
+										</span>
+									) : playoffRoundsWon < 0 ? (
 										<span>
 											{helpers.ordinal(rank)} in{" "}
 											{playoffsByConf !== false ? "conference" : "league"}
@@ -164,7 +176,13 @@ const LeagueDashboard = ({
 										<br />
 										Payroll: {helpers.formatCurrency(payroll / 1000, "M")}
 										<br />
-										{salaryCapType === "none" ? (
+										{wageBudget !== undefined ? (
+											// International Soccer Zen GM mod (Epic 4)
+											<>
+												Wage budget:{" "}
+												{helpers.formatCurrency(wageBudget / 1000, "M")}
+											</>
+										) : salaryCapType === "none" ? (
 											<>
 												Luxury Tax:{" "}
 												{helpers.formatCurrency(luxuryPayroll / 1000, "M")}
@@ -176,6 +194,23 @@ const LeagueDashboard = ({
 											</>
 										)}
 										<br />
+										{worldDivision ? (
+											// International Soccer Zen GM mod (Epic 6)
+											<>
+												<a href={helpers.leagueUrl(["transfer_market"])}>
+													Transfer window
+												</a>
+												:{" "}
+												{transferWindow ? (
+													<span className="text-success">
+														{transferWindow} window open
+													</span>
+												) : (
+													"closed"
+												)}
+												<br />
+											</>
+										) : null}
 										<a href={helpers.leagueUrl(["team_finances"])}>
 											» Team Finances
 										</a>

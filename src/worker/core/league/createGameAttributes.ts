@@ -336,6 +336,12 @@ const createGameAttributes = async (
 			// competition/transferMarket.ts and competition/academies.ts).
 			gameAttributes.draftType = "freeAgents";
 			gameAttributes.salaryCapType = "none";
+
+			// Decided: a club's wage budget is its only payroll limit, so there's no
+			// minimum payroll fine or luxury tax (see also ensureCompetitionStructure)
+			gameAttributes.luxuryTax = 0;
+			gameAttributes.minPayroll = 0;
+			gameAttributes.worldPayrollRulesOff = true;
 		}
 
 		for (const t of teamInfos) {

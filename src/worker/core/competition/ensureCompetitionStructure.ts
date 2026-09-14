@@ -4,6 +4,7 @@ import {
 	type CompetitionStructure,
 	getDefaultCompetitionStructure,
 	getDivisionIdForNewClub,
+	isSingleDivision,
 } from "./competitionStructure.ts";
 
 /**
@@ -88,6 +89,25 @@ const ensureCompetitionStructure = async () => {
 			teamSeason.divisionId = getDivisionIdForNewClub(structure, teamSeason);
 			await idb.cache.teamSeasons.put(teamSeason);
 		}
+	}
+
+	// International Soccer Zen GM mod (Epic 4): a World made before wage budgets
+	// became the only payroll limit still has ZenGM's minimum payroll fine and
+	// luxury tax. Turn them off once, so they stay off unless the user turns them
+	// back on in the settings.
+	if (
+		!isSingleDivision(structure) &&
+		!(g as unknown as { worldPayrollRulesOff?: true }).worldPayrollRulesOff
+	) {
+		await idb.cache.gameAttributes.put({ key: "luxuryTax", value: 0 });
+		await idb.cache.gameAttributes.put({ key: "minPayroll", value: 0 });
+		await idb.cache.gameAttributes.put({
+			key: "worldPayrollRulesOff",
+			value: true,
+		});
+		g.setWithoutSavingToDB("luxuryTax", 0);
+		g.setWithoutSavingToDB("minPayroll", 0);
+		g.setWithoutSavingToDB("worldPayrollRulesOff", true);
 	}
 };
 

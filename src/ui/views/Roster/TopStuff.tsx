@@ -154,6 +154,7 @@ const TopStuff = ({
 	usePts,
 	worldDivision,
 	academy,
+	wageBudget,
 }: Pick<
 	View<"roster">,
 	| "abbrev"
@@ -171,6 +172,7 @@ const TopStuff = ({
 	| "usePts"
 	| "worldDivision"
 	| "academy"
+	| "wageBudget"
 > & {
 	currentSeason: number;
 	openRosterSpots: number;
@@ -393,6 +395,10 @@ const TopStuff = ({
 									payroll={payroll / 1000}
 								/>
 							</div>
+						) : null}
+						{isCurrentSeason && wageBudget !== undefined ? (
+							// International Soccer Zen GM mod (Epic 4)
+							<div>Wage budget: {helpers.formatCurrency(wageBudget, "M")}</div>
 						) : null}
 						{isCurrentSeason && salaryCapType !== "none" ? (
 							<div>

@@ -6,10 +6,14 @@ export const RosterSalarySummary = ({
 	capSpace,
 	numRosterSpots,
 	payroll,
+	wageBudget,
 }: {
 	capSpace: number;
 	numRosterSpots: number;
 	payroll: number;
+	// International Soccer Zen GM mod (Epic 4): in a World, the most the user's
+	// board lets them spend on wages, in millions of dollars
+	wageBudget?: number;
 }) => {
 	const { luxuryPayroll, maxContract, minContract, salaryCapType } = useLocal([
 		"luxuryPayroll",
@@ -23,7 +27,18 @@ export const RosterSalarySummary = ({
 	return (
 		<div className="mb-3">
 			You currently have <b>{numRosterSpots}</b> open roster spots
-			{salaryCapType === "none" ? (
+			{wageBudget !== undefined ? (
+				<>
+					{" "}
+					and a{" "}
+					<b className={payroll > wageBudget ? "text-danger" : undefined}>
+						{helpers.formatCurrency(payroll, "M")}
+					</b>{" "}
+					payroll against your wage budget of{" "}
+					<b>{helpers.formatCurrency(wageBudget, "M")}</b>. Your board won't let
+					a signing above the minimum contract take you over it.
+				</>
+			) : salaryCapType === "none" ? (
 				<>
 					{" "}
 					and a <b>{helpers.formatCurrency(payroll, "M")}</b> payroll (luxury
@@ -67,8 +82,12 @@ export const RosterSalarySummary = ({
 			<br />
 			Min contract: {helpers.formatCurrency(minContract / 1000, "M")}
 			<br />
-			Max contract: {helpers.formatCurrency(maxContract / 1000, "M")}
-			<br />
+			{wageBudget === undefined ? (
+				<>
+					Max contract: {helpers.formatCurrency(maxContract / 1000, "M")}
+					<br />
+				</>
+			) : null}
 		</div>
 	);
 };

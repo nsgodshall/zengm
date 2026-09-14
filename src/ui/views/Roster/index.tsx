@@ -102,6 +102,7 @@ const Roster = ({
 	showTradeFor,
 	worldDivision,
 	academy,
+	wageBudget,
 	showTradingBlock,
 	stats,
 	t,
@@ -404,6 +405,7 @@ const Roster = ({
 				showTradeFor={showTradeFor}
 				worldDivision={worldDivision}
 				academy={academy}
+				wageBudget={wageBudget}
 				showTradingBlock={showTradingBlock}
 				t={t}
 				tid={tid}
