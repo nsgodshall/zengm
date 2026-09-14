@@ -65,6 +65,20 @@ describe("getSquadOrder", () => {
 	});
 });
 
+describe("getSquadOrder with Country strength", () => {
+	test("a Country's penalty moves its clubs down the order", () => {
+		const clubs = [
+			{ tid: 0, tier: 1, pop: 9, penalty: 0.9 },
+			{ tid: 1, tier: 1, pop: 1, penalty: 0 },
+			{ tid: 2, tier: 2, pop: 9, penalty: 0 },
+		];
+
+		// Without the penalty, the bigger club would come first, since market size
+		// within a tier spans 0.8
+		expect(getSquadOrder({ clubs, random: () => 0.5 })).toEqual([1, 0, 2]);
+	});
+});
+
 describe("assignSquads", () => {
 	test("gives the strongest squad to the first club in the order", () => {
 		const newTidByTid = assignSquads({

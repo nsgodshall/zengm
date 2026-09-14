@@ -794,6 +794,33 @@ const NewLeague = (props: View<"newLeague">) => {
 		title = "New Real Players League";
 	}
 
+	// International Soccer Zen GM mod (Epic 7): a new World's clubs and
+	// structure, which are generated again when its Countries or Division size
+	// change
+	const [worldInfo, setWorldInfo] = useState(props.world);
+	const [regeneratingWorld, setRegeneratingWorld] = useState(false);
+	const regenerateWorld = async (options: {
+		countryKeys: string[];
+		clubsPerDivision: number;
+	}) => {
+		if (options.countryKeys.length === 0) {
+			return;
+		}
+		setRegeneratingWorld(true);
+		try {
+			const info = await toWorker("main", "getWorldInfo", options);
+			setWorldInfo(info);
+			dispatch({
+				type: "setTeams",
+				teams: info.teams,
+				confs: info.confs as NonEmptyArray<Conf>,
+				divs: info.divs as NonEmptyArray<Div>,
+			});
+		} finally {
+			setRegeneratingWorld(false);
+		}
+	};
+
 	const keptKeysIsAvailable = state.allKeys.length > 0;
 	const displayedTeams =
 		!keptKeysIsAvailable || state.keptKeys.includes("teams")
@@ -876,7 +903,7 @@ const NewLeague = (props: View<"newLeague">) => {
 				url: state.url,
 				// International Soccer Zen GM mod (Epic 7): a new World's competition
 				// structure is passed like a league file's game attributes
-				keptKeys: props.world
+				keptKeys: worldInfo
 					? [...state.keptKeys, "gameAttributes"]
 					: state.keptKeys,
 				shuffleRosters: actualShuffleRosters,
@@ -889,7 +916,7 @@ const NewLeague = (props: View<"newLeague">) => {
 				settings,
 				fromFile: {
 					gameAttributes:
-						state.basicInfo?.gameAttributes ?? props.world?.gameAttributes,
+						state.basicInfo?.gameAttributes ?? worldInfo?.gameAttributes,
 					maxGid: state.basicInfo?.maxGid,
 					hasRookieContracts,
 					startingSeason: state.basicInfo?.startingSeason,
@@ -1395,6 +1422,106 @@ const NewLeague = (props: View<"newLeague">) => {
 								</div>
 							) : null}
 
+							{worldInfo ? (
+								// International Soccer Zen GM mod (Epic 7): which Countries a new
+								// World has, and how many clubs are in each of its Divisions
+								<div className="mb-3">
+									<div className="form-label">Countries</div>
+									<div>
+										{worldInfo.options.countries.map((country) => {
+											const checked = worldInfo.options.countryKeys.includes(
+												country.key,
+											);
+											return (
+												<div
+													className="form-check form-check-inline"
+													key={country.key}
+												>
+													<input
+														checked={checked}
+														className="form-check-input"
+														disabled={
+															regeneratingWorld ||
+															(checked &&
+																worldInfo.options.countryKeys.length === 1)
+														}
+														id={`new-world-country-${country.key}`}
+														onChange={async () => {
+															await regenerateWorld({
+																countryKeys: checked
+																	? worldInfo.options.countryKeys.filter(
+																			(key) => key !== country.key,
+																		)
+																	: [
+																			...worldInfo.options.countryKeys,
+																			country.key,
+																		],
+																clubsPerDivision:
+																	worldInfo.options.clubsPerDivision,
+															});
+														}}
+														type="checkbox"
+													/>
+													<label
+														className="form-check-label"
+														htmlFor={`new-world-country-${country.key}`}
+													>
+														{country.name} ({country.numTiers} tiers)
+													</label>
+												</div>
+											);
+										})}
+									</div>
+									<label
+										className="form-label mt-2"
+										htmlFor="new-world-clubs-per-division"
+									>
+										Clubs per Division
+									</label>
+									<select
+										className="form-select"
+										disabled={regeneratingWorld}
+										id="new-world-clubs-per-division"
+										onChange={async (event) => {
+											await regenerateWorld({
+												countryKeys: worldInfo.options.countryKeys,
+												clubsPerDivision: Number.parseInt(event.target.value),
+											});
+										}}
+										style={{ maxWidth: 100 }}
+										value={worldInfo.options.clubsPerDivision}
+									>
+										{Array.from(
+											{
+												length:
+													worldInfo.options.maxClubsPerDivision -
+													worldInfo.options.minClubsPerDivision +
+													1,
+											},
+											(_, i) => worldInfo.options.minClubsPerDivision + i,
+										).map((numClubs) => (
+											<option key={numClubs} value={numClubs}>
+												{numClubs}
+											</option>
+										))}
+									</select>
+									<div className="text-body-secondary mt-1">
+										{worldInfo.teams.length} clubs in{" "}
+										{worldInfo.gameAttributes.competitionDivisions.length}{" "}
+										Divisions, with{" "}
+										{2 * (worldInfo.options.clubsPerDivision - 1)}-game seasons.
+									</div>
+									{/* ZenGM's TOO_MANY_TEAMS_TOO_SLOW */}
+									{worldInfo.teams.length > 200 ? (
+										<div className="text-warning">
+											That's more than 200 clubs, so seasons will be slow to
+											play, and ZenGM skips some extras, like relatives for
+											starting players.
+										</div>
+									) : null}
+								</div>
+							) : null}
+
 							<div className="mb-3">
 								<label htmlFor="new-league-team" className="form-label me-2">
 									Pick your team
@@ -1425,10 +1552,10 @@ const NewLeague = (props: View<"newLeague">) => {
 											});
 										}}
 									>
-										{props.world
+										{worldInfo
 											? // International Soccer Zen GM mod (Epic 7): a World's clubs,
 												// grouped by Division
-												props.world.gameAttributes.competitionDivisions.map(
+												worldInfo.gameAttributes.competitionDivisions.map(
 													(division) => (
 														<optgroup
 															key={division.divisionId}
@@ -1488,10 +1615,10 @@ const NewLeague = (props: View<"newLeague">) => {
 										Random
 									</button>
 								</div>
-								{props.world ? (
+								{worldInfo ? (
 									<div className="text-body-secondary">
 										{
-											props.world.gameAttributes.competitionDivisions.find(
+											worldInfo.gameAttributes.competitionDivisions.find(
 												(division) =>
 													division.divisionId ===
 													sortedDisplayedTeams.find((t) => t.tid === state.tid)

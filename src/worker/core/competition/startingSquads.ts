@@ -20,20 +20,30 @@ export const assignStartingSquads = async (
 		return;
 	}
 
-	const tierByDivisionId = new Map(
-		structure.competitionDivisions.map((division) => [
-			division.divisionId,
-			division.tier,
+	const penaltyByCountryId = new Map(
+		structure.countries.map((country) => [
+			country.countryId,
+			country.startingStrengthPenalty ?? 0,
 		]),
 	);
-	const clubs: { tid: number; tier: number; pop: number }[] = [];
+	const divisionById = new Map(
+		structure.competitionDivisions.map((division) => [
+			division.divisionId,
+			division,
+		]),
+	);
+	const clubs: { tid: number; tier: number; pop: number; penalty: number }[] =
+		[];
 	for (const t of teams) {
-		const tier =
-			t.divisionId === undefined
-				? undefined
-				: tierByDivisionId.get(t.divisionId);
-		if (tier !== undefined) {
-			clubs.push({ tid: t.tid, tier, pop: t.pop });
+		const division =
+			t.divisionId === undefined ? undefined : divisionById.get(t.divisionId);
+		if (division) {
+			clubs.push({
+				tid: t.tid,
+				tier: division.tier,
+				pop: t.pop,
+				penalty: penaltyByCountryId.get(division.countryId) ?? 0,
+			});
 		}
 	}
 

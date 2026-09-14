@@ -347,25 +347,45 @@ export const REAL_SPANISH_CLUB_NAMES = [
 // Words that don't tell clubs apart: club types, articles, and "and"
 const IGNORED_WORDS = new Set([
 	"a",
+	"ac",
+	"acf",
 	"ad",
 	"afc",
 	"and",
+	"as",
+	"bsc",
 	"ca",
+	"calcio",
 	"cd",
 	"ce",
 	"cf",
+	"cfc",
 	"club",
 	"cp",
 	"de",
 	"del",
 	"el",
 	"fc",
+	"fsv",
+	"kfc",
 	"la",
 	"rcd",
 	"rsd",
+	"sc",
 	"sd",
+	"spvgg",
+	"ss",
+	"ssc",
+	"ssv",
+	"sv",
+	"tsg",
+	"tsv",
+	"uc",
 	"ud",
 	"ue",
+	"us",
+	"vfb",
+	"vfl",
 ]);
 
 /**
@@ -377,9 +397,13 @@ export const normalizeClubName = (name: string) =>
 		.normalize("NFD")
 		.replaceAll(/[̀-ͯ]/g, "")
 		.toLowerCase()
+		.replaceAll("ß", "ss")
 		.replaceAll("&", " ")
+		.replaceAll(/['.’]/g, "")
 		.split(/[\s-]+/)
-		.filter((word) => word !== "" && !IGNORED_WORDS.has(word))
+		.filter(
+			(word) => word !== "" && !IGNORED_WORDS.has(word) && !/^\d+$/.test(word),
+		)
 		.join(" ");
 
 /** Whether `name` is the same as one of `realNames`, once both are normalized */

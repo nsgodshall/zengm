@@ -12,6 +12,7 @@ import { makePlayersMostlyLocal } from "./localPlayers.ts";
 import { assignStartingSquads } from "./startingSquads.ts";
 import setUpNewWorld from "./newWorld.ts";
 import { generatePilotWorld } from "./pilotWorld.ts";
+import { getWorldNewLeagueInfo } from "./newWorldInfo.ts";
 import getPromotionPlayoffBrackets from "./promotionPlayoffBrackets.ts";
 import getScheduleDivisions from "./scheduleDivisions.ts";
 import { makeTransferOffer } from "./userTransfers.ts";
@@ -86,6 +87,7 @@ export default {
 	assignStartingSquads,
 	setUpNewWorld,
 	generatePilotWorld,
+	getWorldNewLeagueInfo,
 	getPromotionPlayoffBrackets,
 	getScheduleDivisions,
 	makeTransferOffer,

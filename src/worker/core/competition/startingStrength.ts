@@ -20,13 +20,15 @@ const gaussian = (random: () => number) => {
 /**
  * The order clubs get squads in, first gets the strongest: by tier, then by
  * market size within a tier (every Country's clubs on a tier together), plus
- * some randomness. `random` is uniform on [0, 1).
+ * some randomness. A club's `penalty`, from its Country's
+ * startingStrengthPenalty, moves it down the order. `random` is uniform on
+ * [0, 1).
  */
 export const getSquadOrder = ({
 	clubs,
 	random = Math.random,
 }: {
-	clubs: { tid: number; tier: number; pop: number }[];
+	clubs: { tid: number; tier: number; pop: number; penalty?: number }[];
 	random?: () => number;
 }) => {
 	const keyByTid = new Map<number, number>();
@@ -39,6 +41,7 @@ export const getSquadOrder = ({
 			keyByTid.set(
 				club.tid,
 				tier +
+					(club.penalty ?? 0) +
 					SQUAD_ORDER_MARKET_WEIGHT * marketPlace +
 					SQUAD_ORDER_NOISE * gaussian(random),
 			);

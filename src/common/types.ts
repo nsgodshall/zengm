@@ -551,6 +551,11 @@ export type Country = {
 	abbrev?: string;
 	/** Suffix for the `flag-icons` CSS classes already bundled (e.g. "gb-eng", "es"). */
 	flag?: string;
+	/**
+	 * International Soccer Zen GM mod (Epic 7): how much weaker this Country's
+	 * starting squads are, where a whole tier is 1 (see getSquadOrder)
+	 */
+	startingStrengthPenalty?: number;
 };
 
 /**

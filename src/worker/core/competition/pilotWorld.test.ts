@@ -5,9 +5,11 @@ import {
 } from "./competitionStructure.ts";
 import {
 	generatePilotWorld,
+	generateWorld,
 	makeAbbrev,
 	PILOT_CLUBS_PER_DIVISION,
 } from "./pilotWorld.ts";
+import { WORLD_COUNTRIES } from "./worldCountries.ts";
 import {
 	ENGLISH_TOWNS,
 	isRealClubName,
@@ -151,6 +153,112 @@ describe("generatePilotWorld", () => {
 		expect(generatePilotWorld(seededRandom(4))).toEqual(
 			generatePilotWorld(seededRandom(4)),
 		);
+	});
+});
+
+describe("generateWorld", () => {
+	const allCountryKeys = WORLD_COUNTRIES.map((country) => country.key);
+
+	test("every Country together: the USA has 3 tiers, the rest 2", () => {
+		const { structure, clubs } = generateWorld({
+			countryKeys: allCountryKeys,
+			random: seededRandom(6),
+		});
+
+		expect(() => validateCompetitionStructure(structure)).not.toThrow();
+		expect(() => validateClubDivisions(structure, clubs)).not.toThrow();
+
+		expect(structure.countries.map((country) => country.name)).toEqual([
+			"England",
+			"Spain",
+			"USA",
+			"Mexico",
+			"Italy",
+			"Germany",
+			"Japan",
+		]);
+		for (const country of structure.countries) {
+			const numTiers = structure.competitionDivisions.filter(
+				(division) => division.countryId === country.countryId,
+			).length;
+			expect(numTiers).toBe(country.name === "USA" ? 3 : 2);
+			expect(
+				structure.promotionRelegationLinks.filter(
+					(link) => link.countryId === country.countryId,
+				),
+			).toHaveLength(numTiers - 1);
+		}
+		expect(clubs).toHaveLength(15 * PILOT_CLUBS_PER_DIVISION);
+		expect(
+			structure.competitionDivisions.map((division) => division.name),
+		).toContain("American Third Division");
+
+		expect(new Set(clubs.map((club) => club.abbrev)).size).toBe(clubs.length);
+		expect(
+			new Set(clubs.map((club) => `${club.region} ${club.name}`)).size,
+		).toBe(clubs.length);
+		expect(clubs.map((club) => club.tid)).toEqual(
+			Array.from({ length: clubs.length }, (_, i) => i),
+		);
+	});
+
+	test("every Country's clubs are in its towns, with names that don't copy real clubs", () => {
+		for (let seed = 1; seed <= 5; seed++) {
+			const { structure, clubs } = generateWorld({
+				countryKeys: allCountryKeys,
+				random: seededRandom(seed),
+			});
+			for (const country of structure.countries) {
+				const worldCountry = WORLD_COUNTRIES.find(
+					(c) => c.name === country.name,
+				)!;
+				for (const club of clubs.filter(
+					(club) => club.cid === country.countryId,
+				)) {
+					expect(
+						worldCountry.towns.some((town) => town.name === club.location.town),
+					).toBe(true);
+					expect(
+						isRealClubName(
+							`${club.region} ${club.name}`,
+							worldCountry.realClubNames,
+						),
+					).toBe(false);
+				}
+			}
+		}
+	});
+
+	test("Divisions can have 10 to 20 clubs", () => {
+		for (const clubsPerDivision of [10, 20]) {
+			const { structure, clubs } = generateWorld({
+				countryKeys: allCountryKeys,
+				clubsPerDivision,
+				random: seededRandom(7),
+			});
+			expect(() => validateClubDivisions(structure, clubs)).not.toThrow();
+			expect(clubs).toHaveLength(15 * clubsPerDivision);
+			for (const division of structure.competitionDivisions) {
+				expect(division.numGames).toBe(2 * (clubsPerDivision - 1));
+			}
+		}
+
+		expect(() => generateWorld({ clubsPerDivision: 9 })).toThrow();
+		expect(() => generateWorld({ clubsPerDivision: 21 })).toThrow();
+		expect(() => generateWorld({ countryKeys: [] })).toThrow();
+	});
+
+	test("it's basketball, so the USA starts strongest", () => {
+		const { structure } = generateWorld({ countryKeys: allCountryKeys });
+		const penaltyOf = (name: string) =>
+			structure.countries.find((country) => country.name === name)!
+				.startingStrengthPenalty!;
+		for (const country of structure.countries) {
+			expect(penaltyOf("USA")).toBeLessThanOrEqual(
+				country.startingStrengthPenalty!,
+			);
+		}
+		expect(penaltyOf("USA")).toBe(0);
 	});
 });
 
