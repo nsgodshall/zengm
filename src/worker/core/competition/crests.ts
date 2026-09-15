@@ -72,24 +72,115 @@ export const generateCrestSvg = ({
 	].join("");
 };
 
+// Lettering styles for generated logos, so clubs don't all look alike (decided
+// with the user). Each is a font stack of the kind sports logos use, with its
+// own weight, slant, spacing, and outline. Every stack ends in a generic family,
+// since the fonts a player has depend on their machine.
+export const LETTER_LOGO_STYLES = [
+	"serif",
+	"block",
+	"slab",
+	"condensed",
+	"script",
+	"varsity",
+] as const;
+
+export type LetterLogoStyle = (typeof LETTER_LOGO_STYLES)[number];
+
+const LETTER_LOGO_FONTS: Record<
+	LetterLogoStyle,
+	{
+		fontFamily: string;
+		fontWeight: string;
+		fontStyle?: string;
+		letterSpacing?: number;
+		strokeWidth: number;
+		scale: number;
+	}
+> = {
+	serif: {
+		fontFamily: "Georgia, 'Times New Roman', serif",
+		fontWeight: "bold",
+		strokeWidth: 4,
+		scale: 1,
+	},
+	block: {
+		fontFamily: "'Arial Black', 'Liberation Sans', Arial, sans-serif",
+		fontWeight: "900",
+		letterSpacing: -2,
+		strokeWidth: 4,
+		scale: 0.92,
+	},
+	slab: {
+		fontFamily: "Rockwell, 'Courier New', Georgia, serif",
+		fontWeight: "bold",
+		strokeWidth: 4,
+		scale: 0.96,
+	},
+	condensed: {
+		fontFamily:
+			"'Arial Narrow', 'Liberation Sans Narrow', 'Helvetica Neue', sans-serif",
+		fontWeight: "bold",
+		letterSpacing: 1,
+		strokeWidth: 3,
+		scale: 1.08,
+	},
+	script: {
+		fontFamily: "'Brush Script MT', 'URW Chancery L', 'Segoe Script', cursive",
+		fontWeight: "bold",
+		fontStyle: "italic",
+		strokeWidth: 3,
+		scale: 1.06,
+	},
+	varsity: {
+		fontFamily: "Impact, 'Liberation Sans Narrow', 'Arial Narrow', sans-serif",
+		fontWeight: "normal",
+		letterSpacing: 1,
+		strokeWidth: 5,
+		scale: 1.02,
+	},
+};
+
+/** The style a club's letters fall back to, the same one every time */
+export const pickLetterLogoStyle = (letters: string): LetterLogoStyle =>
+	LETTER_LOGO_STYLES[
+		[...letters].reduce((sum, letter) => sum + letter.charCodeAt(0), 0) %
+			LETTER_LOGO_STYLES.length
+	]!;
+
 /**
  * A baseball cap-style letter logo as SVG markup, for a real club with no
- * letter logo of its own (decided with the user): `letters` in a bold serif, in
- * the club's first color, outlined in its second, on a clear background. More
- * letters are drawn smaller, so up to three fit.
+ * letter logo of its own (decided with the user): `letters` in the club's first
+ * color, outlined in its second, on a clear background, in one of
+ * LETTER_LOGO_STYLES. More letters are drawn smaller, so up to three fit.
  */
 export const generateLetterLogoSvg = ({
 	letters,
 	colors,
+	style = pickLetterLogoStyle(letters),
 }: {
 	letters: string;
 	colors: [string, string, string];
+	style?: LetterLogoStyle;
 }) => {
 	const [fill, outline] = colors;
-	const fontSize = letters.length <= 1 ? 96 : letters.length === 2 ? 68 : 48;
+	const font = LETTER_LOGO_FONTS[style];
+	const fontSize = Math.round(
+		(letters.length <= 1 ? 96 : letters.length === 2 ? 68 : 48) * font.scale,
+	);
+	const attributes = [
+		`font-family="${font.fontFamily}"`,
+		`font-size="${fontSize}"`,
+		`font-weight="${font.fontWeight}"`,
+		...(font.fontStyle ? [`font-style="${font.fontStyle}"`] : []),
+		...(font.letterSpacing ? [`letter-spacing="${font.letterSpacing}"`] : []),
+		`fill="${fill}"`,
+		`stroke="${outline}"`,
+		`stroke-width="${font.strokeWidth}"`,
+	].join(" ");
 	return [
 		`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">`,
-		`<text x="50" y="50" text-anchor="middle" dominant-baseline="central" font-family="Georgia, 'Times New Roman', serif" font-size="${fontSize}" font-weight="bold" fill="${fill}" stroke="${outline}" stroke-width="4" stroke-linejoin="round" paint-order="stroke">${escapeXml(letters)}</text>`,
+		`<text x="50" y="50" text-anchor="middle" dominant-baseline="central" ${attributes} stroke-linejoin="round" paint-order="stroke">${escapeXml(letters)}</text>`,
 		`</svg>`,
 	].join("");
 };

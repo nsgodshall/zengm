@@ -4,7 +4,9 @@ import {
 	generateCrestSvg,
 	generateLetterLogoSvg,
 	getCrestDataUrl,
+	LETTER_LOGO_STYLES,
 	pickCrestPattern,
+	pickLetterLogoStyle,
 } from "./crests.ts";
 
 const colors: [string, string, string] = ["#c8102e", "#ffffff", "#000000"];
@@ -33,6 +35,28 @@ describe("generateLetterLogoSvg", () => {
 	test("escapes the letters", () => {
 		expect(generateLetterLogoSvg({ letters: "A&", colors })).toContain(
 			">A&amp;</text>",
+		);
+	});
+
+	test("every style letters a club differently", () => {
+		const svgs = LETTER_LOGO_STYLES.map((style) =>
+			generateLetterLogoSvg({ letters: "SD", colors, style }),
+		);
+		expect(new Set(svgs).size).toBe(LETTER_LOGO_STYLES.length);
+		for (const svg of svgs) {
+			expect(svg).toContain(">SD</text>");
+		}
+	});
+
+	test("a club with no style of its own gets the same one every time", () => {
+		expect(pickLetterLogoStyle("PIT")).toBe(pickLetterLogoStyle("PIT"));
+		expect(LETTER_LOGO_STYLES).toContain(pickLetterLogoStyle("PIT"));
+		expect(generateLetterLogoSvg({ letters: "PIT", colors })).toBe(
+			generateLetterLogoSvg({
+				letters: "PIT",
+				colors,
+				style: pickLetterLogoStyle("PIT"),
+			}),
 		);
 	});
 });

@@ -319,10 +319,10 @@ const SECOND_TIER: RealClub[] = [
 		["#101820", "#ffb612", "#ffffff"],
 		generated("PIT"),
 	),
-	// After UNLV's Runnin' Rebels
+	// UNLV's Runnin' Rebels
 	club(
 		"Las Vegas",
-		"Runnin' Reds",
+		"Runnin' Rebels",
 		"LVR",
 		"Las Vegas",
 		["#cf0a2c", "#666666", "#ffffff"],
