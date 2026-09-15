@@ -1,8 +1,11 @@
 import { describe, expect, test } from "vitest";
 import { PHASE } from "../../../common/constants.ts";
 import {
+	ACADEMY_LOAN_MIN_AGE,
 	aiWouldBorrow,
 	aiWouldLend,
+	aiWouldLendAcademyPlayer,
+	canLoanAcademyPlayer,
 	getLoanEndSeason,
 	LOAN_MAX_AGE,
 } from "./loans.ts";
@@ -100,5 +103,74 @@ describe("aiWouldBorrow", () => {
 				rotationSize: 10,
 			}),
 		).toBe(true);
+	});
+});
+
+describe("canLoanAcademyPlayer", () => {
+	test("an academy player can go on loan once he's old enough", () => {
+		expect(ACADEMY_LOAN_MIN_AGE).toBe(18);
+		expect(
+			canLoanAcademyPlayer({
+				age: 17,
+				graduationSeason: 2030,
+				loanEndSeason: 2026,
+			}),
+		).toBe(false);
+		expect(
+			canLoanAcademyPlayer({
+				age: 18,
+				graduationSeason: 2030,
+				loanEndSeason: 2026,
+			}),
+		).toBe(true);
+	});
+
+	test("a loan can end the summer he leaves the academy, but not after", () => {
+		expect(
+			canLoanAcademyPlayer({
+				age: 21,
+				graduationSeason: 2026,
+				loanEndSeason: 2026,
+			}),
+		).toBe(true);
+		expect(
+			canLoanAcademyPlayer({
+				age: 21,
+				graduationSeason: 2026,
+				loanEndSeason: 2027,
+			}),
+		).toBe(false);
+	});
+});
+
+describe("aiWouldLendAcademyPlayer", () => {
+	test("lends out a prospect who isn't ready for its first team's rotation", () => {
+		expect(
+			aiWouldLendAcademyPlayer({
+				valueNoPot: 44,
+				rosterValuesNoPot: roster,
+				rotationSize: 10,
+			}),
+		).toBe(true);
+	});
+
+	test("keeps a prospect who'd already be in its rotation, since it would promote him", () => {
+		expect(
+			aiWouldLendAcademyPlayer({
+				valueNoPot: 45,
+				rosterValuesNoPot: roster,
+				rotationSize: 10,
+			}),
+		).toBe(false);
+	});
+
+	test("keeps everyone when its first team is smaller than a rotation", () => {
+		expect(
+			aiWouldLendAcademyPlayer({
+				valueNoPot: 10,
+				rosterValuesNoPot: [60, 50],
+				rotationSize: 10,
+			}),
+		).toBe(false);
 	});
 });

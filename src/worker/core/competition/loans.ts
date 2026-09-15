@@ -57,6 +57,43 @@ export const aiWouldLend = ({
 	return cutoff !== undefined && valueNoPot < cutoff;
 };
 
+// Decided: academy players can go on loan once they're this old
+export const ACADEMY_LOAN_MIN_AGE = 18;
+
+/**
+ * Whether an academy player can go on loan now: old enough, and not due to leave
+ * the academy before the loan would end. A loan ends in the same summer he
+ * graduates, before the academy step, so he goes back to the academy first.
+ */
+export const canLoanAcademyPlayer = ({
+	age,
+	graduationSeason,
+	loanEndSeason,
+}: {
+	age: number;
+	graduationSeason: number;
+	loanEndSeason: number;
+}) => age >= ACADEMY_LOAN_MIN_AGE && loanEndSeason <= graduationSeason;
+
+/**
+ * Whether an AI club would lend out one of its academy players: only one who
+ * isn't ready for its first team, since a club promotes a player who'd already
+ * be in its rotation (see planAcademyPromotions). `rosterValuesNoPot` is its
+ * first team.
+ */
+export const aiWouldLendAcademyPlayer = ({
+	valueNoPot,
+	rosterValuesNoPot,
+	rotationSize,
+}: {
+	valueNoPot: number;
+	rosterValuesNoPot: number[];
+	rotationSize: number;
+}) => {
+	const cutoff = getRotationCutoff(rosterValuesNoPot, rotationSize);
+	return cutoff !== undefined && valueNoPot < cutoff;
+};
+
 /**
  * Whether an AI club would borrow a player: only if he'd be in its rotation,
  * so he'd get minutes. `rosterValuesNoPot` doesn't include him.

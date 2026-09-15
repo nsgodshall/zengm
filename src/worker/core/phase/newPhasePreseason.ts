@@ -353,6 +353,19 @@ const newPhasePreseason = async (
 	// the first draft age (see academyPlayerDevelops)
 	const undevelopedAcademyPids = new Set<number>();
 	if (!repeatSeason) {
+		// International Soccer Zen GM mod (Epic 5): so do academy players out on
+		// loan, who are on another club's first team
+		for (const p of players) {
+			if (
+				p.loan?.academy &&
+				!competition.academyPlayerDevelops(
+					newSeason - p.born.year,
+					g.get("draftAges"),
+				)
+			) {
+				undevelopedAcademyPids.add(p.pid);
+			}
+		}
 		for (const p of await competition.getAcademyPlayers()) {
 			players.push(p);
 			if (

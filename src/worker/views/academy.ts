@@ -8,6 +8,8 @@ import {
 	getAcademyPlayerFee,
 	isAcademyPlayerForSale,
 } from "../core/competition/academyTransfers.ts";
+import { canAcademyPlayerBeLoaned } from "../core/competition/loanMoves.ts";
+import { ACADEMY_LOAN_MIN_AGE } from "../core/competition/loans.ts";
 import { idb } from "../db/index.ts";
 import { g } from "../util/index.ts";
 import addFirstNameShort from "../util/addFirstNameShort.ts";
@@ -66,6 +68,9 @@ const updateAcademy = async (
 						fee: getAcademyPlayerFee(raw) / 1000,
 						forSale: isAcademyPlayerForSale(raw),
 						transferListed: !!p.transferListed,
+						// International Soccer Zen GM mod (Epic 5): for the loan buttons
+						canLoan: canAcademyPlayerBeLoaned(raw),
+						loanListed: !!raw.loanListed,
 						pid: p.pid as number,
 						firstName: p.firstName as string,
 						lastName: p.lastName as string,
@@ -81,6 +86,39 @@ const updateAcademy = async (
 					};
 				})
 				.sort((a, b) => b.valueFuzz - a.valueFuzz),
+		);
+
+		// International Soccer Zen GM mod (Epic 5): the academy's players out on
+		// loan at other clubs' first teams
+		const onLoanRaw = (
+			await idb.cache.players.indexGetAll("playersByTid", [0, Infinity])
+		).filter((p) => p.loan?.academy && p.loan.tid === inputs.tid);
+		const onLoanPlus = await idb.getCopies.playersPlus(onLoanRaw, {
+			attrs: ["pid", "tid", "abbrev", "firstName", "lastName", "age", "watch"],
+			ratings: ["ovr", "pot", "skills", "pos"],
+			season,
+			showNoStats: true,
+			showRookies: true,
+			fuzz: true,
+		});
+		const onLoan = addFirstNameShort(
+			onLoanPlus.map((p) => {
+				const raw = onLoanRaw.find((p2) => p2.pid === p.pid)!;
+				return {
+					pid: p.pid as number,
+					tid: p.tid as number,
+					abbrev: p.abbrev as string,
+					firstName: p.firstName as string,
+					lastName: p.lastName as string,
+					age: p.age as number,
+					watch: p.watch,
+					ovr: p.ratings.ovr as number,
+					pot: p.ratings.pot as number,
+					skills: p.ratings.skills as string[],
+					pos: p.ratings.pos as string,
+					loanEndSeason: raw.loan!.season,
+				};
+			}),
 		);
 
 		// Academy strength rank, 1 is best
@@ -103,9 +141,11 @@ const updateAcademy = async (
 				minContract: g.get("minContract"),
 			}),
 			graduationAge: getAcademyAges(g.get("draftAges")).graduationAge,
+			loanMinAge: ACADEMY_LOAN_MIN_AGE,
 			maxRosterSize: g.get("maxRosterSize"),
 			numClubs: clubs.length,
 			numPlayersOnRoster,
+			onLoan,
 			phase,
 			players,
 			season,

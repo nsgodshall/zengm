@@ -610,6 +610,28 @@ const TopStuff = ({
 					>
 						Release
 					</button>,
+					// International Soccer Zen GM mod (Epic 5): academy players old enough
+					// can go on loan
+					<button
+						className="btn btn-light-bordered"
+						disabled={!transferInfo.academyLoanable && !transferInfo.loanListed}
+						key="loanList"
+						onClick={async () => {
+							showTransferError(
+								await toWorker("main", "setLoanListed", {
+									pid: player.pid,
+									listed: !transferInfo.loanListed,
+								}),
+							);
+						}}
+						title={
+							transferInfo.academyLoanable
+								? "Clubs ask to borrow players on your loan list until the summer"
+								: `Academy players can go on loan once they're ${transferInfo.academyLoanMinAge}, until the summer they have to leave`
+						}
+					>
+						{transferInfo.loanListed ? "Remove from loan list" : "Loan list"}
+					</button>,
 				);
 			} else {
 				transferButtons.push(

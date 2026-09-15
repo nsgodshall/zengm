@@ -17,7 +17,11 @@ import {
 } from "../worker/core/competition/youthAcademy.ts";
 import { competition, league, player, team } from "../worker/core/index.ts";
 import { getWageBudgets } from "../worker/core/competition/wageBudgets.ts";
-import { LOAN_MAX_AGE } from "../worker/core/competition/loans.ts";
+import {
+	ACADEMY_LOAN_MIN_AGE,
+	getLoanEndSeason,
+	LOAN_MAX_AGE,
+} from "../worker/core/competition/loans.ts";
 import { getTvShare } from "../worker/core/competition/worldRevenue.ts";
 import {
 	getWorldAwards,
@@ -1439,11 +1443,15 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			}
 		}
 
-		const tidsBefore = new Map(
-			(await idb.cache.players.indexGetAll("playersByTid", [0, Infinity])).map(
-				(p) => [p.pid, p.tid],
-			),
-		);
+		// The club each player is at, or in the academy of
+		const academyPlayersBefore = await competition.getAcademyPlayers();
+		const academyPids = new Set(academyPlayersBefore.map((p) => p.pid));
+		const tidsBefore = new Map([
+			...(
+				await idb.cache.players.indexGetAll("playersByTid", [0, Infinity])
+			).map((p) => [p.pid, p.tid] as const),
+			...academyPlayersBefore.map((p) => [p.pid, p.academyTid!] as const),
+		]);
 		const numLoans = await competition.loansBetweenAiClubs(500, aiTids);
 		assert(numLoans > 0, "No loans happened");
 
@@ -1456,6 +1464,10 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			const lenderTid = tidsBefore.get(p.pid)!;
 			assert.strictEqual(p.loan!.tid, lenderTid);
 			assert.strictEqual(p.loan!.season, season);
+			assert.strictEqual(
+				p.loan!.academy,
+				academyPids.has(p.pid) ? true : undefined,
+			);
 			assert(aiTids.includes(p.tid));
 			assert(season - p.born.year <= LOAN_MAX_AGE);
 			const transaction = p.transactions!.at(-1)!;
@@ -1480,11 +1492,17 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			assert.strictEqual(transaction.tid, tidsBefore.get(pid));
 			assert.strictEqual(transaction.fromTid, borrowerTids.get(pid));
 
-			// Back at his club, unless it went over the roster limit and released him
-			assert(
-				p.tid === tidsBefore.get(pid) || p.tid === PLAYER.FREE_AGENT,
-				`pid ${pid} is at tid ${p.tid}`,
-			);
+			// Back at his club, unless it went over the roster limit and released
+			// him, or back in its academy
+			if (academyPids.has(pid)) {
+				assert.strictEqual(p.tid, PLAYER.UNDRAFTED);
+				assert.strictEqual(p.academyTid, tidsBefore.get(pid));
+			} else {
+				assert(
+					p.tid === tidsBefore.get(pid) || p.tid === PLAYER.FREE_AGENT,
+					`pid ${pid} is at tid ${p.tid}`,
+				);
+			}
 		}
 	});
 
@@ -1635,6 +1653,151 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 					assert.strictEqual(offer.daysLeft, 3);
 				}
 			}
+		}
+	});
+
+	// Changes the league, so it goes last
+	test("academy players 18 or older go on loan until the summer, and come back to their academy", async () => {
+		const season = g.get("season");
+		const userTid = g.get("userTid");
+		const minContract = g.get("minContract");
+		const endSeason = getLoanEndSeason({ season, phase: g.get("phase") });
+
+		// Academy loans made during auto play don't outlast the player's academy
+		for (const p of await idb.cache.players.indexGetAll("playersByTid", [
+			0,
+			Infinity,
+		])) {
+			if (p.loan?.academy) {
+				assert.strictEqual(p.academyTid, undefined);
+				assert(p.draft.year >= p.loan.season, `pid ${p.pid}`);
+			}
+		}
+
+		// The user borrows an AI club's academy player who isn't ready for its
+		// first team, once he's old enough
+		const aiProspect = (await competition.getAcademyPlayers()).find(
+			(p) => p.academyTid !== userTid && p.draft.year >= endSeason,
+		);
+		assert(aiProspect, "No AI academy player");
+		const lenderTid = aiProspect.academyTid!;
+		aiProspect.valueNoPot = 0;
+		aiProspect.born.year = season - (ACADEMY_LOAN_MIN_AGE - 1);
+		await idb.cache.players.put(aiProspect);
+		const tooYoung = await competition.requestLoan({ pid: aiProspect.pid });
+		assert.strictEqual(tooYoung.type, "error", tooYoung.message);
+
+		aiProspect.born.year = season - ACADEMY_LOAN_MIN_AGE;
+		await idb.cache.players.put(aiProspect);
+		const borrowed = await competition.requestLoan({ pid: aiProspect.pid });
+		assert.strictEqual(borrowed.type, "accept", borrowed.message);
+		const p1 = (await idb.cache.players.get(aiProspect.pid))!;
+		assert.strictEqual(p1.tid, userTid);
+		assert.deepStrictEqual(p1.loan, {
+			tid: lenderTid,
+			season: endSeason,
+			academy: true,
+		});
+		assert.strictEqual(p1.academyTid, undefined);
+		assert.strictEqual(p1.contract.amount, minContract);
+		assert.strictEqual(p1.contract.exp, endSeason);
+		assert(
+			!(await competition.getAcademyPlayers(lenderTid)).some(
+				(p) => p.pid === p1.pid,
+			),
+		);
+
+		// The user lends one of their own academy players to an AI club that asks
+		const userProspect = (await competition.getAcademyPlayers(userTid)).find(
+			(p) => p.draft.year >= endSeason,
+		);
+		assert(userProspect, "No user academy player");
+		userProspect.born.year = season - (ACADEMY_LOAN_MIN_AGE - 1);
+		await idb.cache.players.put(userProspect);
+		assert.notStrictEqual(
+			await competition.setLoanListed({ pid: userProspect.pid, listed: true }),
+			undefined,
+		);
+		userProspect.born.year = season - ACADEMY_LOAN_MIN_AGE;
+		await idb.cache.players.put(userProspect);
+		assert.strictEqual(
+			await competition.setLoanListed({ pid: userProspect.pid, listed: true }),
+			undefined,
+		);
+
+		let borrowerTid: number | undefined;
+		for (const t of await idb.cache.teams.getAll()) {
+			if (t.disabled || t.tid === userTid) {
+				continue;
+			}
+			const roster = await idb.cache.players.indexGetAll("playersByTid", t.tid);
+			if (roster.length < g.get("maxRosterSize")) {
+				borrowerTid = t.tid;
+				break;
+			}
+		}
+		assert(borrowerTid !== undefined, "No AI club with room to borrow");
+
+		// Room in the borrower's wage budget for the minimum wage
+		for (const releasedPlayer of await idb.cache.releasedPlayers.indexGetAll(
+			"releasedPlayersByTid",
+			borrowerTid,
+		)) {
+			await idb.cache.releasedPlayers.delete(releasedPlayer.rid);
+		}
+		const borrowerWageBudget = (await getWageBudgets()).get(borrowerTid)!;
+		const borrowerRoster = (
+			await idb.cache.players.indexGetAll("playersByTid", borrowerTid)
+		).sort((a, b) => b.contract.amount - a.contract.amount);
+		for (const p of borrowerRoster) {
+			if (
+				(await team.getPayroll(borrowerTid)) + minContract <=
+				borrowerWageBudget
+			) {
+				break;
+			}
+			await player.addToFreeAgents(p, {});
+			await idb.cache.players.put(p);
+		}
+
+		const listed = (await idb.cache.players.get(userProspect.pid))!;
+		listed.transferOffers = [
+			{ tid: borrowerTid, fee: 0, daysLeft: 3, loan: true },
+		];
+		await idb.cache.players.put(listed);
+		assert.strictEqual(
+			await competition.acceptAiTransferOffer({
+				pid: userProspect.pid,
+				tid: borrowerTid,
+			}),
+			undefined,
+		);
+		const p2 = (await idb.cache.players.get(userProspect.pid))!;
+		assert.strictEqual(p2.tid, borrowerTid);
+		assert.deepStrictEqual(p2.loan, {
+			tid: userTid,
+			season: endSeason,
+			academy: true,
+		});
+		assert.strictEqual(p2.contract.amount, minContract);
+		assert.strictEqual(p2.loanListed, undefined);
+
+		// Loans end in the summer, and academy players go back to their academies
+		await competition.returnLoans();
+		for (const [pid, academyTid] of [
+			[p1.pid, lenderTid],
+			[p2.pid, userTid],
+		] as const) {
+			const p = (await idb.cache.players.get(pid))!;
+			assert.strictEqual(p.loan, undefined);
+			assert.strictEqual(p.tid, PLAYER.UNDRAFTED);
+			assert.strictEqual(p.academyTid, academyTid);
+			assert(
+				(await competition.getAcademyPlayers(academyTid)).some(
+					(p2) => p2.pid === pid,
+				),
+			);
+			assert.strictEqual(p.transactions!.at(-1)!.type, "loanReturn");
 		}
 	});
 });

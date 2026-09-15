@@ -4,6 +4,8 @@ import {
 	getAcademyPlayerFee,
 	isAcademyPlayerForSale,
 } from "../core/competition/academyTransfers.ts";
+import { canAcademyPlayerBeLoaned } from "../core/competition/loanMoves.ts";
+import { ACADEMY_LOAN_MIN_AGE } from "../core/competition/loans.ts";
 import {
 	getContractSeasonsLeft,
 	getTransferFee,
@@ -154,7 +156,13 @@ const updateTransferMarket = async (
 			const infoByPid = new Map(
 				playersRaw.map((p) => [
 					p.pid,
-					{ tid: p.academyTid!, fee: getAcademyPlayerFee(p) },
+					{
+						tid: p.academyTid!,
+						fee: getAcademyPlayerFee(p),
+						// International Soccer Zen GM mod (Epic 5): for the loan buttons
+						canLoan: canAcademyPlayerBeLoaned(p),
+						loanListed: !!p.loanListed,
+					},
 				]),
 			);
 
@@ -179,7 +187,7 @@ const updateTransferMarket = async (
 
 			return addFirstNameShort(
 				playersPlus.map((p) => {
-					const { tid, fee } = infoByPid.get(p.pid)!;
+					const { tid, fee, canLoan, loanListed } = infoByPid.get(p.pid)!;
 					return {
 						...p,
 						abbrev: teamInfoCache[tid]?.abbrev ?? "",
@@ -187,6 +195,10 @@ const updateTransferMarket = async (
 						// Millions of dollars
 						fee: fee / 1000,
 						graduationSeason: p.draft.year as number,
+						canLoan,
+						loanListed,
+						// Academy players aren't on loan (see loanMoves.ts)
+						loanEndSeason: undefined as number | undefined,
 						tid,
 						transferListed: !!p.transferListed,
 						transferOffers: (p.transferOffers ?? []) as NonNullable<
@@ -236,6 +248,7 @@ const updateTransferMarket = async (
 
 		return {
 			academyPlayers,
+			loanMinAge: ACADEMY_LOAN_MIN_AGE,
 			// Millions of dollars
 			cash: (teamSeason?.cash ?? 0) / 1000,
 			transferFunds:

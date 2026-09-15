@@ -1300,6 +1300,8 @@ export type PlayerWithoutKey<PlayerRatings = MinimalPlayerRatings> = {
 	loan?: {
 		tid: number;
 		season: number;
+		// Loaned from the club's academy, so he goes back to it
+		academy?: true;
 	};
 	// International Soccer Zen GM mod (Epic 8): the season this player's club was
 	// relegated at the end of, when he walked away as a free agent (see

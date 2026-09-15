@@ -1,4 +1,4 @@
-import { PHASE } from "../../../common/constants.ts";
+import { PHASE, PLAYER } from "../../../common/constants.ts";
 import { choice } from "../../../common/random.ts";
 import type { Player } from "../../../common/types.ts";
 import { idb } from "../../db/index.ts";
@@ -9,11 +9,15 @@ import { getTeammateJerseyNumbers } from "../player/genJerseyNumber.ts";
 import { getNumPlayersTradedAwayNormalizedAll } from "../player/getNumPlayersTradedAwayNormalized.ts";
 import { dropPlayers } from "../team/checkRosterSizes.ts";
 import isUntradable from "../trade/isUntradable.ts";
+import { getAcademyPlayers } from "./academies.ts";
 import { isSingleDivision } from "./competitionStructure.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
 import {
+	ACADEMY_LOAN_MIN_AGE,
 	aiWouldBorrow,
 	aiWouldLend,
+	aiWouldLendAcademyPlayer,
+	canLoanAcademyPlayer,
 	getLoanEndSeason,
 	LOAN_MAX_AGE,
 } from "./loans.ts";
@@ -63,16 +67,48 @@ export const canBeLoaned = (p: Player) =>
 		getLoanEndSeason({ season: g.get("season"), phase: g.get("phase") });
 
 /**
+ * International Soccer Zen GM mod (Epic 5): whether an academy player can go on
+ * loan now, to another club's first team (see canLoanAcademyPlayer)
+ */
+export const canAcademyPlayerBeLoaned = (p: Player) =>
+	p.tid === PLAYER.UNDRAFTED &&
+	p.academyTid !== undefined &&
+	canLoanAcademyPlayer({
+		age: g.get("season") - p.born.year,
+		graduationSeason: p.draft.year,
+		loanEndSeason: getLoanEndSeason({
+			season: g.get("season"),
+			phase: g.get("phase"),
+		}),
+	});
+
+// An academy player has no contract of his own, so on loan he plays on the
+// minimum wage
+const getLoanWage = (p: Player) =>
+	p.academyTid !== undefined ? g.get("minContract") : p.contract.amount;
+
+/**
  * Loans a player to `borrowerTid` until the summer (see getLoanEndSeason). The
- * borrower plays him and pays his wages.
+ * borrower plays him and pays his wages. An academy player leaves his academy
+ * for the loan, on the minimum wage until it ends.
  */
 export const processLoan = async (p: Player, borrowerTid: number) => {
 	const season = g.get("season");
 	const phase = g.get("phase");
-	const lenderTid = p.tid;
+	const academy = p.academyTid !== undefined;
+	const lenderTid = p.academyTid ?? p.tid;
 	const endSeason = getLoanEndSeason({ season, phase });
 
 	p.loan = { tid: lenderTid, season: endSeason };
+	if (academy) {
+		p.loan.academy = true;
+		delete p.academyTid;
+		player.setContract(
+			p,
+			{ amount: g.get("minContract"), exp: endSeason },
+			true,
+		);
+	}
 	p.tid = borrowerTid;
 	p.ptModifier = 1;
 	delete p.transferOffers;
@@ -82,7 +118,7 @@ export const processLoan = async (p: Player, borrowerTid: number) => {
 
 	const eid = await logEvent({
 		type: "loan",
-		text: `The ${teamLink(borrowerTid)} borrowed ${playerLink(p)} from the ${teamLink(lenderTid)} until the end of the ${endSeason} season.`,
+		text: `The ${teamLink(borrowerTid)} borrowed ${playerLink(p)} from the ${teamLink(lenderTid)}${academy ? " academy" : ""} until the end of the ${endSeason} season.`,
 		showNotification: false,
 		pids: [p.pid],
 		tids: [borrowerTid, lenderTid],
@@ -104,8 +140,8 @@ export const processLoan = async (p: Player, borrowerTid: number) => {
 };
 
 /**
- * Sends a player on loan back to his club, when his loan ends or early. If his
- * club is gone, he becomes a free agent.
+ * Sends a player on loan back to his club, or its academy, when his loan ends
+ * or early. If his club is gone, he becomes a free agent.
  */
 export const returnLoan = async (p: Player) => {
 	if (!p.loan) {
@@ -114,22 +150,35 @@ export const returnLoan = async (p: Player) => {
 
 	const borrowerTid = p.tid;
 	const lenderTid = p.loan.tid;
+	const academy = !!p.loan.academy;
 	delete p.loan;
 	p.ptModifier = 1;
 
 	const lender = await idb.cache.teams.get(lenderTid);
 	if (!lender || lender.disabled) {
+		if (academy) {
+			// Like the academy players of a club that's gone (see doAcademySummer)
+			p.draft.year = g.get("season");
+		}
 		player.addToFreeAgents(p, await getNumPlayersTradedAwayNormalizedAll());
 		await idb.cache.players.put(p);
 		return;
 	}
 
-	p.tid = lenderTid;
-	await setJerseyNumber(p, lenderTid);
+	if (academy) {
+		p.tid = PLAYER.UNDRAFTED;
+		p.academyTid = lenderTid;
+		// The placeholder contract every academy player has, like a new draft
+		// prospect's
+		p.contract = { amount: g.get("minContract"), exp: g.get("season") + 1 };
+	} else {
+		p.tid = lenderTid;
+		await setJerseyNumber(p, lenderTid);
+	}
 
 	const eid = await logEvent({
 		type: "loan",
-		text: `${playerLink(p)} went back to the ${teamLink(lenderTid)} from a loan at the ${teamLink(borrowerTid)}.`,
+		text: `${playerLink(p)} went back to the ${teamLink(lenderTid)}${academy ? " academy" : ""} from a loan at the ${teamLink(borrowerTid)}.`,
 		showNotification: false,
 		pids: [p.pid],
 		tids: [lenderTid, borrowerTid],
@@ -190,7 +239,9 @@ export const returnLoans = async () => {
  * AI clubs (`aiTids`) try up to `numAttempts` times to borrow young players from
  * each other, who aren't getting minutes at their clubs but would at the
  * borrower (see aiWouldLend and aiWouldBorrow), if the borrower has room on its
- * roster and in its wage budget. Returns how many loans were made.
+ * roster and in its wage budget. Each attempt also looks at an academy player 18
+ * or older who isn't ready for his club's first team (see
+ * aiWouldLendAcademyPlayer). Returns how many loans were made.
  */
 export const loansBetweenAiClubs = async (
 	numAttempts: number,
@@ -203,6 +254,62 @@ export const loansBetweenAiClubs = async (
 	const season = g.get("season");
 	const rotationSize = 2 * g.get("numPlayersOnCourt");
 	const wageBudgets = await getWageBudgets();
+	const aiTidsSet = new Set(aiTids);
+
+	const tryLoan = async (borrowerTid: number, p: Player | undefined) => {
+		if (!p) {
+			return false;
+		}
+
+		const borrowerRoster = await idb.cache.players.indexGetAll(
+			"playersByTid",
+			borrowerTid,
+		);
+		if (borrowerRoster.length >= g.get("maxRosterSize")) {
+			return false;
+		}
+
+		const academy = p.academyTid !== undefined;
+		const lenderRoster = await idb.cache.players.indexGetAll(
+			"playersByTid",
+			p.academyTid ?? p.tid,
+		);
+		const rosterValuesNoPot = lenderRoster.map((p2) => p2.valueNoPot);
+		const wouldLend = academy
+			? aiWouldLendAcademyPlayer({
+					valueNoPot: p.valueNoPot,
+					rosterValuesNoPot,
+					rotationSize,
+				})
+			: aiWouldLend({
+					age: season - p.born.year,
+					valueNoPot: p.valueNoPot,
+					rosterValuesNoPot,
+					rotationSize,
+					minRosterSize: g.get("minRosterSize"),
+				});
+		if (
+			!wouldLend ||
+			!aiWouldBorrow({
+				valueNoPot: p.valueNoPot,
+				rosterValuesNoPot: borrowerRoster.map((p2) => p2.valueNoPot),
+				rotationSize,
+			})
+		) {
+			return false;
+		}
+
+		const wageBudget = wageBudgets.get(borrowerTid);
+		if (
+			wageBudget === undefined ||
+			(await team.getPayroll(borrowerTid)) + getLoanWage(p) > wageBudget
+		) {
+			return false;
+		}
+
+		await processLoan(p, borrowerTid);
+		return true;
+	};
 
 	let numLoans = 0;
 	for (let i = 0; i < numAttempts; i++) {
@@ -233,42 +340,30 @@ export const loansBetweenAiClubs = async (
 		}
 
 		// Like AI transfers, better players are more likely to be looked at
-		const p = choice(candidates, (p) => p.value);
-		if (!p) {
-			continue;
+		if (
+			await tryLoan(
+				borrowerTid,
+				choice(candidates, (p) => p.value),
+			)
+		) {
+			numLoans += 1;
 		}
 
-		const lenderRoster = await idb.cache.players.indexGetAll(
-			"playersByTid",
-			p.tid,
+		// International Soccer Zen GM mod (Epic 5): academy players too
+		const academyCandidates = (await getAcademyPlayers()).filter(
+			(p) =>
+				p.academyTid !== borrowerTid &&
+				aiTidsSet.has(p.academyTid!) &&
+				canAcademyPlayerBeLoaned(p),
 		);
 		if (
-			!aiWouldLend({
-				age: season - p.born.year,
-				valueNoPot: p.valueNoPot,
-				rosterValuesNoPot: lenderRoster.map((p2) => p2.valueNoPot),
-				rotationSize,
-				minRosterSize: g.get("minRosterSize"),
-			}) ||
-			!aiWouldBorrow({
-				valueNoPot: p.valueNoPot,
-				rosterValuesNoPot: borrowerRoster.map((p2) => p2.valueNoPot),
-				rotationSize,
-			})
+			await tryLoan(
+				borrowerTid,
+				choice(academyCandidates, (p) => p.value),
+			)
 		) {
-			continue;
+			numLoans += 1;
 		}
-
-		const wageBudget = wageBudgets.get(borrowerTid);
-		if (
-			wageBudget === undefined ||
-			(await team.getPayroll(borrowerTid)) + p.contract.amount > wageBudget
-		) {
-			continue;
-		}
-
-		await processLoan(p, borrowerTid);
-		numLoans += 1;
 	}
 
 	return numLoans;
@@ -281,6 +376,8 @@ const clubName = (tid: number) => {
 	const teamInfo = g.get("teamInfoCache")[tid];
 	return `${teamInfo?.region} ${teamInfo?.name}`;
 };
+
+const academyLoanAgeMessage = `Academy players can only go on loan once they're ${ACADEMY_LOAN_MIN_AGE}.`;
 
 /**
  * Why an AI club can't borrow a player right now, or undefined if it can: it
@@ -305,7 +402,7 @@ const getBorrowerProblem = async (
 	if (wageBudget === undefined) {
 		return `The ${name} aren't in the league this season`;
 	}
-	if ((await team.getPayroll(borrowerTid)) + p.contract.amount > wageBudget) {
+	if ((await team.getPayroll(borrowerTid)) + getLoanWage(p) > wageBudget) {
 		return `The ${name} can't fit his wages in their budget`;
 	}
 };
@@ -316,10 +413,11 @@ export type LoanRequestResult = {
 };
 
 /**
- * The user asks an AI club to borrow one of its first-team players until the
- * summer. The club agrees only if it would lend him to another AI club (see
- * aiWouldLend), and the user needs room on their roster and in their wage
- * budget, since they pay his wages.
+ * The user asks an AI club to borrow one of its first-team players, or one of
+ * its academy players, until the summer. The club agrees only if it would lend
+ * him to another AI club (see aiWouldLend and aiWouldLendAcademyPlayer), and the
+ * user needs room on their roster and in their wage budget, since they pay his
+ * wages.
  */
 export const requestLoan = async ({
 	pid,
@@ -340,30 +438,43 @@ export const requestLoan = async ({
 
 	const userTid = g.get("userTid");
 	const p = await idb.cache.players.get(pid);
-	if (!p || p.tid < 0) {
-		return error("That player isn't on a club's first team.");
+	if (!p || (p.tid < 0 && p.academyTid === undefined)) {
+		return error("That player isn't at a club.");
 	}
-	if (g.get("userTids").includes(p.tid)) {
+	const academy = p.academyTid !== undefined;
+	const lenderTid = p.academyTid ?? p.tid;
+	if (g.get("userTids").includes(lenderTid)) {
 		return error("That player is already yours.");
 	}
 
 	const name = `${p.firstName} ${p.lastName}`;
 	const he = helpers.pronoun(g.get("gender"), "he");
-	const lenderName = clubName(p.tid);
+	const lenderName = clubName(lenderTid);
 	const season = g.get("season");
 	const endSeason = getLoanEndSeason({ season, phase: g.get("phase") });
+	const age = season - p.born.year;
 
 	if (p.loan) {
 		return error(`${name} is already on loan.`);
 	}
-	const untradable = isUntradable(p);
-	if (untradable.untradable) {
-		return error(untradable.untradableMsg);
-	}
-	if (p.contract.exp < endSeason) {
-		return error(
-			`${name}'s contract ends before a loan would, at the end of the ${endSeason} season.`,
-		);
+	if (academy) {
+		if (!canAcademyPlayerBeLoaned(p)) {
+			return error(
+				age < ACADEMY_LOAN_MIN_AGE
+					? academyLoanAgeMessage
+					: `${name} has to leave the ${lenderName} academy before a loan would end, at the end of the ${endSeason} season.`,
+			);
+		}
+	} else {
+		const untradable = isUntradable(p);
+		if (untradable.untradable) {
+			return error(untradable.untradableMsg);
+		}
+		if (p.contract.exp < endSeason) {
+			return error(
+				`${name}'s contract ends before a loan would, at the end of the ${endSeason} season.`,
+			);
+		}
 	}
 
 	const userRoster = await idb.cache.players.indexGetAll(
@@ -374,29 +485,44 @@ export const requestLoan = async ({
 		return error("Your roster is full. Release a player before borrowing one.");
 	}
 
+	const wage = getLoanWage(p);
 	const wageBudget = (await getWageBudgets()).get(userTid);
 	if (wageBudget === undefined) {
 		return error("Your club has no wage budget this season.");
 	}
-	if ((await team.getPayroll(userTid)) + p.contract.amount > wageBudget) {
+	if ((await team.getPayroll(userTid)) + wage > wageBudget) {
 		return error(
 			`Your board won't let ${name}'s wages of ${formatAmount(
-				p.contract.amount,
+				wage,
 			)} take your payroll over your wage budget of ${formatAmount(wageBudget)}.`,
 		);
 	}
 
-	const age = season - p.born.year;
 	const lenderRoster = await idb.cache.players.indexGetAll(
 		"playersByTid",
-		p.tid,
+		lenderTid,
 	);
-	if (
+	const rotationSize = 2 * g.get("numPlayersOnCourt");
+	const rosterValuesNoPot = lenderRoster.map((p2) => p2.valueNoPot);
+	if (academy) {
+		if (
+			!aiWouldLendAcademyPlayer({
+				valueNoPot: p.valueNoPot,
+				rosterValuesNoPot,
+				rotationSize,
+			})
+		) {
+			return {
+				type: "reject",
+				message: `The ${lenderName} won't loan out ${name}, since ${he}'s ready for their first team.`,
+			};
+		}
+	} else if (
 		!aiWouldLend({
 			age,
 			valueNoPot: p.valueNoPot,
-			rosterValuesNoPot: lenderRoster.map((p2) => p2.valueNoPot),
-			rotationSize: 2 * g.get("numPlayersOnCourt"),
+			rosterValuesNoPot,
+			rotationSize,
 			minRosterSize: g.get("minRosterSize"),
 		})
 	) {
@@ -421,10 +547,11 @@ export const requestLoan = async ({
 
 /**
  * AI clubs try up to `numAttempts` times to ask to borrow players the user has
- * put on their loan list. A request is an offer with no fee and `loan` set,
- * which stays open like a transfer offer (see aiOffers.ts). A club only asks
- * for a player who'd be in its rotation, with room on its roster and in its
- * wage budget. Returns how many requests were made.
+ * put on their loan list, from their first teams or academies. A request is an
+ * offer with no fee and `loan` set, which stays open like a transfer offer (see
+ * aiOffers.ts). A club only asks for a player who'd be in its rotation, with
+ * room on its roster and in its wage budget. Returns how many requests were
+ * made.
  */
 export const makeAiLoanRequests = async (numAttempts: number) => {
 	const userTids = g.get("userTids");
@@ -435,6 +562,16 @@ export const makeAiLoanRequests = async (numAttempts: number) => {
 			if (p.loanListed && canBeLoaned(p)) {
 				candidates.push(p);
 			}
+		}
+	}
+	// International Soccer Zen GM mod (Epic 5)
+	for (const p of await getAcademyPlayers()) {
+		if (
+			userTids.includes(p.academyTid!) &&
+			p.loanListed &&
+			canAcademyPlayerBeLoaned(p)
+		) {
+			candidates.push(p);
 		}
 	}
 	const aiTids = (await idb.cache.teams.getAll())
@@ -497,7 +634,7 @@ export const makeAiLoanRequests = async (numAttempts: number) => {
 			)}">Accept or reject the request</a> within ${TRANSFER_OFFER_DAYS} days.`,
 			showNotification: true,
 			pids: [p.pid],
-			tids: [p.tid],
+			tids: [p.academyTid ?? p.tid],
 		});
 	}
 
@@ -509,17 +646,26 @@ export const makeAiLoanRequests = async (numAttempts: number) => {
 };
 
 /**
- * The user loans one of their players to the AI club that asked to borrow him
- * (see acceptAiTransferOffer). Returns an error message if it can't happen, in
- * which case a request the club can no longer follow through on is withdrawn.
+ * The user loans one of their players, from their first team or academy, to the
+ * AI club that asked to borrow him (see acceptAiTransferOffer). Returns an error
+ * message if it can't happen, in which case a request the club can no longer
+ * follow through on is withdrawn.
  */
 export const acceptLoanRequest = async (p: Player, borrowerTid: number) => {
-	const untradable = isUntradable(p);
-	if (untradable.untradable) {
-		return untradable.untradableMsg;
-	}
-	if (!canBeLoaned(p)) {
-		return `${p.firstName} ${p.lastName} can't go on loan, since his contract ends before the loan would.`;
+	if (p.academyTid !== undefined) {
+		if (!canAcademyPlayerBeLoaned(p)) {
+			return g.get("season") - p.born.year < ACADEMY_LOAN_MIN_AGE
+				? academyLoanAgeMessage
+				: `${p.firstName} ${p.lastName} can't go on loan, since he has to leave your academy before the loan would end.`;
+		}
+	} else {
+		const untradable = isUntradable(p);
+		if (untradable.untradable) {
+			return untradable.untradableMsg;
+		}
+		if (!canBeLoaned(p)) {
+			return `${p.firstName} ${p.lastName} can't go on loan, since his contract ends before the loan would.`;
+		}
 	}
 
 	const problem = await getBorrowerProblem(
@@ -547,8 +693,8 @@ export const acceptLoanRequest = async (p: Player, borrowerTid: number) => {
 };
 
 /**
- * Puts one of the user's first-team players on their loan list, for AI clubs
- * to ask to borrow him, or takes him off it
+ * Puts one of the user's players, from their first team or academy, on their
+ * loan list, for AI clubs to ask to borrow him, or takes him off it
  */
 export const setLoanListed = async ({
 	pid,
@@ -558,7 +704,7 @@ export const setLoanListed = async ({
 	listed: boolean;
 }) => {
 	const p = await idb.cache.players.get(pid);
-	if (!p || !g.get("userTids").includes(p.tid)) {
+	if (!p || !g.get("userTids").includes(p.academyTid ?? p.tid)) {
 		return "Player not found";
 	}
 	if (g.get("spectator")) {
@@ -566,6 +712,13 @@ export const setLoanListed = async ({
 	}
 	if (p.loan) {
 		return "A player on loan from another club can't be loaned out.";
+	}
+	if (
+		listed &&
+		p.academyTid !== undefined &&
+		g.get("season") - p.born.year < ACADEMY_LOAN_MIN_AGE
+	) {
+		return academyLoanAgeMessage;
 	}
 
 	if (listed) {

@@ -14,6 +14,7 @@ import { showNotification } from "../util/showNotification.ts";
 import { toWorker } from "../util/toWorker.ts";
 import {
 	makeTransferOffer,
+	requestLoan,
 	showTransferError,
 } from "../util/transferActions.ts";
 
@@ -29,9 +30,11 @@ const Academy = ({
 	contract,
 	graduationAge,
 	isUserClub,
+	loanMinAge,
 	maxRosterSize,
 	numClubs,
 	numPlayersOnRoster,
+	onLoan,
 	phase,
 	players,
 	season,
@@ -57,6 +60,9 @@ const Academy = ({
 	const clubAbbrev = teamInfoCache[tid]?.abbrev ?? abbrev;
 
 	const name = (p: AcademyPlayer) => `${p.firstName} ${p.lastName}`;
+
+	// International Soccer Zen GM mod (Epic 5)
+	const cantLoanTitle = `Academy players can go on loan once they're ${loanMinAge}, until the summer they have to leave`;
 
 	const promote = async (p: AcademyPlayer) => {
 		let message = `Promote ${name(p)} to your first team? ${helpers.pronoun(
@@ -189,35 +195,117 @@ const Academy = ({
 							>
 								{p.transferListed ? "Listed" : "List"}
 							</button>
+							<button
+								className={
+									p.loanListed
+										? "btn btn-xs btn-secondary"
+										: "btn btn-xs btn-light-bordered"
+								}
+								disabled={!p.canLoan && !p.loanListed}
+								onClick={async () => {
+									showTransferError(
+										await toWorker("main", "setLoanListed", {
+											pid: p.pid,
+											listed: !p.loanListed,
+										}),
+									);
+								}}
+								title={
+									p.canLoan
+										? "Clubs ask to borrow players on your loan list until the summer"
+										: cantLoanTitle
+								}
+							>
+								{p.loanListed ? "Loan listed" : "Loan list"}
+							</button>
 						</div>,
 					]
 				: canBuy
 					? [
-							<button
-								className="btn btn-xs btn-primary"
-								disabled={!transferWindow || !p.forSale}
-								key="offer"
-								onClick={() =>
-									makeTransferOffer({
-										pid: p.pid,
-										abbrev: clubAbbrev,
-										name: name(p),
-										fee: p.fee,
-										academy: true,
-									})
-								}
-								title={
-									!transferWindow
-										? "The transfer window is closed"
-										: !p.forSale
-											? "He's leaving the academy this summer"
-											: `Transfer fee at market value: ${helpers.formatCurrency(p.fee, "M")}`
-								}
-							>
-								Make offer
-							</button>,
+							<div className="d-flex gap-1" key="buttons">
+								<button
+									className="btn btn-xs btn-primary"
+									disabled={!transferWindow || !p.forSale}
+									onClick={() =>
+										makeTransferOffer({
+											pid: p.pid,
+											abbrev: clubAbbrev,
+											name: name(p),
+											fee: p.fee,
+											academy: true,
+										})
+									}
+									title={
+										!transferWindow
+											? "The transfer window is closed"
+											: !p.forSale
+												? "He's leaving the academy this summer"
+												: `Transfer fee at market value: ${helpers.formatCurrency(p.fee, "M")}`
+									}
+								>
+									Make offer
+								</button>
+								<button
+									className="btn btn-xs btn-light-bordered"
+									disabled={!transferWindow || !p.canLoan}
+									onClick={() => requestLoan({ pid: p.pid })}
+									title={
+										!transferWindow
+											? "The transfer window is closed"
+											: !p.canLoan
+												? cantLoanTitle
+												: "Ask to borrow him until the summer, if his club doesn't think he's ready for its first team. You'd pay him the minimum wage."
+									}
+								>
+									Borrow
+								</button>
+							</div>,
 						]
 					: []),
+		],
+	}));
+
+	// International Soccer Zen GM mod (Epic 5): academy players out on loan
+	const onLoanCols = getCols(["Name", "Pos", "Age", "Ovr", "Pot", "Team"]);
+	onLoanCols.push({
+		title: "Until",
+		desc: "He comes back to the academy in the summer of this season",
+		sortSequence: ["asc", "desc"],
+		sortType: "number",
+	});
+
+	const onLoanRows: DataTableRow[] = onLoan.map((p) => ({
+		key: p.pid,
+		metadata: {
+			type: "player",
+			pid: p.pid,
+			season,
+			playoffs: "regularSeason",
+		},
+		data: [
+			wrappedPlayerNameLabels({
+				pid: p.pid,
+				season,
+				skills: p.skills,
+				defaultWatch: p.watch,
+				firstName: p.firstName,
+				firstNameShort: p.firstNameShort,
+				lastName: p.lastName,
+			}),
+			p.pos,
+			p.age,
+			!challengeNoRatings ? p.ovr : null,
+			!challengeNoRatings ? p.pot : null,
+			{
+				value: (
+					<a href={helpers.leagueUrl(["roster", `${p.abbrev}_${p.tid}`])}>
+						{p.abbrev}
+					</a>
+				),
+				sortValue: p.abbrev,
+				searchValue: p.abbrev,
+			},
+			p.loanEndSeason,
 		],
 	}));
 
@@ -236,14 +324,17 @@ const Academy = ({
 						{numClubs}, from the club's scouting budget and its tier, so it gets
 						that share of the best prospects.
 					</>
-				) : null}
+				) : null}{" "}
+				Players {loanMinAge} or older can go on loan to another club's first
+				team until the summer, on the minimum wage, and then come back.
 			</p>
 
 			{canManage ? (
 				<p>
 					Promoted players sign for the minimum wage for 3 seasons, and can be
 					released for free until the regular season starts. Your first team has{" "}
-					{numPlayersOnRoster} of {maxRosterSize} players.
+					{numPlayersOnRoster} of {maxRosterSize} players. Put players on your
+					loan list for clubs to ask to borrow them.
 				</p>
 			) : null}
 
@@ -267,6 +358,18 @@ const Academy = ({
 					rows={rows}
 				/>
 			)}
+
+			{onLoanRows.length > 0 ? (
+				<>
+					<h2>Out on loan</h2>
+					<DataTable
+						cols={onLoanCols}
+						defaultSort={[0, "asc"]}
+						name="AcademyOnLoan"
+						rows={onLoanRows}
+					/>
+				</>
+			) : null}
 		</>
 	);
 };

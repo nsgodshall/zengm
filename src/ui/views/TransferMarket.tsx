@@ -29,6 +29,7 @@ type Offer = View<"transferMarket">["offers"][number];
 
 const TransferMarket = ({
 	academyPlayers,
+	loanMinAge,
 	cash,
 	maxRosterSize,
 	numPlayersOnRoster,
@@ -294,6 +295,7 @@ const TransferMarket = ({
 		academyFeeCol,
 		offersCol,
 		transferListCol,
+		loanListCol,
 	];
 
 	const userAcademyRows: DataTableRow[] = userAcademyPlayers.map((p) => ({
@@ -313,6 +315,7 @@ const TransferMarket = ({
 			},
 			p.transferOffers.length,
 			transferListButton(p),
+			loanListButton(p),
 		],
 	}));
 
@@ -436,20 +439,33 @@ const TransferMarket = ({
 				value: formatMillions(p.fee),
 				sortValue: p.fee,
 			},
-			<button
-				className="btn btn-xs btn-primary"
-				disabled={!canAct}
-				key="offer"
-				onClick={() =>
-					makeOffer({
-						...p,
-						name: `${p.firstName} ${p.lastName}`,
-						academy: true,
-					})
-				}
-			>
-				Make offer
-			</button>,
+			<div className="d-flex gap-1" key="buttons">
+				<button
+					className="btn btn-xs btn-primary"
+					disabled={!canAct}
+					onClick={() =>
+						makeOffer({
+							...p,
+							name: `${p.firstName} ${p.lastName}`,
+							academy: true,
+						})
+					}
+				>
+					Make offer
+				</button>
+				<button
+					className="btn btn-xs btn-light-bordered"
+					disabled={!canAct || !p.canLoan}
+					onClick={() => requestLoan(p)}
+					title={
+						p.canLoan
+							? "Ask to borrow him until the summer, if his club doesn't think he's ready for its first team. You'd pay him the minimum wage."
+							: `Academy players can go on loan once they're ${loanMinAge}, until the summer they have to leave`
+					}
+				>
+					Borrow
+				</button>
+			</div>,
 		],
 	}));
 
@@ -500,7 +516,9 @@ const TransferMarket = ({
 			<h2>Your academy players</h2>
 			<p>
 				Clubs make offers for your academy players too, and one you sell joins
-				the buying club's academy.
+				the buying club's academy. Put academy players {loanMinAge} or older on
+				your loan list for clubs to ask to borrow them until the summer, on the
+				minimum wage.
 			</p>
 			<DataTable
 				cols={userAcademyCols}
@@ -537,9 +555,11 @@ const TransferMarket = ({
 
 			<h2>Other clubs' academy players</h2>
 			<p>
-				A player you buy from another club's academy joins yours, so he doesn't
-				take a roster spot or count against your wage budget until you promote
-				him.
+				You can borrow academy players {loanMinAge} or older until the summer,
+				on the minimum wage, if their club doesn't think they're ready for its
+				first team. A player you buy from another club's academy joins yours, so
+				he doesn't take a roster spot or count against your wage budget until
+				you promote him.
 			</p>
 			<DataTable
 				cols={academyCols}

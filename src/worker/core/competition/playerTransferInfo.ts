@@ -9,6 +9,8 @@ import {
 import { getCurrentTransferWindow } from "./aiTransfers.ts";
 import { isSingleDivision } from "./competitionStructure.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
+import { canAcademyPlayerBeLoaned } from "./loanMoves.ts";
+import { ACADEMY_LOAN_MIN_AGE } from "./loans.ts";
 import { getContractSeasonsLeft, getTransferFee } from "./transferMarket.ts";
 
 /**
@@ -49,6 +51,10 @@ export const getPlayerTransferInfo = async (p: Player) => {
 		// Millions of dollars, like contracts in the UI
 		fee: fee / 1000,
 		academyForSale: inAcademy && isAcademyPlayerForSale(p),
+		// International Soccer Zen GM mod (Epic 5): an academy player old enough
+		// to go on loan
+		academyLoanable: inAcademy && canAcademyPlayerBeLoaned(p),
+		academyLoanMinAge: ACADEMY_LOAN_MIN_AGE,
 		transferListed: !!p.transferListed,
 		loanListed: !!p.loanListed,
 		onLoan: p.loan !== undefined,
