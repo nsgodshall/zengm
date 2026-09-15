@@ -1,11 +1,60 @@
 import { describe, expect, test } from "vitest";
+import { MAX_LEVEL } from "../../../common/budgetLevels.ts";
 import {
+	AVERAGE_HYPE,
 	getChampionPrize,
 	getProjectedRevenue,
 	getPromotionPrize,
+	getReinvestedBudgetLevel,
 	getTvShare,
+	regressHype,
 	WORLD_REVENUE_SETTINGS,
 } from "./worldRevenue.ts";
+
+describe("getReinvestedBudgetLevel", () => {
+	const revenue = 200_000;
+
+	test("keeps the market size's level unless a club has more cash than a season's revenue", () => {
+		expect(
+			getReinvestedBudgetLevel({ level: 34, cash: -50_000, revenue }),
+		).toBe(34);
+		expect(
+			getReinvestedBudgetLevel({ level: 34, cash: revenue, revenue }),
+		).toBe(34);
+		expect(
+			getReinvestedBudgetLevel({ level: 34, cash: 1000, revenue: 0 }),
+		).toBe(34);
+	});
+
+	test("raises it for each season's revenue of spare cash, up to a limit", () => {
+		const { reinvestLevelsPerSeason, maxReinvestSeasons } =
+			WORLD_REVENUE_SETTINGS;
+		expect(
+			getReinvestedBudgetLevel({ level: 34, cash: 2 * revenue, revenue }),
+		).toBe(34 + reinvestLevelsPerSeason);
+		expect(
+			getReinvestedBudgetLevel({ level: 34, cash: 20 * revenue, revenue }),
+		).toBe(
+			Math.min(MAX_LEVEL, 34 + reinvestLevelsPerSeason * maxReinvestSeasons),
+		);
+		expect(
+			getReinvestedBudgetLevel({ level: 95, cash: 20 * revenue, revenue }),
+		).toBe(MAX_LEVEL);
+	});
+});
+
+describe("regressHype", () => {
+	test("moves hype part of the way back to average", () => {
+		const { hypeRegression } = WORLD_REVENUE_SETTINGS;
+		expect(regressHype(AVERAGE_HYPE)).toBe(AVERAGE_HYPE);
+		expect(regressHype(1)).toBeCloseTo(1 - hypeRegression * (1 - AVERAGE_HYPE));
+		expect(regressHype(0)).toBeCloseTo(hypeRegression * AVERAGE_HYPE);
+		expect(regressHype(0.8)).toBeLessThan(0.8);
+		expect(regressHype(0.8)).toBeGreaterThan(AVERAGE_HYPE);
+		expect(regressHype(0.2)).toBeGreaterThan(0.2);
+		expect(regressHype(0.2)).toBeLessThan(AVERAGE_HYPE);
+	});
+});
 
 describe("getTvShare", () => {
 	test("is bigger in higher tiers, and the lowest listed share covers any lower tier", () => {

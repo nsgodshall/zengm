@@ -1038,6 +1038,38 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			for (const game of games) {
 				assert.strictEqual(game.linkId, 2);
 				assert([game.homeTid, game.awayTid].includes(game.winnerTid));
+
+				// Saved like a playoff game: a box score, and the players' playoff stats
+				assert(game.gid !== undefined, `${season} game has no box score`);
+				const boxScore =
+					(await idb.cache.games.get(game.gid)) ??
+					(await idb.league.get("games", game.gid));
+				assert(boxScore, `${season} box score ${game.gid} not found`);
+				assert.strictEqual(boxScore.playoffs, true);
+				assert.strictEqual(boxScore.season, season);
+				assert.deepStrictEqual(
+					boxScore.teams.map((t) => [t.tid, t.pts]),
+					[
+						[game.homeTid, game.homePts],
+						[game.awayTid, game.awayPts],
+					],
+				);
+
+				const boxScorePlayer = boxScore.teams[0].players.find((p) => p.min > 0);
+				assert(boxScorePlayer, `${season} box score has no players`);
+				const p =
+					(await idb.cache.players.get(boxScorePlayer.pid)) ??
+					(await idb.league.get("players", boxScorePlayer.pid));
+				assert(
+					p?.stats.some(
+						(row) =>
+							row.season === season &&
+							row.playoffs &&
+							row.tid === game.homeTid &&
+							row.gp > 0,
+					),
+					`pid ${boxScorePlayer.pid} has no playoff stats for ${season}`,
+				);
 			}
 
 			const brackets = await competition.getPromotionPlayoffBrackets(season);

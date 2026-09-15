@@ -65,6 +65,7 @@ import {
 	validateCompetitionStructure,
 } from "./competitionStructure.ts";
 import { buildDivisionTables, getDivisionTables } from "./divisionTables.ts";
+import { getBudgetReinvestment } from "./wageBudgets.ts";
 import doEndOfSeason from "./endOfSeason.ts";
 import transfersBetweenAiClubs, {
 	getCurrentTransferWindow,
@@ -101,6 +102,7 @@ import resolvePromotionRelegation, {
 export default {
 	academyPlayerDevelops,
 	buildDivisionTables,
+	getBudgetReinvestment,
 	computeDivisionTable,
 	doAcademySummer,
 	doEndOfSeason,

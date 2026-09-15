@@ -88,6 +88,7 @@ const getPromotionPlayoffBrackets = async (season: number) => {
 					games
 						.filter((game) => game.round === round)
 						.map((game) => ({
+							gid: game.gid,
 							home: { ...club(game.homeTid), pts: game.homePts },
 							away: { ...club(game.awayTid), pts: game.awayPts },
 							winnerTid: game.winnerTid,

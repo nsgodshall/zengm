@@ -8,7 +8,10 @@ import {
 	getWageBudget,
 	MAX_WAGE_BUDGET_CAP_MULTIPLE,
 } from "./transferMarket.ts";
-import { getProjectedRevenue } from "./worldRevenue.ts";
+import {
+	getProjectedRevenue,
+	getReinvestedBudgetLevel,
+} from "./worldRevenue.ts";
 
 /**
  * Every active club's wage budget, in thousands of dollars, from its revenue,
@@ -93,6 +96,34 @@ export const getWageBudgets = async () => {
 	}
 
 	return wageBudgets;
+};
+
+/**
+ * International Soccer Zen GM mod (Epic 8): in a World, how the preseason sets a
+ * club's coaching, facilities, and health budget levels from its market size's
+ * level, using `season`'s cash and revenue (see getReinvestedBudgetLevel).
+ * Undefined outside a World, or for a club with no team season then.
+ */
+export const getBudgetReinvestment = async (tid: number, season: number) => {
+	if (isSingleDivision(getCompetitionStructure())) {
+		return;
+	}
+
+	const teamSeason = await idb.cache.teamSeasons.indexGet(
+		"teamSeasonsBySeasonTid",
+		[season, tid],
+	);
+	if (!teamSeason) {
+		return;
+	}
+
+	let revenue = 0;
+	for (const amount of Object.values(teamSeason.revenues)) {
+		revenue += amount;
+	}
+	const { cash } = teamSeason;
+
+	return (level: number) => getReinvestedBudgetLevel({ level, cash, revenue });
 };
 
 /**

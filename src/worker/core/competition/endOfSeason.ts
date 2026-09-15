@@ -15,7 +15,11 @@ import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
 import planEndOfSeason, { type EndOfSeasonPlan } from "./planEndOfSeason.ts";
 import playPromotionPlayoffGame from "./playPromotionPlayoffGame.ts";
 import teamLink from "./teamLink.ts";
-import { getChampionPrize, getPromotionPrize } from "./worldRevenue.ts";
+import {
+	getChampionPrize,
+	getPromotionPrize,
+	regressHype,
+} from "./worldRevenue.ts";
 import { releaseRelegationClausePlayers } from "./relegationClauses.ts";
 
 /**
@@ -76,6 +80,22 @@ const crownChampions = async (
 
 // How much hype a club gains when it's promoted, or loses when it's relegated
 export const PROMOTION_HYPE = 0.05;
+
+/**
+ * Epic 8: every summer, each club's hype moves part of the way back to average
+ * (see regressHype), before titles, promotion, and relegation change it.
+ * Otherwise clubs that win take their hype up a tier with them, and lower
+ * tiers' hype sags season after season.
+ */
+const steadyHype = async (season: number) => {
+	for (const teamSeason of await idb.cache.teamSeasons.indexGetAll(
+		"teamSeasonsBySeasonTid",
+		[[season], [season, "Z"]],
+	)) {
+		teamSeason.hype = helpers.bound(regressHype(teamSeason.hype), 0, 1);
+		await idb.cache.teamSeasons.put(teamSeason);
+	}
+};
 
 /**
  * Only the team changes: this season's team season keeps the Division the club
@@ -250,12 +270,10 @@ const doEndOfSeason = async (conditions: Conditions) => {
 		structure,
 		tables,
 		async (homeTid, awayTid, { linkId, round }) => {
-			const { winnerTid, homePts, awayPts } = await playPromotionPlayoffGame(
-				homeTid,
-				awayTid,
-				conditions,
-			);
+			const { gid, winnerTid, homePts, awayPts } =
+				await playPromotionPlayoffGame(homeTid, awayTid, conditions);
 			games.push({
+				gid,
 				season,
 				linkId,
 				round,
@@ -283,6 +301,7 @@ const doEndOfSeason = async (conditions: Conditions) => {
 		});
 	}
 
+	await steadyHype(season);
 	await crownChampions(structure, plan.champions, conditions);
 	await applyMoves(structure, plan, conditions);
 

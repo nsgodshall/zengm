@@ -688,6 +688,9 @@ export type GameAttributesLeague = {
 		homePts: number;
 		awayPts: number;
 		winnerTid: number;
+		// International Soccer Zen GM mod (Epic 8): its box score, for games played
+		// since promotion playoff box scores were saved
+		gid?: number;
 	}[];
 	daysLeft: number;
 	defaultStadiumCapacity: number;

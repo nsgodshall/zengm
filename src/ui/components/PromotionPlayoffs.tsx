@@ -68,6 +68,22 @@ const GameResult = ({
 					</tr>
 				);
 			})}
+			{game.gid !== undefined ? (
+				<tr>
+					<td colSpan={2}>
+						<a
+							href={helpers.leagueUrl([
+								"game_log",
+								`${game.home.abbrev}_${game.home.tid}`,
+								season,
+								game.gid,
+							])}
+						>
+							Box score
+						</a>
+					</td>
+				</tr>
+			) : null}
 		</tbody>
 	</table>
 );

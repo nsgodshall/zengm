@@ -211,13 +211,22 @@ const newPhasePreseason = async (
 			await team.resetTicketPrice(t, popRank);
 
 			// Sometimes update budget items for AI teams
+			// International Soccer Zen GM mod (Epic 8): in a World, coaching,
+			// facilities, and health follow a club's market size every season,
+			// raised if it has cash to spare (see competition/worldRevenue.ts)
+			const reinvest = await competition.getBudgetReinvestment(
+				t.tid,
+				newSeason - 1,
+			);
 			for (const key of [
 				"scouting",
 				"coaching",
 				"health",
 				"facilities",
 			] as const) {
-				if (Math.random() < 0.5) {
+				if (reinvest && key !== "scouting") {
+					t.budget[key] = reinvest(finances.defaultBudgetLevel(popRank));
+				} else if (Math.random() < 0.5) {
 					t.budget[key] = finances.defaultBudgetLevel(popRank);
 				}
 			}
