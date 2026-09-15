@@ -97,6 +97,14 @@ export const AMERICAN_TOWNS: PilotTown[] = [
 	{ name: "Little Rock", pop: 203, wikipedia: "Little_Rock,_Arkansas" },
 	{ name: "Syracuse", pop: 145, wikipedia: "Syracuse,_New_York" },
 	{ name: "Green Bay", pop: 107, wikipedia: "Green_Bay,_Wisconsin" },
+	{ name: "Bakersfield", pop: 410, wikipedia: "Bakersfield,_California" },
+	{ name: "Anaheim", pop: 345, wikipedia: "Anaheim,_California" },
+	{
+		name: "San Bernardino",
+		pop: 220,
+		wikipedia: "San_Bernardino,_California",
+	},
+	{ name: "Ventura", pop: 110, wikipedia: "Ventura,_California" },
 ];
 
 export const MEXICAN_TOWNS: PilotTown[] = [
