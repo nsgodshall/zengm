@@ -5,6 +5,10 @@ import type { RealClub } from "./worldCountries.ts";
 // La Liga on top, Segunda below), in rough order of stature, so a smaller
 // Division keeps the clubs at the top of its list. Crests are copied from
 // Wikipedia into public/img/world-logos/spain/. Towns are from SPANISH_TOWNS.
+//
+// A club's region is the name fans use, which ZenGM's tables show on its own,
+// and its name is the rest of its official name ("Atlético" "de Madrid"), or
+// its club type when that comes first in real life ("Espanyol" "RCD").
 
 const crest = (file: string) => `/img/world-logos/spain/${file}`;
 
@@ -28,8 +32,8 @@ export const SPANISH_CLUBS_BY_TIER: RealClub[][] = [
 			"real-madrid.svg",
 		),
 		club(
-			"FC",
 			"Barcelona",
+			"FC",
 			"BAR",
 			"Barcelona",
 			["#a50044", "#004d98", "#edbb00"],
@@ -37,7 +41,7 @@ export const SPANISH_CLUBS_BY_TIER: RealClub[][] = [
 		),
 		club(
 			"Atlético",
-			"Madrid",
+			"de Madrid",
 			"ATM",
 			"Madrid",
 			["#cb3524", "#ffffff", "#272e61"],
@@ -60,16 +64,16 @@ export const SPANISH_CLUBS_BY_TIER: RealClub[][] = [
 			"sevilla.png",
 		),
 		club(
-			"Real",
-			"Betis",
+			"Real Betis",
+			"Balompié",
 			"BET",
 			"Sevilla",
 			["#00954c", "#ffffff", "#000000"],
 			"real-betis.png",
 		),
 		club(
-			"Real",
-			"Sociedad",
+			"Real Sociedad",
+			"de Fútbol",
 			"RSO",
 			"San Sebastián",
 			["#0067b1", "#ffffff", "#e4b630"],
@@ -93,15 +97,15 @@ export const SPANISH_CLUBS_BY_TIER: RealClub[][] = [
 		),
 		club(
 			"Celta",
-			"Vigo",
+			"de Vigo",
 			"CLT",
 			"Vigo",
 			["#8ac3ee", "#ffffff", "#e5254e"],
 			"celta-vigo.svg",
 		),
 		club(
-			"CA",
 			"Osasuna",
+			"CA",
 			"OSA",
 			"Pamplona",
 			["#d91a21", "#0a346f", "#ffffff"],
@@ -116,8 +120,8 @@ export const SPANISH_CLUBS_BY_TIER: RealClub[][] = [
 			"girona.svg",
 		),
 		club(
-			"Rayo",
-			"Vallecano",
+			"Rayo Vallecano",
+			"de Madrid",
 			"RAY",
 			"Madrid",
 			["#ffffff", "#e53027", "#000000"],
@@ -132,24 +136,24 @@ export const SPANISH_CLUBS_BY_TIER: RealClub[][] = [
 			"getafe.png",
 		),
 		club(
-			"RCD",
 			"Espanyol",
+			"RCD",
 			"ESP",
 			"Barcelona",
 			["#007fc8", "#ffffff", "#000000"],
 			"espanyol.svg",
 		),
 		club(
-			"RCD",
 			"Mallorca",
+			"RCD",
 			"MLL",
 			"Palma",
 			["#e20613", "#000000", "#ffe667"],
 			"mallorca.svg",
 		),
 		club(
-			"Deportivo",
 			"Alavés",
+			"Deportivo",
 			"ALA",
 			"Vitoria-Gasteiz",
 			["#0761af", "#ffffff", "#000000"],
@@ -172,8 +176,8 @@ export const SPANISH_CLUBS_BY_TIER: RealClub[][] = [
 			"elche.svg",
 		),
 		club(
-			"Real",
-			"Oviedo",
+			"Real Oviedo",
+			"SAD",
 			"OVI",
 			"Oviedo",
 			["#0d3b8d", "#ffffff", "#000000"],
@@ -190,8 +194,8 @@ export const SPANISH_CLUBS_BY_TIER: RealClub[][] = [
 			"deportivo-la-coruna.svg",
 		),
 		club(
-			"Real",
-			"Zaragoza",
+			"Real Zaragoza",
+			"SAD",
 			"ZAR",
 			"Zaragoza",
 			["#ffffff", "#0e4c92", "#000000"],
@@ -206,16 +210,16 @@ export const SPANISH_CLUBS_BY_TIER: RealClub[][] = [
 			"malaga.svg",
 		),
 		club(
-			"UD",
 			"Las Palmas",
+			"UD",
 			"LPA",
 			"Las Palmas",
 			["#ffe400", "#0055a4", "#ffffff"],
 			"las-palmas.png",
 		),
 		club(
-			"Real",
-			"Valladolid",
+			"Real Valladolid",
+			"CF",
 			"VLL",
 			"Valladolid",
 			["#5b2c83", "#ffffff", "#000000"],
@@ -223,7 +227,7 @@ export const SPANISH_CLUBS_BY_TIER: RealClub[][] = [
 		),
 		club(
 			"Sporting",
-			"Gijón",
+			"de Gijón",
 			"SPG",
 			"Gijón",
 			["#d21f26", "#ffffff", "#000000"],
@@ -231,7 +235,7 @@ export const SPANISH_CLUBS_BY_TIER: RealClub[][] = [
 		),
 		club(
 			"Racing",
-			"Santander",
+			"de Santander",
 			"RAC",
 			"Santander",
 			["#ffffff", "#00804b", "#000000"],
@@ -254,32 +258,32 @@ export const SPANISH_CLUBS_BY_TIER: RealClub[][] = [
 			"cadiz.svg",
 		),
 		club(
-			"UD",
 			"Almería",
+			"UD",
 			"ALM",
 			"Almería",
 			["#ee1119", "#ffffff", "#000000"],
 			"almeria.svg",
 		),
 		club(
-			"CD",
 			"Leganés",
+			"CD",
 			"LEG",
 			"Leganés",
 			["#0033a0", "#ffffff", "#000000"],
 			"leganes.svg",
 		),
 		club(
-			"SD",
 			"Eibar",
+			"SD",
 			"EIB",
 			"Eibar",
 			["#a50044", "#004d98", "#ffffff"],
 			"eibar.svg",
 		),
 		club(
-			"SD",
 			"Huesca",
+			"SD",
 			"HUE",
 			"Huesca",
 			["#1f3a93", "#c8102e", "#ffffff"],
@@ -310,8 +314,8 @@ export const SPANISH_CLUBS_BY_TIER: RealClub[][] = [
 			"burgos.svg",
 		),
 		club(
-			"CD",
 			"Castellón",
+			"CD",
 			"CAS",
 			"Castellón de la Plana",
 			["#000000", "#ffffff", "#c8102e"],
@@ -319,23 +323,23 @@ export const SPANISH_CLUBS_BY_TIER: RealClub[][] = [
 		),
 		club(
 			"Cultural",
-			"Leonesa",
+			"y Deportiva Leonesa",
 			"CUL",
 			"León",
 			["#ffffff", "#000000", "#c8102e"],
 			"cultural-leonesa.svg",
 		),
 		club(
-			"CD",
 			"Mirandés",
+			"CD",
 			"MIR",
 			"Miranda de Ebro",
 			["#e30613", "#000000", "#ffffff"],
 			"mirandes.svg",
 		),
 		club(
-			"AD",
 			"Ceuta",
+			"AD",
 			"CEU",
 			"Ceuta",
 			["#ffffff", "#000000", "#c8102e"],
