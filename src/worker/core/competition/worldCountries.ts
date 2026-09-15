@@ -17,7 +17,7 @@ import {
 	REAL_JAPANESE_CLUB_NAMES,
 	REAL_MEXICAN_CLUB_NAMES,
 } from "./worldTowns.ts";
-import { AMERICAN_REAL_CLUBS } from "./americanClubs.ts";
+import { AMERICAN_CLUBS_BY_TIER } from "./americanClubs.ts";
 import { BRITISH_CLUBS_BY_TIER } from "./britishClubs.ts";
 import { SPANISH_CLUBS_BY_TIER } from "./spanishClubs.ts";
 
@@ -142,8 +142,8 @@ export const WORLD_COUNTRIES: WorldCountry[] = [
 		numTiers: 3,
 		towns: AMERICAN_TOWNS,
 		realClubNames: REAL_AMERICAN_CLUB_NAMES,
-		// Decided with the user: the USA's top tier is real teams
-		realClubsByTier: [AMERICAN_REAL_CLUBS],
+		// Decided with the user: every USA tier is real teams, named for cities
+		realClubsByTier: AMERICAN_CLUBS_BY_TIER,
 		namePatterns: [
 			...withSuffixes(["FC", "FC", "SC", "United", "City", "Athletic"]),
 			...withPrefixes(["Real", "Sporting", "Inter"]),

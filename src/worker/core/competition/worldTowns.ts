@@ -86,6 +86,17 @@ export const AMERICAN_TOWNS: PilotTown[] = [
 	{ name: "Hartford", pop: 120, wikipedia: "Hartford,_Connecticut" },
 	{ name: "Burlington", pop: 45, wikipedia: "Burlington,_Vermont" },
 	{ name: "Missoula", pop: 75, wikipedia: "Missoula,_Montana" },
+	// International Soccer Zen GM mod (Epic 7): cities for real clubs (see
+	// competition/americanClubs.ts)
+	{
+		name: "Colorado Springs",
+		pop: 480,
+		wikipedia: "Colorado_Springs,_Colorado",
+	},
+	{ name: "Baton Rouge", pop: 222, wikipedia: "Baton_Rouge,_Louisiana" },
+	{ name: "Little Rock", pop: 203, wikipedia: "Little_Rock,_Arkansas" },
+	{ name: "Syracuse", pop: 145, wikipedia: "Syracuse,_New_York" },
+	{ name: "Green Bay", pop: 107, wikipedia: "Green_Bay,_Wisconsin" },
 ];
 
 export const MEXICAN_TOWNS: PilotTown[] = [

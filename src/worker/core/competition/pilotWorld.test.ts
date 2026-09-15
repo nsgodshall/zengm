@@ -300,14 +300,36 @@ describe("generateWorld", () => {
 	});
 });
 
-describe("the USA's top tier of real clubs", () => {
+describe("the USA's real clubs", () => {
 	const usa = WORLD_COUNTRIES.find((country) => country.key === "usa")!;
 	const realClubs = usa.realClubsByTier![0]!;
 	const byName = new Map(realClubs.map((club) => [fullName(club), club]));
 
-	test("a USA World's top tier is made of them, clubs picked first first, and its lower tiers skip their towns", () => {
-		expect(usa.realClubsByTier).toHaveLength(1);
+	test("every tier is real clubs, from that tier's list, with the top tier's picked-first clubs first", () => {
+		expect(usa.realClubsByTier).toHaveLength(usa.numTiers);
 		expect(usa.realClubsInOrder).toBeUndefined();
+		for (const clubsPerDivision of [10, 16, 20]) {
+			const { structure, clubs } = generateWorld({
+				countryKeys: ["usa"],
+				clubsPerDivision,
+				random: seededRandom(clubsPerDivision + 100),
+			});
+			for (const division of structure.competitionDivisions) {
+				const tierNames = new Set(
+					usa.realClubsByTier![division.tier - 1]!.map(fullName),
+				);
+				const divisionClubs = clubs.filter(
+					(club) => club.divisionId === division.divisionId,
+				);
+				expect(divisionClubs).toHaveLength(clubsPerDivision);
+				for (const club of divisionClubs) {
+					expect(tierNames.has(fullName(club)), fullName(club)).toBe(true);
+				}
+			}
+		}
+	});
+
+	test("a USA World's top tier is made of them, clubs picked first first", () => {
 		const numPickFirst = realClubs.filter((club) => club.pickFirst).length;
 		for (const clubsPerDivision of [10, 16, 20]) {
 			const { structure, clubs } = generateWorld({
@@ -336,12 +358,6 @@ describe("the USA's top tier of real clubs", () => {
 				topClubs.filter((club) => byName.get(fullName(club))!.pickFirst),
 			).toHaveLength(Math.min(clubsPerDivision, numPickFirst));
 
-			const topTowns = new Set(topClubs.map((club) => club.location.town));
-			for (const club of clubs) {
-				if (club.divisionId !== topDivisionId) {
-					expect(topTowns.has(club.location.town)).toBe(false);
-				}
-			}
 			expect(new Set(clubs.map((club) => club.abbrev)).size).toBe(clubs.length);
 		}
 	});
