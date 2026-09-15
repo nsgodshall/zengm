@@ -21,6 +21,10 @@ const newPhaseFreeAgency = async (): Promise<PhaseReturn> => {
 	// promote or release during re-signing become free agents
 	await competition.releaseUndecidedGraduates();
 
+	// International Soccer Zen GM mod (Epic 4): the summer window's talent pool
+	// arrives with free agency
+	await competition.ensureTalentPool();
+
 	await freeAgents.ensureEnoughPlayers();
 
 	await freeAgents.normalizeContractDemands({ type: "freeAgentsOnly" });

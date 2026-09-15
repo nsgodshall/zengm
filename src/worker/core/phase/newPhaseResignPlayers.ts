@@ -56,7 +56,12 @@ const newPhaseResignPlayers = async (
 				).filter(
 					// International Soccer Zen GM mod (Epic 6): the user decides on their
 					// academy graduates during re-signing (see competition/academies.ts)
-					(p) => p.tid === PLAYER.UNDRAFTED && p.academyTid === undefined,
+					// International Soccer Zen GM mod (Epic 4): and talent pool players
+					// leave when their window closes (see competition/talentPoolMoves.ts)
+					(p) =>
+						p.tid === PLAYER.UNDRAFTED &&
+						p.academyTid === undefined &&
+						p.talentPool === undefined,
 				)
 			: [];
 

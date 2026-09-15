@@ -96,6 +96,7 @@ export const getPlayer = async (
 				// International Soccer Zen GM mod (Epic 4)
 				loan?: Player["loan"];
 				academyTid?: number;
+				talentPool?: string;
 				ratings: (MinimalPlayerRatings & {
 					abbrev: string;
 					age: number;
@@ -139,6 +140,7 @@ export const getPlayer = async (
 			// International Soccer Zen GM mod (Epic 4)
 			"loan",
 			"academyTid",
+			"talentPool",
 			"untradable",
 			"jerseyNumber",
 			"experience",
@@ -259,7 +261,10 @@ export const getCommon = async (
 				: g.get("teamInfoCache")[p.academyTid];
 		teamName = academyInfo
 			? `${academyInfo.region} ${academyInfo.name} Academy`
-			: "Draft Prospect";
+			: // International Soccer Zen GM mod (Epic 4)
+				p.talentPool !== undefined
+				? "International Talent Pool"
+				: "Draft Prospect";
 	} else if (p.tid === PLAYER.RETIRED) {
 		teamName = "Retired";
 	}

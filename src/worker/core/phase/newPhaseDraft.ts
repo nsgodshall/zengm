@@ -48,6 +48,10 @@ const newPhaseDraft = async (conditions: Conditions): Promise<PhaseReturn> => {
 	// re-signing starts
 	await competition.returnLoans();
 
+	// International Soccer Zen GM mod (Epic 4): talent pool players left from a
+	// winter window leave before re-signing
+	await competition.removeStaleTalentPool();
+
 	// International Soccer Zen GM mod (Epic 5): a World's clubs promote and
 	// release academy players, and take in a new intake, instead
 	await competition.doAcademySummer();

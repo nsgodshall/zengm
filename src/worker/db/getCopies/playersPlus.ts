@@ -360,6 +360,9 @@ const processAttrs = (
 				} else if (transaction.type === "academy") {
 					// International Soccer Zen GM mod (Epic 5)
 					output.latestTransaction = `Academy graduate in ${transaction.season}`;
+				} else if (transaction.type === "talentPool") {
+					// International Soccer Zen GM mod (Epic 4)
+					output.latestTransaction = `Signed from abroad in ${transaction.season}`;
 				} else if (
 					transaction.type === "transfer" ||
 					transaction.type === "loan" ||

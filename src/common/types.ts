@@ -676,6 +676,9 @@ export type GameAttributesLeague = {
 	// crests, bigger rosters, and stadiums by market has been given them (see
 	// ensureCompetitionStructure)
 	worldContentFilled?: true;
+	// International Soccer Zen GM mod (Epic 4): the transfer window whose talent
+	// pool has arrived, so it only arrives once (see competition/talentPoolMoves.ts)
+	talentPoolKey?: string;
 	promotionPlayoffResults?: {
 		season: number;
 		linkId: number;
@@ -1303,6 +1306,9 @@ export type PlayerWithoutKey<PlayerRatings = MinimalPlayerRatings> = {
 		// Loaned from the club's academy, so he goes back to it
 		academy?: true;
 	};
+	// International Soccer Zen GM mod (Epic 4): the transfer window whose
+	// international talent pool this player is in (see competition/talentPool.ts)
+	talentPool?: string;
 	// International Soccer Zen GM mod (Epic 8): the season this player's club was
 	// relegated at the end of, when he walked away as a free agent (see
 	// competition/relegationClauses.ts)
@@ -1415,6 +1421,16 @@ export type PlayerWithoutKey<PlayerRatings = MinimalPlayerRatings> = {
 				phase: Phase;
 				tid: number;
 				type: "academy";
+				eid?: number;
+		  }
+		| {
+				season: number;
+				phase: Phase;
+				tid: number;
+				// International Soccer Zen GM mod (Epic 4): signed from the international
+				// talent pool, for a fee in thousands of dollars
+				type: "talentPool";
+				fee: number;
 				eid?: number;
 		  }
 		| {

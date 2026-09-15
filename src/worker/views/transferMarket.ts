@@ -239,6 +239,30 @@ const updateTransferMarket = async (
 			),
 		);
 
+		// International Soccer Zen GM mod (Epic 4): the international talent pool
+		const talentPoolRaw = await competition.getTalentPoolPlayers();
+		const talentPoolPlus = await idb.getCopies.playersPlus(talentPoolRaw, {
+			attrs: ["pid", "firstName", "lastName", "age", "injury", "watch"],
+			ratings: ["ovr", "pot", "skills", "pos"],
+			season,
+			showNoStats: true,
+			showRookies: true,
+			fuzz: true,
+		});
+		const talentPool = addFirstNameShort(
+			talentPoolPlus.map((p) => {
+				const raw = talentPoolRaw.find((p2) => p2.pid === p.pid)!;
+				const contract = player.genContract(raw, false);
+				return {
+					...p,
+					country: raw.born.loc,
+					// Millions of dollars, like contracts in the UI
+					contract: { amount: contract.amount / 1000, exp: contract.exp },
+					fee: competition.getTalentPoolFee(raw) / 1000,
+				};
+			}),
+		);
+
 		const teamSeason = await idb.cache.teamSeasons.indexGet(
 			"teamSeasonsBySeasonTid",
 			[season, userTid],
@@ -263,6 +287,7 @@ const updateTransferMarket = async (
 			players,
 			season,
 			spectator: g.get("spectator"),
+			talentPool,
 			transferWindow: await competition.getCurrentTransferWindow(),
 			userAcademyPlayers,
 			userPlayers,

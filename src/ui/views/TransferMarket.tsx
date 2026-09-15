@@ -13,6 +13,7 @@ import useTitleBar from "../hooks/useTitleBar.tsx";
 import { confirm } from "../util/confirm.tsx";
 import { helpers } from "../util/helpers.ts";
 import { useLocal } from "../util/local.ts";
+import { showNotification } from "../util/showNotification.ts";
 import { toWorker } from "../util/toWorker.ts";
 import {
 	formatMillions,
@@ -39,6 +40,7 @@ const TransferMarket = ({
 	players,
 	season,
 	spectator,
+	talentPool,
 	transferWindow,
 	userAcademyPlayers,
 	userPlayers,
@@ -71,7 +73,19 @@ const TransferMarket = ({
 		}
 	};
 
-	const playerCells = (p: MarketPlayer) => [
+	const playerCells = (
+		p: Pick<
+			MarketPlayer,
+			| "age"
+			| "firstName"
+			| "firstNameShort"
+			| "injury"
+			| "lastName"
+			| "pid"
+			| "ratings"
+			| "watch"
+		>,
+	) => [
 		wrappedPlayerNameLabels({
 			injury: p.injury,
 			pid: p.pid,
@@ -469,6 +483,64 @@ const TransferMarket = ({
 		],
 	}));
 
+	// International Soccer Zen GM mod (Epic 4): the international talent pool
+	const signFromPool = async (p: (typeof talentPool)[number]) => {
+		const name = `${p.firstName} ${p.lastName}`;
+		const proceed = await confirm(
+			`Sign ${name} from ${p.country} for a fee of ${formatMillions(p.fee)}? He'll sign for ${formatMillions(p.contract.amount)} a season through ${p.contract.exp}.`,
+			{
+				okText: "Sign",
+			},
+		);
+		if (proceed) {
+			const result = await toWorker("main", "signTalentPoolPlayer", {
+				pid: p.pid,
+			});
+			showNotification({
+				type: result.type === "accept" ? "success" : "error",
+				text: result.message,
+			});
+		}
+	};
+
+	const talentPoolCols = [
+		...getCols(["Name", "Pos", "Age", "Ovr", "Pot"]),
+		{
+			title: "Nation",
+		},
+		...getCols(["Contract", "Exp"]),
+		feeCol,
+		buttonsCol,
+	];
+
+	const talentPoolRows: DataTableRow[] = talentPool.map((p) => ({
+		key: p.pid,
+		metadata: {
+			type: "player",
+			pid: p.pid,
+			season,
+			playoffs: "regularSeason",
+		},
+		data: [
+			...playerCells(p),
+			p.country,
+			wrappedContractAmount(p),
+			wrappedContractExp(p),
+			{
+				value: formatMillions(p.fee),
+				sortValue: p.fee,
+			},
+			<button
+				className="btn btn-xs btn-primary"
+				disabled={!canAct}
+				key="sign"
+				onClick={() => signFromPool(p)}
+			>
+				Sign
+			</button>,
+		],
+	}));
+
 	return (
 		<>
 			<p>
@@ -567,6 +639,24 @@ const TransferMarket = ({
 				name="TransferMarketAcademy"
 				rows={academyRows}
 			/>
+
+			<h2>International talent pool</h2>
+			<p>
+				When a transfer window opens, players from nations without a league in
+				the World join the talent pool. Any club can sign them for a fee, which
+				goes to their club abroad, on a new contract at their market wage. Those
+				nobody signs leave when the window closes.
+			</p>
+			{talentPoolRows.length > 0 ? (
+				<DataTable
+					cols={talentPoolCols}
+					defaultSort={[4, "desc"]}
+					name="TransferMarketTalentPool"
+					rows={talentPoolRows}
+				/>
+			) : (
+				<p>Nobody is in the talent pool right now.</p>
+			)}
 		</>
 	);
 };

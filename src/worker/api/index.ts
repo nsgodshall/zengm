@@ -3275,6 +3275,10 @@ const setLoanListed = (params: { pid: number; listed: boolean }) => {
 	return competition.setLoanListed(params);
 };
 
+const signTalentPoolPlayer = (params: { pid: number }) => {
+	return competition.signTalentPoolPlayer(params);
+};
+
 // International Soccer Zen GM mod (Epic 7): the New World page's options
 const getWorldInfo = (params: {
 	countryKeys: string[];
@@ -5478,6 +5482,7 @@ export default {
 		getWorldInfo,
 		setLoanListed,
 		setTransferListed,
+		signTalentPoolPlayer,
 		promoteAcademyPlayer,
 		releaseAcademyPlayer,
 		releasePlayer,

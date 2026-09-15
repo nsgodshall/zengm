@@ -29,6 +29,11 @@ import {
 	YOUNG_PLAYER_MAX_AGE,
 } from "../worker/core/competition/worldAwards.ts";
 import {
+	getTalentPoolSize,
+	TALENT_POOL_MAX_AGE,
+	TALENT_POOL_MIN_AGE,
+} from "../worker/core/competition/talentPool.ts";
+import {
 	getStadiumCapacity,
 	WORLD_MAX_ROSTER_SIZE,
 } from "../worker/core/competition/worldSettings.ts";
@@ -410,10 +415,24 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			assert(transfer.fee >= 0);
 		}
 
+		// Signings from the international talent pool are in the transfer news too
+		const talentPoolSignings = players.flatMap((p) =>
+			(p.transactions ?? []).flatMap((row) =>
+				row.type === "talentPool" ? [row] : [],
+			),
+		);
+		for (const signing of talentPoolSignings) {
+			assert(
+				phasesWithAWindow.has(signing.phase),
+				`Talent pool signing in phase ${signing.phase}`,
+			);
+			assert(signing.fee >= 0);
+		}
+
 		const events: EventBBGM[] = await idb.league.getAll("events");
 		assert.strictEqual(
 			events.filter((event) => event.type === "transfer").length,
-			transfers.length,
+			transfers.length + talentPoolSignings.length,
 		);
 	});
 
@@ -891,7 +910,10 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		);
 		const numClubs = structure.competitionDivisions.length * CLUBS_PER_DIVISION;
 
-		const academyPlayers = players.filter((p) => p.tid === PLAYER.UNDRAFTED);
+		// Talent pool players are draft prospects too (see talentPoolMoves.ts)
+		const academyPlayers = players.filter(
+			(p) => p.tid === PLAYER.UNDRAFTED && p.talentPool === undefined,
+		);
 		assert(academyPlayers.length > 0, "No academy players");
 
 		for (const p of academyPlayers) {
@@ -1798,6 +1820,141 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 				),
 			);
 			assert.strictEqual(p.transactions!.at(-1)!.type, "loanReturn");
+		}
+	});
+
+	// Changes the league, so it goes last
+	test("the international talent pool arrives with a transfer window, clubs sign from it, and the rest leave", async () => {
+		const season = g.get("season");
+		const userTid = g.get("userTid");
+
+		assert(
+			await competition.getCurrentTransferWindow(),
+			"No transfer window open",
+		);
+
+		// Auto play's summer pool arrived already, and clubs signed some of it, so
+		// this window's pool arrives again from scratch
+		await player.remove(
+			(await competition.getTalentPoolPlayers()).map((p) => p.pid),
+		);
+		delete (g as unknown as { talentPoolKey?: string }).talentPoolKey;
+
+		await competition.ensureTalentPool();
+		const pool = await competition.getTalentPoolPlayers();
+		assert.strictEqual(pool.length, getTalentPoolSize(g.get("numActiveTeams")));
+		const worldCountries = new Set(
+			structure.countries.map((country) => country.name),
+		);
+		for (const p of pool) {
+			assert(!worldCountries.has(p.born.loc), p.born.loc);
+			const age = season - p.born.year;
+			assert(
+				age >= TALENT_POOL_MIN_AGE && age <= TALENT_POOL_MAX_AGE,
+				`age ${age}`,
+			);
+		}
+
+		// It only arrives once a window
+		await competition.ensureTalentPool();
+		assert.strictEqual(
+			(await competition.getTalentPoolPlayers()).length,
+			pool.length,
+		);
+
+		// The user signs the cheapest pool player, with room on their roster and
+		// in their wage budget, and the cash for his fee
+		const target = [...pool].sort(
+			(a, b) =>
+				competition.getTalentPoolFee(a) - competition.getTalentPoolFee(b),
+		)[0]!;
+		const fee = competition.getTalentPoolFee(target);
+		for (const releasedPlayer of await idb.cache.releasedPlayers.indexGetAll(
+			"releasedPlayersByTid",
+			userTid,
+		)) {
+			await idb.cache.releasedPlayers.delete(releasedPlayer.rid);
+		}
+		const wageBudget = (await getWageBudgets()).get(userTid)!;
+		const userRoster = (
+			await idb.cache.players.indexGetAll("playersByTid", userTid)
+		).sort((a, b) => b.contract.amount - a.contract.amount);
+		for (const p of userRoster) {
+			if (
+				(await idb.cache.players.indexGetAll("playersByTid", userTid)).length <
+					g.get("maxRosterSize") &&
+				(await team.getPayroll(userTid)) +
+					competition.getTalentPoolWage(target) <=
+					wageBudget
+			) {
+				break;
+			}
+			await player.addToFreeAgents(p, {});
+			await idb.cache.players.put(p);
+		}
+		const userSeason = (await idb.cache.teamSeasons.indexGet(
+			"teamSeasonsBySeasonTid",
+			[season, userTid],
+		))!;
+		userSeason.cash = Math.max(userSeason.cash, fee);
+		await idb.cache.teamSeasons.put(userSeason);
+		const cashBefore = userSeason.cash;
+
+		const signed = await competition.signTalentPoolPlayer({ pid: target.pid });
+		assert.strictEqual(signed.type, "accept", signed.message);
+		const p1 = (await idb.cache.players.get(target.pid))!;
+		assert.strictEqual(p1.tid, userTid);
+		assert.strictEqual(p1.talentPool, undefined);
+		const transaction = p1.transactions!.at(-1)!;
+		assert(transaction.type === "talentPool");
+		assert.strictEqual(transaction.fee, fee);
+		assert.strictEqual(
+			(await idb.cache.teamSeasons.indexGet("teamSeasonsBySeasonTid", [
+				season,
+				userTid,
+			]))!.cash,
+			cashBefore - fee,
+		);
+		assert.strictEqual(
+			(await competition.getTalentPoolPlayers()).length,
+			pool.length - 1,
+		);
+
+		// AI clubs sign pool players who'd be in their rotation, with room on their
+		// roster and in their wage budget, and the cash for the fee
+		const aiTids = (await idb.cache.teams.getAll())
+			.filter((t) => !t.disabled && t.tid !== userTid)
+			.map((t) => t.tid);
+		for (const tid of aiTids) {
+			// Short of a rotation, so anyone would get minutes
+			const roster = (
+				await idb.cache.players.indexGetAll("playersByTid", tid)
+			).sort((a, b) => a.value - b.value);
+			const numOver = roster.length - (2 * g.get("numPlayersOnCourt") - 1);
+			for (const p of roster.slice(0, Math.max(0, numOver))) {
+				await player.addToFreeAgents(p, {});
+				await idb.cache.players.put(p);
+			}
+			const aiSeason = (await idb.cache.teamSeasons.indexGet(
+				"teamSeasonsBySeasonTid",
+				[season, tid],
+			))!;
+			aiSeason.cash = Math.max(aiSeason.cash, 100_000);
+			await idb.cache.teamSeasons.put(aiSeason);
+		}
+		const numSigned = await competition.aiTalentPoolSignings(200, aiTids);
+		assert(numSigned > 0, "No AI club signed a pool player");
+		const left = await competition.getTalentPoolPlayers();
+		assert.strictEqual(left.length, pool.length - 1 - numSigned);
+
+		// When the window closes, players nobody signed leave
+		for (const p of left) {
+			p.talentPool = `${season - 1}-winter`;
+			await idb.cache.players.put(p);
+		}
+		await competition.removeStaleTalentPool();
+		for (const p of left) {
+			assert.strictEqual(await idb.cache.players.get(p.pid), undefined);
 		}
 	});
 });

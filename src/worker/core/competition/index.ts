@@ -40,6 +40,15 @@ import {
 	setLoanListed,
 } from "./loanMoves.ts";
 import {
+	aiTalentPoolSignings,
+	ensureTalentPool,
+	getTalentPoolFee,
+	getTalentPoolPlayers,
+	getTalentPoolWage,
+	removeStaleTalentPool,
+	signTalentPoolPlayer,
+} from "./talentPoolMoves.ts";
+import {
 	acceptAiTransferOffer,
 	dailyTransferOffers,
 	makeAiTransferOffers,
@@ -122,6 +131,13 @@ export default {
 	makeAiLoanRequests,
 	requestLoan,
 	setLoanListed,
+	aiTalentPoolSignings,
+	ensureTalentPool,
+	getTalentPoolFee,
+	getTalentPoolPlayers,
+	getTalentPoolWage,
+	removeStaleTalentPool,
+	signTalentPoolPlayer,
 	acceptAiTransferOffer,
 	dailyTransferOffers,
 	makeAiTransferOffers,

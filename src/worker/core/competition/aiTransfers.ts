@@ -10,6 +10,11 @@ import { ValueChangeCalculator } from "../team/ValueChangeCalculator.ts";
 import isUntradable from "../trade/isUntradable.ts";
 import { academyTransfersBetweenAiClubs } from "./academyTransfers.ts";
 import { loansBetweenAiClubs } from "./loanMoves.ts";
+import {
+	aiTalentPoolSignings,
+	ensureTalentPool,
+	removeStaleTalentPool,
+} from "./talentPoolMoves.ts";
 import { recordTransfer } from "./recordTransfer.ts";
 import {
 	canAiAffordFee,
@@ -262,20 +267,33 @@ const randomRound = (float: number) =>
  * day wherever ZenGM does AI trades, in their place.
  */
 const transfersBetweenAiClubs = async () => {
-	if (g.get("forceHistoricalRosters") || !(await getCurrentTransferWindow())) {
+	if (g.get("forceHistoricalRosters")) {
 		return;
 	}
+
+	// The talent pool comes and goes with the windows (see talentPoolMoves.ts)
+	await removeStaleTalentPool();
+	if (!(await getCurrentTransferWindow())) {
+		return;
+	}
+	await ensureTalentPool();
 
 	// Transfers are the main way clubs change rosters, so there are more
 	// attempts than AI trades get: about 1 for every 10 clubs a day, scaled by
 	// the same AI trades setting. Academy players change hands less often, with
 	// about 1 attempt for every 40 clubs a day, and there's about 1 attempt at a
-	// loan for every 20 clubs a day.
+	// loan, and 1 at signing from the talent pool, for every 20 clubs a day.
 	const numClubsFactor = g.get("aiTradesFactor") * g.get("numActiveTeams");
 	const numAttempts = randomRound(numClubsFactor / 10);
 	const numAcademyAttempts = randomRound(numClubsFactor / 40);
 	const numLoanAttempts = randomRound(numClubsFactor / 20);
-	if (numAttempts === 0 && numAcademyAttempts === 0 && numLoanAttempts === 0) {
+	const numTalentPoolAttempts = randomRound(numClubsFactor / 20);
+	if (
+		numAttempts === 0 &&
+		numAcademyAttempts === 0 &&
+		numLoanAttempts === 0 &&
+		numTalentPoolAttempts === 0
+	) {
 		return;
 	}
 
@@ -297,8 +315,17 @@ const transfersBetweenAiClubs = async () => {
 		aiTids,
 	);
 	const numLoans = await loansBetweenAiClubs(numLoanAttempts, aiTids);
+	const numTalentPoolSignings = await aiTalentPoolSignings(
+		numTalentPoolAttempts,
+		aiTids,
+	);
 
-	if (anyTransfers || numAcademyTransfers > 0 || numLoans > 0) {
+	if (
+		anyTransfers ||
+		numAcademyTransfers > 0 ||
+		numLoans > 0 ||
+		numTalentPoolSignings > 0
+	) {
 		await toUI("realtimeUpdate", [["playerMovement"]]);
 		await recomputeLocalUITeamOvrs();
 	}
