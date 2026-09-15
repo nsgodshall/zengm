@@ -17,6 +17,7 @@ import {
 	REAL_JAPANESE_CLUB_NAMES,
 	REAL_MEXICAN_CLUB_NAMES,
 } from "./worldTowns.ts";
+import { AMERICAN_REAL_CLUBS } from "./americanClubs.ts";
 
 // International Soccer Zen GM mod (Epic 7): the Countries a new World can be
 // made of, chosen on the New World page (see generateWorld)
@@ -28,6 +29,25 @@ import {
  */
 export type ClubNamePattern = [region: string, name: string];
 
+/**
+ * A real team a Country's top tier is made of, instead of generated clubs (see
+ * chooseRealClubs)
+ */
+export type RealClub = {
+	region: string;
+	name: string;
+	abbrev: string;
+	// Its town, one of its Country's towns, for its market size and team page
+	town: string;
+	// Primary, secondary, and accent colors
+	colors: [string, string, string];
+	// Its logo, served from public/
+	imgURL: string;
+	// Picked before the rest when a top tier has fewer clubs than there are
+	// real clubs
+	pickFirst: boolean;
+};
+
 export type WorldCountry = {
 	key: string;
 	name: string;
@@ -35,6 +55,8 @@ export type WorldCountry = {
 	numTiers: number;
 	towns: PilotTown[];
 	realClubNames: string[];
+	// Real teams for its top tier, as many as the biggest Division has clubs
+	realTopTierClubs?: RealClub[];
 	namePatterns: ClubNamePattern[];
 	// Decided: it's basketball, so the USA is number 1, and the rest follow
 	// their rough basketball standing. A Country's starting squads rank lower
@@ -102,6 +124,8 @@ export const WORLD_COUNTRIES: WorldCountry[] = [
 		numTiers: 3,
 		towns: AMERICAN_TOWNS,
 		realClubNames: REAL_AMERICAN_CLUB_NAMES,
+		// Decided with the user: the USA's top tier is real teams
+		realTopTierClubs: AMERICAN_REAL_CLUBS,
 		namePatterns: [
 			...withSuffixes(["FC", "FC", "SC", "United", "City", "Athletic"]),
 			...withPrefixes(["Real", "Sporting", "Inter"]),

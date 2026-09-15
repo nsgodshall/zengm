@@ -8,6 +8,7 @@ import {
 import { isRealClubName, type PilotTown } from "./pilotTowns.ts";
 import {
 	DEFAULT_WORLD_COUNTRY_KEYS,
+	type RealClub,
 	WORLD_COUNTRIES,
 	type WorldCountry,
 } from "./worldCountries.ts";
@@ -82,6 +83,52 @@ const chooseTowns = (
 		chosen.push({ town: town!, size: town!.pop * (0.7 + 0.6 * random()) });
 	}
 	return chosen.sort((a, b) => b.size - a.size).map(({ town }) => town);
+};
+
+/**
+ * The real clubs a top tier of `count` clubs is made of (see
+ * WorldCountry.realTopTierClubs): the ones marked pickFirst in random order,
+ * then the rest, ordered like chooseTowns orders towns, so clubs from bigger
+ * cities lean towards being their Division's big clubs
+ */
+export const chooseRealClubs = ({
+	clubs,
+	towns,
+	count,
+	random,
+}: {
+	clubs: RealClub[];
+	towns: PilotTown[];
+	count: number;
+	random: () => number;
+}) => {
+	if (clubs.length < count) {
+		throw new Error(`Only ${clubs.length} real clubs for ${count} places`);
+	}
+
+	const chosen = [
+		...shuffled(
+			clubs.filter((club) => club.pickFirst),
+			random,
+		),
+		...shuffled(
+			clubs.filter((club) => !club.pickFirst),
+			random,
+		),
+	].slice(0, count);
+
+	return chosen
+		.map((club) => {
+			const town = towns.find((town) => town.name === club.town);
+			if (!town) {
+				throw new Error(
+					`${club.region} ${club.name} is in ${club.town}, which isn't one of its Country's towns`,
+				);
+			}
+			return { club, town, size: town.pop * (0.7 + 0.6 * random()) };
+		})
+		.sort((a, b) => b.size - a.size)
+		.map(({ club, town }) => ({ club, town }));
 };
 
 // Whether a club's name repeats a word from its region, like "Oklahoma City
@@ -193,7 +240,9 @@ const getPop = ({
  * go up along with the winner of a playoff among the next 4. Clubs are in real
  * towns (see pilotTowns.ts and worldTowns.ts), with invented names in their
  * Country's style, three letter abbreviations, kit colors, crests, and market
- * sizes. `random` is uniform on [0, 1), so the same numbers make the same World.
+ * sizes, except a Country's top tier of real clubs, if it has one (see
+ * chooseRealClubs). `random` is uniform on [0, 1), so the same numbers make the
+ * same World.
  */
 export const generateWorld = ({
 	countryKeys = DEFAULT_WORLD_COUNTRY_KEYS,
@@ -264,10 +313,31 @@ export const generateWorld = ({
 	const takenAbbrevs = new Set<string>();
 	const takenNames = new Set<string>();
 
+	// Real clubs keep their own abbreviations and names, so no generated club
+	// takes them
+	for (const country of worldCountries) {
+		for (const club of country.realTopTierClubs ?? []) {
+			takenAbbrevs.add(club.abbrev);
+			takenNames.add(`${club.region} ${club.name}`);
+		}
+	}
+
 	const clubs = worldCountries.flatMap((country, countryId) => {
+		const realClubs = country.realTopTierClubs
+			? chooseRealClubs({
+					clubs: country.realTopTierClubs,
+					towns: country.towns,
+					count: clubsPerDivision,
+					random,
+				})
+			: [];
+		const numRealTiers = realClubs.length > 0 ? 1 : 0;
+
+		// Generated clubs aren't in the real clubs' towns
+		const realTowns = new Set(realClubs.map(({ town }) => town.name));
 		const towns = chooseTowns(
-			country.towns,
-			country.numTiers * clubsPerDivision,
+			country.towns.filter((town) => !realTowns.has(town.name)),
+			(country.numTiers - numRealTiers) * clubsPerDivision,
 			random,
 		);
 
@@ -276,7 +346,36 @@ export const generateWorld = ({
 				return [];
 			}
 
-			const firstTown = (division.tier - 1) * clubsPerDivision;
+			if (division.tier <= numRealTiers) {
+				return realClubs.map(({ club, town }, place) => {
+					const pop = getPop({
+						tier: division.tier,
+						place,
+						clubsPerDivision,
+						marketFactor: country.marketFactor,
+						random,
+					});
+					return {
+						region: club.region,
+						name: club.name,
+						abbrev: club.abbrev,
+						pop,
+						stadiumCapacity: getStadiumCapacity(pop),
+						colors: club.colors,
+						imgURL: club.imgURL,
+						cid: countryId,
+						did,
+						divisionId: division.divisionId,
+						location: {
+							town: town.name,
+							country: country.name,
+							wikipedia: town.wikipedia,
+						},
+					};
+				});
+			}
+
+			const firstTown = (division.tier - 1 - numRealTiers) * clubsPerDivision;
 			return towns
 				.slice(firstTown, firstTown + clubsPerDivision)
 				.map((town, place) => {

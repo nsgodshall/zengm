@@ -7,6 +7,7 @@ import {
 	generatePilotWorld,
 	generateWorld,
 	makeAbbrev,
+	MAX_CLUBS_PER_DIVISION,
 	PILOT_CLUBS_PER_DIVISION,
 	repeatsWord,
 } from "./pilotWorld.ts";
@@ -213,12 +214,21 @@ describe("generateWorld", () => {
 				const worldCountry = WORLD_COUNTRIES.find(
 					(c) => c.name === country.name,
 				)!;
+				const realNames = new Set(
+					(worldCountry.realTopTierClubs ?? []).map(
+						(club) => `${club.region} ${club.name}`,
+					),
+				);
 				for (const club of clubs.filter(
 					(club) => club.cid === country.countryId,
 				)) {
 					expect(
 						worldCountry.towns.some((town) => town.name === club.location.town),
 					).toBe(true);
+					// A real top-tier club is meant to be a real club
+					if (realNames.has(`${club.region} ${club.name}`)) {
+						continue;
+					}
 					expect(
 						isRealClubName(
 							`${club.region} ${club.name}`,
@@ -264,6 +274,71 @@ describe("generateWorld", () => {
 			);
 		}
 		expect(penaltyOf("USA")).toBe(0);
+	});
+});
+
+describe("the USA's top tier of real clubs", () => {
+	const usa = WORLD_COUNTRIES.find((country) => country.key === "usa")!;
+	const realClubs = usa.realTopTierClubs!;
+	const byName = new Map(
+		realClubs.map((club) => [`${club.region} ${club.name}`, club]),
+	);
+
+	// Their logo files are checked in src/test/americanClubLogos.test.ts
+	test("enough for the biggest Division, each in a USA town", () => {
+		expect(realClubs).toHaveLength(MAX_CLUBS_PER_DIVISION);
+		expect(new Set(realClubs.map((club) => club.abbrev)).size).toBe(
+			realClubs.length,
+		);
+		expect(byName.size).toBe(realClubs.length);
+		for (const club of realClubs) {
+			expect(club.abbrev).toMatch(/^[\dA-Z]{3}$/);
+			expect(usa.towns.some((town) => town.name === club.town)).toBe(true);
+			for (const color of club.colors) {
+				expect(color).toMatch(/^#[\da-f]{6}$/);
+			}
+		}
+	});
+
+	test("a USA World's top tier is made of them, clubs picked first first, and its lower tiers skip their towns", () => {
+		const numPickFirst = realClubs.filter((club) => club.pickFirst).length;
+		for (const clubsPerDivision of [10, 16, 20]) {
+			const { structure, clubs } = generateWorld({
+				countryKeys: ["usa"],
+				clubsPerDivision,
+				random: seededRandom(clubsPerDivision),
+			});
+			expect(() => validateClubDivisions(structure, clubs)).not.toThrow();
+
+			const topDivisionId = structure.competitionDivisions.find(
+				(division) => division.tier === 1,
+			)!.divisionId;
+			const topClubs = clubs.filter(
+				(club) => club.divisionId === topDivisionId,
+			);
+			expect(topClubs).toHaveLength(clubsPerDivision);
+			for (const club of topClubs) {
+				const real = byName.get(`${club.region} ${club.name}`);
+				expect(real, `${club.region} ${club.name}`).toBeDefined();
+				expect(club.abbrev).toBe(real!.abbrev);
+				expect(club.imgURL).toBe(real!.imgURL);
+				expect(club.colors).toEqual(real!.colors);
+				expect(club.location.town).toBe(real!.town);
+			}
+			expect(
+				topClubs.filter(
+					(club) => byName.get(`${club.region} ${club.name}`)!.pickFirst,
+				),
+			).toHaveLength(Math.min(clubsPerDivision, numPickFirst));
+
+			const topTowns = new Set(topClubs.map((club) => club.location.town));
+			for (const club of clubs) {
+				if (club.divisionId !== topDivisionId) {
+					expect(topTowns.has(club.location.town)).toBe(false);
+				}
+			}
+			expect(new Set(clubs.map((club) => club.abbrev)).size).toBe(clubs.length);
+		}
 	});
 });
 
