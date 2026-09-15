@@ -20,6 +20,11 @@ import { getWageBudgets } from "../worker/core/competition/wageBudgets.ts";
 import { LOAN_MAX_AGE } from "../worker/core/competition/loans.ts";
 import { getTvShare } from "../worker/core/competition/worldRevenue.ts";
 import {
+	getWorldAwards,
+	getWorldAwardsBeforeSoccerStyle,
+	YOUNG_PLAYER_MAX_AGE,
+} from "../worker/core/competition/worldAwards.ts";
+import {
 	getStadiumCapacity,
 	WORLD_MAX_ROSTER_SIZE,
 } from "../worker/core/competition/worldSettings.ts";
@@ -560,16 +565,8 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		}
 	});
 
-	test("each Division has its own MVP, top scorer, and All-Division team, even in a World made before that was decided", async () => {
-		assert(
-			!g
-				.get("awards")
-				.some(
-					(award) =>
-						typeof award.statRange === "number" ||
-						award.statRange === "playoffs",
-				),
-		);
+	test("each Division has its own MVP, top scorer, young player, and All-Division team, and there are no other awards, even in a World made before that was decided", async () => {
+		assert.deepStrictEqual(g.get("awards"), getWorldAwards());
 
 		const { confDivByDivisionId } = competition.getLegacyConfsDivs(structure);
 		for (const season of completedSeasons) {
@@ -577,7 +574,7 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			const divisionIdByTid = await getDivisionIdByTid(season);
 			for (const division of structure.competitionDivisions) {
 				const did = confDivByDivisionId.get(division.divisionId)!.did;
-				for (const shortName of ["MVP", "TS", "ALD"]) {
+				for (const shortName of ["MVP", "TS", "YPS", "ALD"]) {
 					const award = awards.awards.find(
 						(award) =>
 							award.shortName === shortName &&
@@ -600,18 +597,30 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 							`${season} ${division.name} ${shortName}`,
 						);
 					}
+
+					if (shortName === "YPS") {
+						const p = (await idb.getCopy.players({ pid: winners[0]!.pid }))!;
+						assert(
+							season - p.born.year <= YOUNG_PLAYER_MAX_AGE,
+							`${season} ${division.name}'s young player is ${season - p.born.year}`,
+						);
+					}
 				}
 			}
 		}
 
-		// A World made earlier has ZenGM's default awards until it's loaded
-		const worldAwards = g.get("awards");
-		g.setWithoutSavingToDB("awards", defaultGameAttributes.awards);
-		delete (g as unknown as { worldAwardsPerDivision?: true })
-			.worldAwardsPerDivision;
-		await competition.ensureCompetitionStructure();
-		assert.deepStrictEqual(g.get("awards"), worldAwards);
-		assert.strictEqual(g.get("worldAwardsPerDivision"), true);
+		// A World made earlier has ZenGM's default awards, or its earlier World
+		// awards, until it's loaded
+		for (const oldAwards of [
+			defaultGameAttributes.awards,
+			getWorldAwardsBeforeSoccerStyle(),
+		]) {
+			g.setWithoutSavingToDB("awards", oldAwards);
+			delete (g as unknown as { worldSoccerAwards?: true }).worldSoccerAwards;
+			await competition.ensureCompetitionStructure();
+			assert.deepStrictEqual(g.get("awards"), getWorldAwards());
+			assert.strictEqual(g.get("worldSoccerAwards"), true);
+		}
 	});
 
 	test("a World made before crests, bigger rosters, and stadiums by market gets them when it loads", async () => {

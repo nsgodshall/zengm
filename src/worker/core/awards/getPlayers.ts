@@ -66,6 +66,9 @@ const AWARD_STATS_SPECIAL = [
 	"winp",
 	"numWon",
 	"numWonConsecutive",
+	// International Soccer Zen GM mod (Epic 6): so an award can be for young
+	// players, like a World's Young Player of the Season
+	"age",
 ];
 if (isSport("basketball")) {
 	AWARD_STATS_SPECIAL.push("teamWs");
@@ -533,6 +536,8 @@ export const getPlayers = async (
 				currentStats.seasonFraction = teamInfo?.seasonFraction ?? 1;
 				currentStats.teamGp = teamInfo?.gp ?? 0;
 				currentStats.winp = teamInfo?.winp ?? 0;
+				// International Soccer Zen GM mod (Epic 6)
+				currentStats.age = p.age;
 
 				// Only add numWon/numWonConsecutive if requested
 				if (

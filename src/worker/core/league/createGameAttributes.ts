@@ -345,10 +345,10 @@ const createGameAttributes = async (
 			gameAttributes.minPayroll = 0;
 			gameAttributes.worldPayrollRulesOff = true;
 
-			// Decided: each Division has its own awards (see
+			// Decided: soccer-style awards, only each Division's own (see
 			// competition/worldAwards.ts and ensureCompetitionStructure)
-			gameAttributes.awards = getWorldAwards(gameAttributes.awards);
-			gameAttributes.worldAwardsPerDivision = true;
+			gameAttributes.awards = getWorldAwards();
+			gameAttributes.worldSoccerAwards = true;
 			gameAttributes.worldContentFilled = true;
 
 			// Per-game salaries and revenue, contracts, and awards go by the

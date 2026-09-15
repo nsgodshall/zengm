@@ -3,7 +3,10 @@ import { defaultGameAttributes } from "../../../common/defaultGameAttributes.ts"
 import { idb } from "../../db/index.ts";
 import { g } from "../../util/index.ts";
 import { league } from "../index.ts";
-import { getWorldAwards } from "./worldAwards.ts";
+import {
+	getWorldAwards,
+	getWorldAwardsBeforeSoccerStyle,
+} from "./worldAwards.ts";
 import {
 	generateCrestSvg,
 	getCrestDataUrl,
@@ -121,23 +124,30 @@ const ensureCompetitionStructure = async () => {
 		g.setWithoutSavingToDB("worldPayrollRulesOff", true);
 	}
 
-	// International Soccer Zen GM mod (Epic 6): a World made before awards were
-	// per Division still has ZenGM's awards. Switch them once, unless the user
-	// has changed the award settings.
+	// International Soccer Zen GM mod (Epic 6): a World made before its awards
+	// were soccer-style still has ZenGM's awards, or its earlier World awards.
+	// Switch them once, unless the user has changed the award settings.
 	if (
 		!isSingleDivision(structure) &&
-		!(g as unknown as { worldAwardsPerDivision?: true }).worldAwardsPerDivision
+		!(g as unknown as { worldSoccerAwards?: true }).worldSoccerAwards
 	) {
-		if (fastDeepEqual(g.get("awards"), defaultGameAttributes.awards)) {
-			const awards = getWorldAwards(g.get("awards"));
-			await idb.cache.gameAttributes.put({ key: "awards", value: awards });
-			g.setWithoutSavingToDB("awards", awards);
+		const awards = g.get("awards");
+		if (
+			fastDeepEqual(awards, defaultGameAttributes.awards) ||
+			fastDeepEqual(awards, getWorldAwardsBeforeSoccerStyle())
+		) {
+			const worldAwards = getWorldAwards();
+			await idb.cache.gameAttributes.put({
+				key: "awards",
+				value: worldAwards,
+			});
+			g.setWithoutSavingToDB("awards", worldAwards);
 		}
 		await idb.cache.gameAttributes.put({
-			key: "worldAwardsPerDivision",
+			key: "worldSoccerAwards",
 			value: true,
 		});
-		g.setWithoutSavingToDB("worldAwardsPerDivision", true);
+		g.setWithoutSavingToDB("worldSoccerAwards", true);
 	}
 
 	// International Soccer Zen GM mod (Epic 8): a World made before its
