@@ -2,11 +2,40 @@ import { describe, expect, test } from "vitest";
 import {
 	CREST_PATTERNS,
 	generateCrestSvg,
+	generateLetterLogoSvg,
 	getCrestDataUrl,
 	pickCrestPattern,
 } from "./crests.ts";
 
 const colors: [string, string, string] = ["#c8102e", "#ffffff", "#000000"];
+
+describe("generateLetterLogoSvg", () => {
+	test("is the letters in the club's first color, outlined in its second", () => {
+		const svg = generateLetterLogoSvg({ letters: "SD", colors });
+		expect(svg.startsWith("<svg")).toBe(true);
+		expect(svg.endsWith("</svg>")).toBe(true);
+		expect(svg).toContain(">SD</text>");
+		expect(svg).toContain(`fill="${colors[0]}"`);
+		expect(svg).toContain(`stroke="${colors[1]}"`);
+	});
+
+	test("more letters are drawn smaller, so they fit", () => {
+		const fontSize = (letters: string) =>
+			Number(
+				/font-size="(\d+)"/.exec(
+					generateLetterLogoSvg({ letters, colors }),
+				)![1],
+			);
+		expect(fontSize("S")).toBeGreaterThan(fontSize("SD"));
+		expect(fontSize("SD")).toBeGreaterThan(fontSize("SEA"));
+	});
+
+	test("escapes the letters", () => {
+		expect(generateLetterLogoSvg({ letters: "A&", colors })).toContain(
+			">A&amp;</text>",
+		);
+	});
+});
 
 describe("generateCrestSvg", () => {
 	test("is a shield in the club's colors with its abbreviation", () => {

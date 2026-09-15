@@ -179,7 +179,7 @@ describe("real clubs", () => {
 		for (const club of allRealClubs) {
 			expect(club.abbrev).toMatch(/^[\dA-Z]{3}$/);
 			expect(club.imgURL).toMatch(
-				/^\/img\/world-logos\/[a-z]+\/[\da-z-]+\.(svg|png)$/,
+				/^(\/img\/world-logos\/[a-z]+\/[\da-z-]+\.(svg|png)|data:image\/svg\+xml,.+)$/,
 			);
 			for (const color of club.colors) {
 				expect(color).toMatch(/^#[\da-f]{6}$/);

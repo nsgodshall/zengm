@@ -72,6 +72,28 @@ export const generateCrestSvg = ({
 	].join("");
 };
 
+/**
+ * A baseball cap-style letter logo as SVG markup, for a real club with no
+ * letter logo of its own (decided with the user): `letters` in a bold serif, in
+ * the club's first color, outlined in its second, on a clear background. More
+ * letters are drawn smaller, so up to three fit.
+ */
+export const generateLetterLogoSvg = ({
+	letters,
+	colors,
+}: {
+	letters: string;
+	colors: [string, string, string];
+}) => {
+	const [fill, outline] = colors;
+	const fontSize = letters.length <= 1 ? 96 : letters.length === 2 ? 68 : 48;
+	return [
+		`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">`,
+		`<text x="50" y="50" text-anchor="middle" dominant-baseline="central" font-family="Georgia, 'Times New Roman', serif" font-size="${fontSize}" font-weight="bold" fill="${fill}" stroke="${outline}" stroke-width="4" stroke-linejoin="round" paint-order="stroke">${escapeXml(letters)}</text>`,
+		`</svg>`,
+	].join("");
+};
+
 /** SVG markup as a data URL, for an <img> src or a team's imgURL */
 export const getCrestDataUrl = (svg: string) =>
 	`data:image/svg+xml,${encodeURIComponent(svg)}`;
