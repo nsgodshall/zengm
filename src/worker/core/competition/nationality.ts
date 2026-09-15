@@ -20,7 +20,10 @@ export const getNumLocalPlayers = (
 	return whole + (random() < expected - whole ? 1 : 0);
 };
 
-/** The name of each club's Country, by tid. Clubs not in a Division are left out. */
+/**
+ * The name of each club's Country in ZenGM's name data, by tid: its first
+ * nameCountries, or else its own name. Clubs not in a Division are left out.
+ */
 export const getCountryNameByTid = ({
 	countries,
 	competitionDivisions,
@@ -31,7 +34,10 @@ export const getCountryNameByTid = ({
 	teams: { tid: number; divisionId?: number }[];
 }) => {
 	const countryNameById = new Map(
-		countries.map((country) => [country.countryId, country.name]),
+		countries.map((country) => [
+			country.countryId,
+			country.nameCountries?.[0] ?? country.name,
+		]),
 	);
 	const countryIdByDivisionId = new Map(
 		competitionDivisions.map((division) => [

@@ -70,11 +70,11 @@ describe("the pilot World", () => {
 		await deleteDB("meta");
 	});
 
-	test("England and Spain each have two Divisions of 16 clubs", async () => {
+	test("the United Kingdom and Spain each have two Divisions of 16 clubs", async () => {
 		const structure = competition.getCompetitionStructure();
 		assert.deepStrictEqual(
 			structure.countries.map((country) => country.name),
-			["England", "Spain"],
+			["United Kingdom", "Spain"],
 		);
 
 		const teams = await idb.cache.teams.getAll();
@@ -145,12 +145,17 @@ describe("the pilot World", () => {
 
 	test("most players are from their club's Country, if it has names", async () => {
 		const structure = competition.getCompetitionStructure();
+		// A Country's players are from its name data (see Country.nameCountries)
+		const nameOf = (country: (typeof structure.countries)[number]) =>
+			country.nameCountries?.[0] ?? country.name;
 		const countryNameByDivisionId = new Map(
 			structure.competitionDivisions.map((division) => [
 				division.divisionId,
-				structure.countries.find(
-					(country) => country.countryId === division.countryId,
-				)!.name,
+				nameOf(
+					structure.countries.find(
+						(country) => country.countryId === division.countryId,
+					)!,
+				),
 			]),
 		);
 		const countryNameByTid = new Map(
@@ -169,7 +174,7 @@ describe("the pilot World", () => {
 		// Tests use stub name data (see loadNames), with names for Spain but not
 		// England
 		let numCountriesWithNames = 0;
-		for (const { name } of structure.countries) {
+		for (const name of structure.countries.map(nameOf)) {
 			const getLocalShare = (
 				players: Player[],
 				getTid: (p: Player) => number,

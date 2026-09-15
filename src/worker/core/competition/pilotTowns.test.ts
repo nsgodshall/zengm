@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
+	BRITISH_TOWNS,
 	ENGLISH_TOWNS,
 	isRealClubName,
 	normalizeClubName,
@@ -10,7 +11,7 @@ import {
 
 describe("town pools", () => {
 	test("each Country has enough different towns for two Divisions of 16 clubs", () => {
-		for (const towns of [ENGLISH_TOWNS, SPANISH_TOWNS]) {
+		for (const towns of [ENGLISH_TOWNS, BRITISH_TOWNS, SPANISH_TOWNS]) {
 			expect(towns.length).toBeGreaterThanOrEqual(48);
 			expect(new Set(towns.map((town) => town.name)).size).toBe(towns.length);
 			expect(
@@ -20,7 +21,7 @@ describe("town pools", () => {
 	});
 
 	test("every town has a population and a Wikipedia article title", () => {
-		for (const town of [...ENGLISH_TOWNS, ...SPANISH_TOWNS]) {
+		for (const town of [...BRITISH_TOWNS, ...SPANISH_TOWNS]) {
 			expect(town.pop).toBeGreaterThan(0);
 			expect(town.wikipedia).not.toContain(" ");
 			expect(town.wikipedia.length).toBeGreaterThan(0);

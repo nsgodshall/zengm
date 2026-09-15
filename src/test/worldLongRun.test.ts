@@ -33,9 +33,9 @@ const env = (globalThis as any).process.env as Record<
 >;
 const NUM_SEASONS = Number(env.WORLD_LONG_RUN ?? 0);
 const REPORT_DIR = env.WORLD_LONG_RUN_REPORT ?? ".";
-const COUNTRY_KEYS = (
-	env.WORLD_LONG_RUN_COUNTRIES ?? "england,spain,usa"
-).split(",");
+const COUNTRY_KEYS = (env.WORLD_LONG_RUN_COUNTRIES ?? "uk,spain,usa").split(
+	",",
+);
 const STARTING_SEASON = 2026;
 
 // WORLD_LONG_RUN_CONTROL=1 plays an ordinary ZenGM league of random players

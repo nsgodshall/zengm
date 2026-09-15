@@ -179,7 +179,10 @@ export const ensureTalentPool = async () => {
 		tid: g.get("userTid"),
 	});
 	const excluded = new Set(
-		getCompetitionStructure().countries.map((country) => country.name),
+		getCompetitionStructure().countries.flatMap((country) => [
+			country.name,
+			...(country.nameCountries ?? []),
+		]),
 	);
 	const size = getTalentPoolSize(g.get("numActiveTeams"));
 	for (let i = 0; i < size; i++) {

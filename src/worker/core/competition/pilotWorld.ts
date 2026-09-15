@@ -86,24 +86,42 @@ const chooseTowns = (
 };
 
 /**
- * The real clubs a top tier of `count` clubs is made of (see
- * WorldCountry.realTopTierClubs): the ones marked pickFirst in random order,
- * then the rest, ordered like chooseTowns orders towns, so clubs from bigger
- * cities lean towards being their Division's big clubs
+ * The real clubs a tier of `count` clubs is made of, from that tier's list
+ * `clubs` (see WorldCountry.realClubsByTier), biggest markets first. With
+ * `inOrder`, the first `count` clubs in the list's order. Otherwise the ones
+ * marked pickFirst in random order, then the rest, ordered like chooseTowns
+ * orders towns, so clubs from bigger cities lean towards being their
+ * Division's big clubs.
  */
 export const chooseRealClubs = ({
 	clubs,
 	towns,
 	count,
+	inOrder = false,
 	random,
 }: {
 	clubs: RealClub[];
 	towns: PilotTown[];
 	count: number;
+	inOrder?: boolean;
 	random: () => number;
 }) => {
 	if (clubs.length < count) {
 		throw new Error(`Only ${clubs.length} real clubs for ${count} places`);
+	}
+
+	const withTown = (club: RealClub) => {
+		const town = towns.find((town) => town.name === club.town);
+		if (!town) {
+			throw new Error(
+				`${club.region} ${club.name} is in ${club.town}, which isn't one of its Country's towns`,
+			);
+		}
+		return { club, town };
+	};
+
+	if (inOrder) {
+		return clubs.slice(0, count).map(withTown);
 	}
 
 	const chosen = [
@@ -119,12 +137,7 @@ export const chooseRealClubs = ({
 
 	return chosen
 		.map((club) => {
-			const town = towns.find((town) => town.name === club.town);
-			if (!town) {
-				throw new Error(
-					`${club.region} ${club.name} is in ${club.town}, which isn't one of its Country's towns`,
-				);
-			}
+			const { town } = withTown(club);
 			return { club, town, size: town.pop * (0.7 + 0.6 * random()) };
 		})
 		.sort((a, b) => b.size - a.size)
@@ -240,7 +253,7 @@ const getPop = ({
  * go up along with the winner of a playoff among the next 4. Clubs are in real
  * towns (see pilotTowns.ts and worldTowns.ts), with invented names in their
  * Country's style, three letter abbreviations, kit colors, crests, and market
- * sizes, except a Country's top tier of real clubs, if it has one (see
+ * sizes, except in a Country's tiers of real clubs, if it has them (see
  * chooseRealClubs). `random` is uniform on [0, 1), so the same numbers make the
  * same World.
  */
@@ -280,6 +293,9 @@ export const generateWorld = ({
 			countryId,
 			name: country.name,
 			startingStrengthPenalty: country.startingStrengthPenalty,
+			...(country.nameCountries
+				? { nameCountries: country.nameCountries }
+				: {}),
 		});
 		for (let tier = 1; tier <= country.numTiers; tier++) {
 			const divisionId = competitionDivisions.length + 1;
@@ -316,25 +332,28 @@ export const generateWorld = ({
 	// Real clubs keep their own abbreviations and names, so no generated club
 	// takes them
 	for (const country of worldCountries) {
-		for (const club of country.realTopTierClubs ?? []) {
+		for (const club of (country.realClubsByTier ?? []).flat()) {
 			takenAbbrevs.add(club.abbrev);
 			takenNames.add(`${club.region} ${club.name}`);
 		}
 	}
 
 	const clubs = worldCountries.flatMap((country, countryId) => {
-		const realClubs = country.realTopTierClubs
-			? chooseRealClubs({
-					clubs: country.realTopTierClubs,
+		const realTiers = (country.realClubsByTier ?? [])
+			.slice(0, country.numTiers)
+			.map((tierClubs) =>
+				chooseRealClubs({
+					clubs: tierClubs,
 					towns: country.towns,
 					count: clubsPerDivision,
+					inOrder: country.realClubsInOrder,
 					random,
-				})
-			: [];
-		const numRealTiers = realClubs.length > 0 ? 1 : 0;
+				}),
+			);
+		const numRealTiers = realTiers.length;
 
 		// Generated clubs aren't in the real clubs' towns
-		const realTowns = new Set(realClubs.map(({ town }) => town.name));
+		const realTowns = new Set(realTiers.flat().map(({ town }) => town.name));
 		const towns = chooseTowns(
 			country.towns.filter((town) => !realTowns.has(town.name)),
 			(country.numTiers - numRealTiers) * clubsPerDivision,
@@ -347,7 +366,7 @@ export const generateWorld = ({
 			}
 
 			if (division.tier <= numRealTiers) {
-				return realClubs.map(({ club, town }, place) => {
+				return realTiers[division.tier - 1]!.map(({ club, town }, place) => {
 					const pop = getPop({
 						tier: division.tier,
 						place,
@@ -427,6 +446,9 @@ export const generateWorld = ({
 	};
 };
 
-/** The pilot World: England and Spain, with 16 clubs in each Division */
+/**
+ * The pilot World: the United Kingdom and Spain, with 16 clubs in each
+ * Division
+ */
 export const generatePilotWorld = (random: () => number = Math.random) =>
 	generateWorld({ random });

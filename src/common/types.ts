@@ -556,6 +556,13 @@ export type Country = {
 	 * starting squads are, where a whole tier is 1 (see getSquadOrder)
 	 */
 	startingStrengthPenalty?: number;
+	/**
+	 * International Soccer Zen GM mod (Epic 7): the countries in ZenGM's name
+	 * data this Country's players come from, when it has none of its own under
+	 * its name, like the United Kingdom's nations. The first gives its local
+	 * players' names (see getCountryNameByTid).
+	 */
+	nameCountries?: string[];
 };
 
 /**

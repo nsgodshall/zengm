@@ -94,6 +94,26 @@ export const ENGLISH_TOWNS: PilotTown[] = [
 	{ name: "Durham", pop: 50, wikipedia: "Durham,_England" },
 	{ name: "Lancaster", pop: 50, wikipedia: "Lancaster,_Lancashire" },
 	{ name: "Salisbury", pop: 40, wikipedia: "Salisbury" },
+	// International Soccer Zen GM mod (Epic 7): for real clubs (see
+	// competition/britishClubs.ts)
+	{ name: "Bournemouth", pop: 190, wikipedia: "Bournemouth" },
+	{ name: "Watford", pop: 100, wikipedia: "Watford" },
+	{ name: "West Bromwich", pop: 75, wikipedia: "West_Bromwich" },
+];
+
+/**
+ * International Soccer Zen GM mod (Epic 7): the United Kingdom's towns, for its
+ * real clubs (see competition/britishClubs.ts): England's, plus Scotland's,
+ * Wales's, and Northern Ireland's
+ */
+export const BRITISH_TOWNS: PilotTown[] = [
+	...ENGLISH_TOWNS,
+	{ name: "Glasgow", pop: 635, wikipedia: "Glasgow" },
+	{ name: "Cardiff", pop: 370, wikipedia: "Cardiff" },
+	{ name: "Belfast", pop: 345, wikipedia: "Belfast" },
+	{ name: "Swansea", pop: 245, wikipedia: "Swansea" },
+	{ name: "Aberdeen", pop: 200, wikipedia: "Aberdeen" },
+	{ name: "Wrexham", pop: 45, wikipedia: "Wrexham" },
 ];
 
 export const SPANISH_TOWNS: PilotTown[] = [
@@ -192,6 +212,12 @@ export const SPANISH_TOWNS: PilotTown[] = [
 	{ name: "Mérida", pop: 60, wikipedia: "Mérida,_Spain" },
 	{ name: "Zamora", pop: 60, wikipedia: "Zamora,_Spain" },
 	{ name: "Huesca", pop: 53, wikipedia: "Huesca" },
+	// International Soccer Zen GM mod (Epic 7): for real clubs (see
+	// competition/spanishClubs.ts)
+	{ name: "Ceuta", pop: 83, wikipedia: "Ceuta" },
+	{ name: "Villarreal", pop: 51, wikipedia: "Villarreal" },
+	{ name: "Miranda de Ebro", pop: 35, wikipedia: "Miranda_de_Ebro" },
+	{ name: "Eibar", pop: 27, wikipedia: "Eibar" },
 ];
 
 // Real clubs in or near the pilot towns, from the professional leagues and

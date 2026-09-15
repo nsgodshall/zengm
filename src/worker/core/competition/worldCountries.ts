@@ -1,5 +1,5 @@
 import {
-	ENGLISH_TOWNS,
+	BRITISH_TOWNS,
 	type PilotTown,
 	REAL_ENGLISH_CLUB_NAMES,
 	REAL_SPANISH_CLUB_NAMES,
@@ -18,6 +18,8 @@ import {
 	REAL_MEXICAN_CLUB_NAMES,
 } from "./worldTowns.ts";
 import { AMERICAN_REAL_CLUBS } from "./americanClubs.ts";
+import { BRITISH_CLUBS_BY_TIER } from "./britishClubs.ts";
+import { SPANISH_CLUBS_BY_TIER } from "./spanishClubs.ts";
 
 // International Soccer Zen GM mod (Epic 7): the Countries a new World can be
 // made of, chosen on the New World page (see generateWorld)
@@ -43,9 +45,9 @@ export type RealClub = {
 	colors: [string, string, string];
 	// Its logo, served from public/
 	imgURL: string;
-	// Picked before the rest when a top tier has fewer clubs than there are
-	// real clubs
-	pickFirst: boolean;
+	// Picked before the rest when a tier has fewer clubs than there are real
+	// clubs, unless its Country takes them in order (see realClubsInOrder)
+	pickFirst?: boolean;
 };
 
 export type WorldCountry = {
@@ -55,8 +57,15 @@ export type WorldCountry = {
 	numTiers: number;
 	towns: PilotTown[];
 	realClubNames: string[];
-	// Real teams for its top tier, as many as the biggest Division has clubs
-	realTopTierClubs?: RealClub[];
+	// Real clubs for its tiers from the top, each tier with as many as the
+	// biggest Division has clubs. Any tiers below them get generated clubs.
+	realClubsByTier?: RealClub[][];
+	// Whether a smaller Division takes each tier's first real clubs, in order
+	// and with the first the biggest markets, rather than pickFirst clubs at
+	// random and then by town size (see chooseRealClubs)
+	realClubsInOrder?: boolean;
+	// See Country.nameCountries
+	nameCountries?: string[];
 	namePatterns: ClubNamePattern[];
 	// Decided: it's basketball, so the USA is number 1, and the rest follow
 	// their rough basketball standing. A Country's starting squads rank lower
@@ -75,12 +84,18 @@ const withPrefixes = (prefixes: string[]): ClubNamePattern[] =>
 // In the order they appear in a World
 export const WORLD_COUNTRIES: WorldCountry[] = [
 	{
-		key: "england",
-		name: "England",
-		adjective: "English",
+		key: "uk",
+		name: "United Kingdom",
+		adjective: "British",
 		numTiers: 2,
-		towns: ENGLISH_TOWNS,
+		towns: BRITISH_TOWNS,
 		realClubNames: REAL_ENGLISH_CLUB_NAMES,
+		// Decided with the user: English, Scottish, Welsh, and Northern Irish
+		// clubs in one pyramid, all real, starting at their real standing. Local
+		// players have English names, since ZenGM's name data has no others.
+		realClubsByTier: BRITISH_CLUBS_BY_TIER,
+		realClubsInOrder: true,
+		nameCountries: ["England", "Scotland", "Wales", "Northern Ireland"],
 		namePatterns: withSuffixes([
 			"Albion",
 			"Athletic",
@@ -103,6 +118,9 @@ export const WORLD_COUNTRIES: WorldCountry[] = [
 		numTiers: 2,
 		towns: SPANISH_TOWNS,
 		realClubNames: REAL_SPANISH_CLUB_NAMES,
+		// Decided with the user: all real clubs, starting at their real standing
+		realClubsByTier: SPANISH_CLUBS_BY_TIER,
+		realClubsInOrder: true,
 		namePatterns: [
 			["{town}", "CF"],
 			["{town}", "CF"],
@@ -125,7 +143,7 @@ export const WORLD_COUNTRIES: WorldCountry[] = [
 		towns: AMERICAN_TOWNS,
 		realClubNames: REAL_AMERICAN_CLUB_NAMES,
 		// Decided with the user: the USA's top tier is real teams
-		realTopTierClubs: AMERICAN_REAL_CLUBS,
+		realClubsByTier: [AMERICAN_REAL_CLUBS],
 		namePatterns: [
 			...withSuffixes(["FC", "FC", "SC", "United", "City", "Athletic"]),
 			...withPrefixes(["Real", "Sporting", "Inter"]),
@@ -235,4 +253,4 @@ export const WORLD_COUNTRIES: WorldCountry[] = [
 	},
 ];
 
-export const DEFAULT_WORLD_COUNTRY_KEYS = ["england", "spain"];
+export const DEFAULT_WORLD_COUNTRY_KEYS = ["uk", "spain"];

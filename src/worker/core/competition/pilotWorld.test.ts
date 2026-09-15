@@ -12,13 +12,7 @@ import {
 	repeatsWord,
 } from "./pilotWorld.ts";
 import { WORLD_COUNTRIES } from "./worldCountries.ts";
-import {
-	ENGLISH_TOWNS,
-	isRealClubName,
-	REAL_ENGLISH_CLUB_NAMES,
-	REAL_SPANISH_CLUB_NAMES,
-	SPANISH_TOWNS,
-} from "./pilotTowns.ts";
+import { isRealClubName } from "./pilotTowns.ts";
 
 // The same numbers every time, for a repeatable World
 const seededRandom = (seed: number) => {
@@ -29,17 +23,23 @@ const seededRandom = (seed: number) => {
 	};
 };
 
+const fullName = (club: { region: string; name: string }) =>
+	`${club.region} ${club.name}`;
+
 describe("generatePilotWorld", () => {
-	test("England and Spain, each with two tiers of 16 clubs and promotion and relegation between them", () => {
+	test("the United Kingdom and Spain, each with two tiers of 16 clubs and promotion and relegation between them", () => {
 		const { structure, clubs } = generatePilotWorld(seededRandom(1));
 
 		expect(() => validateCompetitionStructure(structure)).not.toThrow();
 		expect(() => validateClubDivisions(structure, clubs)).not.toThrow();
 
 		expect(structure.countries.map((country) => country.name)).toEqual([
-			"England",
+			"United Kingdom",
 			"Spain",
 		]);
+		expect(
+			structure.competitionDivisions.map((division) => division.name),
+		).toContain("British First Division");
 		for (const division of structure.competitionDivisions) {
 			expect(
 				clubs.filter((club) => club.divisionId === division.divisionId),
@@ -60,21 +60,57 @@ describe("generatePilotWorld", () => {
 		);
 	});
 
-	test("every club has its own name and three letter abbreviation", () => {
-		const { clubs } = generatePilotWorld(seededRandom(2));
+	test("British players have English names, since ZenGM has no others for the UK", () => {
+		const { structure } = generatePilotWorld(seededRandom(2));
+		expect(structure.countries[0]!.nameCountries).toEqual([
+			"England",
+			"Scotland",
+			"Wales",
+			"Northern Ireland",
+		]);
+		expect(structure.countries[1]!.nameCountries).toBeUndefined();
+	});
 
-		expect(
-			new Set(clubs.map((club) => `${club.region} ${club.name}`)).size,
-		).toBe(clubs.length);
-		expect(new Set(clubs.map((club) => club.abbrev)).size).toBe(clubs.length);
-		for (const club of clubs) {
-			expect(club.abbrev).toMatch(/^[\dA-Z]{3}$/);
+	test("every club is one of the first real clubs of its tier's list, in order, in its town, with its crest", () => {
+		for (const clubsPerDivision of [10, PILOT_CLUBS_PER_DIVISION, 20]) {
+			const { structure, clubs } = generateWorld({
+				clubsPerDivision,
+				random: seededRandom(clubsPerDivision),
+			});
 
-			// A generated crest with the club's abbreviation
-			expect(club.imgURL.startsWith("data:image/svg+xml,")).toBe(true);
-			expect(decodeURIComponent(club.imgURL)).toContain(
-				`>${club.abbrev}</text>`,
-			);
+			for (const division of structure.competitionDivisions) {
+				const country = structure.countries.find(
+					(country) => country.countryId === division.countryId,
+				)!;
+				const worldCountry = WORLD_COUNTRIES.find(
+					(c) => c.name === country.name,
+				)!;
+				const expected = worldCountry.realClubsByTier![
+					division.tier - 1
+				]!.slice(0, clubsPerDivision);
+				const divisionClubs = clubs.filter(
+					(club) => club.divisionId === division.divisionId,
+				);
+
+				expect(divisionClubs.map(fullName)).toEqual(expected.map(fullName));
+				for (const [i, club] of divisionClubs.entries()) {
+					const real = expected[i]!;
+					const town = worldCountry.towns.find((t) => t.name === real.town)!;
+					expect(club.abbrev).toBe(real.abbrev);
+					expect(club.imgURL).toBe(real.imgURL);
+					expect(club.colors).toEqual(real.colors);
+					expect(club.location).toEqual({
+						town: town.name,
+						country: country.name,
+						wikipedia: town.wikipedia,
+					});
+				}
+
+				// The first clubs in the list are the biggest markets
+				expect(divisionClubs[0]!.pop).toBeGreaterThan(
+					divisionClubs.at(-1)!.pop,
+				);
+			}
 		}
 	});
 
@@ -98,63 +134,58 @@ describe("generatePilotWorld", () => {
 		}
 	});
 
-	test("clubs are in real towns, with names that don't copy real clubs", () => {
-		for (let seed = 1; seed <= 20; seed++) {
-			const { structure, clubs } = generatePilotWorld(seededRandom(seed));
-
-			for (const country of structure.countries) {
-				const english = country.name === "England";
-				const pool = english ? ENGLISH_TOWNS : SPANISH_TOWNS;
-				const realNames = english
-					? REAL_ENGLISH_CLUB_NAMES
-					: REAL_SPANISH_CLUB_NAMES;
-				const countryClubs = clubs.filter(
-					(club) => club.cid === country.countryId,
-				);
-
-				expect(
-					new Set(countryClubs.map((club) => club.location.town)).size,
-				).toBe(countryClubs.length);
-				for (const club of countryClubs) {
-					const town = pool.find((t) => t.name === club.location.town);
-					expect(town).toBeDefined();
-					expect(club.location).toEqual({
-						town: town!.name,
-						country: country.name,
-						wikipedia: town!.wikipedia,
-					});
-					expect(isRealClubName(`${club.region} ${club.name}`, realNames)).toBe(
-						false,
-					);
-				}
-
-				// Bigger towns lean towards the top tier
-				const averageTownPop = (tier: number) => {
-					const divisionId = structure.competitionDivisions.find(
-						(division) =>
-							division.countryId === country.countryId &&
-							division.tier === tier,
-					)!.divisionId;
-					const tierClubs = countryClubs.filter(
-						(club) => club.divisionId === divisionId,
-					);
-					return (
-						tierClubs.reduce(
-							(sum, club) =>
-								sum + pool.find((t) => t.name === club.location.town)!.pop,
-							0,
-						) / tierClubs.length
-					);
-				};
-				expect(averageTownPop(1)).toBeGreaterThan(averageTownPop(2));
-			}
-		}
-	});
-
 	test("the same random numbers make the same World", () => {
 		expect(generatePilotWorld(seededRandom(4))).toEqual(
 			generatePilotWorld(seededRandom(4)),
 		);
+	});
+});
+
+describe("real clubs", () => {
+	const countriesWithRealClubs = WORLD_COUNTRIES.filter(
+		(country) => country.realClubsByTier,
+	);
+	const allRealClubs = countriesWithRealClubs.flatMap((country) =>
+		country.realClubsByTier!.flat(),
+	);
+
+	test("every Country's tiers of real clubs fill its biggest Divisions, each club in one of its towns", () => {
+		expect(countriesWithRealClubs.map((country) => country.key)).toEqual([
+			"uk",
+			"spain",
+			"usa",
+		]);
+		for (const country of countriesWithRealClubs) {
+			expect(country.realClubsByTier!.length).toBeLessThanOrEqual(
+				country.numTiers,
+			);
+			for (const tierClubs of country.realClubsByTier!) {
+				expect(tierClubs).toHaveLength(MAX_CLUBS_PER_DIVISION);
+				for (const club of tierClubs) {
+					expect(
+						country.towns.some((town) => town.name === club.town),
+						`${fullName(club)} in ${club.town}`,
+					).toBe(true);
+				}
+			}
+		}
+	});
+
+	test("every real club has its own name and three letter abbreviation, colors, and a crest or logo path", () => {
+		expect(new Set(allRealClubs.map((club) => club.abbrev)).size).toBe(
+			allRealClubs.length,
+		);
+		expect(new Set(allRealClubs.map(fullName)).size).toBe(allRealClubs.length);
+		for (const club of allRealClubs) {
+			expect(club.abbrev).toMatch(/^[\dA-Z]{3}$/);
+			expect(club.imgURL).toMatch(
+				/^\/img\/world-logos\/[a-z]+\/[\da-z-]+\.(svg|png)$/,
+			);
+			for (const color of club.colors) {
+				expect(color).toMatch(/^#[\da-f]{6}$/);
+			}
+		}
+		// The files themselves are checked in src/test/realClubLogos.test.ts
 	});
 });
 
@@ -171,7 +202,7 @@ describe("generateWorld", () => {
 		expect(() => validateClubDivisions(structure, clubs)).not.toThrow();
 
 		expect(structure.countries.map((country) => country.name)).toEqual([
-			"England",
+			"United Kingdom",
 			"Spain",
 			"USA",
 			"Mexico",
@@ -196,15 +227,13 @@ describe("generateWorld", () => {
 		).toContain("American Third Division");
 
 		expect(new Set(clubs.map((club) => club.abbrev)).size).toBe(clubs.length);
-		expect(
-			new Set(clubs.map((club) => `${club.region} ${club.name}`)).size,
-		).toBe(clubs.length);
+		expect(new Set(clubs.map(fullName)).size).toBe(clubs.length);
 		expect(clubs.map((club) => club.tid)).toEqual(
 			Array.from({ length: clubs.length }, (_, i) => i),
 		);
 	});
 
-	test("every Country's clubs are in its towns, with names that don't copy real clubs", () => {
+	test("every Country's clubs are in its towns, and generated clubs don't copy real clubs", () => {
 		for (let seed = 1; seed <= 5; seed++) {
 			const { structure, clubs } = generateWorld({
 				countryKeys: allCountryKeys,
@@ -215,9 +244,7 @@ describe("generateWorld", () => {
 					(c) => c.name === country.name,
 				)!;
 				const realNames = new Set(
-					(worldCountry.realTopTierClubs ?? []).map(
-						(club) => `${club.region} ${club.name}`,
-					),
+					(worldCountry.realClubsByTier ?? []).flat().map(fullName),
 				);
 				for (const club of clubs.filter(
 					(club) => club.cid === country.countryId,
@@ -225,20 +252,16 @@ describe("generateWorld", () => {
 					expect(
 						worldCountry.towns.some((town) => town.name === club.location.town),
 					).toBe(true);
-					// A real top-tier club is meant to be a real club
-					if (realNames.has(`${club.region} ${club.name}`)) {
+					// A real club is meant to be a real club
+					if (realNames.has(fullName(club))) {
 						continue;
 					}
 					expect(
-						isRealClubName(
-							`${club.region} ${club.name}`,
-							worldCountry.realClubNames,
-						),
+						isRealClubName(fullName(club), worldCountry.realClubNames),
 					).toBe(false);
-					expect(
-						repeatsWord(club.region, club.name),
-						`${club.region} ${club.name}`,
-					).toBe(false);
+					expect(repeatsWord(club.region, club.name), fullName(club)).toBe(
+						false,
+					);
 				}
 			}
 		}
@@ -279,28 +302,12 @@ describe("generateWorld", () => {
 
 describe("the USA's top tier of real clubs", () => {
 	const usa = WORLD_COUNTRIES.find((country) => country.key === "usa")!;
-	const realClubs = usa.realTopTierClubs!;
-	const byName = new Map(
-		realClubs.map((club) => [`${club.region} ${club.name}`, club]),
-	);
-
-	// Their logo files are checked in src/test/americanClubLogos.test.ts
-	test("enough for the biggest Division, each in a USA town", () => {
-		expect(realClubs).toHaveLength(MAX_CLUBS_PER_DIVISION);
-		expect(new Set(realClubs.map((club) => club.abbrev)).size).toBe(
-			realClubs.length,
-		);
-		expect(byName.size).toBe(realClubs.length);
-		for (const club of realClubs) {
-			expect(club.abbrev).toMatch(/^[\dA-Z]{3}$/);
-			expect(usa.towns.some((town) => town.name === club.town)).toBe(true);
-			for (const color of club.colors) {
-				expect(color).toMatch(/^#[\da-f]{6}$/);
-			}
-		}
-	});
+	const realClubs = usa.realClubsByTier![0]!;
+	const byName = new Map(realClubs.map((club) => [fullName(club), club]));
 
 	test("a USA World's top tier is made of them, clubs picked first first, and its lower tiers skip their towns", () => {
+		expect(usa.realClubsByTier).toHaveLength(1);
+		expect(usa.realClubsInOrder).toBeUndefined();
 		const numPickFirst = realClubs.filter((club) => club.pickFirst).length;
 		for (const clubsPerDivision of [10, 16, 20]) {
 			const { structure, clubs } = generateWorld({
@@ -318,17 +325,15 @@ describe("the USA's top tier of real clubs", () => {
 			);
 			expect(topClubs).toHaveLength(clubsPerDivision);
 			for (const club of topClubs) {
-				const real = byName.get(`${club.region} ${club.name}`);
-				expect(real, `${club.region} ${club.name}`).toBeDefined();
+				const real = byName.get(fullName(club));
+				expect(real, fullName(club)).toBeDefined();
 				expect(club.abbrev).toBe(real!.abbrev);
 				expect(club.imgURL).toBe(real!.imgURL);
 				expect(club.colors).toEqual(real!.colors);
 				expect(club.location.town).toBe(real!.town);
 			}
 			expect(
-				topClubs.filter(
-					(club) => byName.get(`${club.region} ${club.name}`)!.pickFirst,
-				),
+				topClubs.filter((club) => byName.get(fullName(club))!.pickFirst),
 			).toHaveLength(Math.min(clubsPerDivision, numPickFirst));
 
 			const topTowns = new Set(topClubs.map((club) => club.location.town));
