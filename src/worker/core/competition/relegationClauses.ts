@@ -20,8 +20,9 @@ import { getContractSeasonsLeft } from "./transferMarket.ts";
 export const RELEGATION_CLAUSE_SETTINGS = {
 	// How many of a relegated club's best-paid players walk away. Tuned in
 	// 10-season long runs so relegated clubs go straight back up about as often
-	// as in real leagues.
-	numPlayers: 8,
+	// as in real leagues. Retuned from 8 once the talent pool and academy loans
+	// gave relegated clubs more ways to rebuild.
+	numPlayers: 10,
 };
 
 /**

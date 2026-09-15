@@ -33,7 +33,7 @@ export const WORLD_REVENUE_SETTINGS = {
 	// raising its coaching, facilities, and health budgets above its market
 	// size's by this many levels (out of MAX_LEVEL) for each season's revenue of
 	// spare cash, counting up to maxReinvestSeasons of it
-	reinvestLevelsPerSeason: 10,
+	reinvestLevelsPerSeason: 20,
 	maxReinvestSeasons: 3,
 };
 
