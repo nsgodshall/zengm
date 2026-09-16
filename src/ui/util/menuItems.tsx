@@ -858,6 +858,7 @@ export const menuItems: (MenuItemLink | MenuItemHeader)[] = [
 				active: (pageID) => pageID === "manageTeams",
 				league: true,
 				commandPalette: true,
+				world: false,
 				path: ["manage_teams"],
 				text: "Manage Teams",
 			},

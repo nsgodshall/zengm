@@ -141,6 +141,7 @@ const updateTeams = async (inputs: unknown, updateEvents: UpdateEvents) => {
 					"profit",
 					"cid",
 					"did",
+					"divisionId",
 					"wonDiv",
 					"lostDiv",
 					"tiedDiv",
@@ -157,6 +158,13 @@ const updateTeams = async (inputs: unknown, updateEvents: UpdateEvents) => {
 			"noCopyCache",
 		);
 		const t = teams.find((t2) => t2.tid === g.get("userTid"));
+		const teamsForStatRanks =
+			t?.seasonAttrs.divisionId !== undefined &&
+			!competition.isSingleDivision(competition.getCompetitionStructure())
+				? teams.filter(
+						(t2) => t2.seasonAttrs.divisionId === t.seasonAttrs.divisionId,
+					)
+				: teams;
 		const cid = t !== undefined ? t.seasonAttrs.cid : undefined;
 		let att = 0;
 		let rank = 1;
@@ -199,9 +207,11 @@ const updateTeams = async (inputs: unknown, updateEvents: UpdateEvents) => {
 		}
 
 		for (const stat of stats) {
-			teams.sort((a, b) => (b.stats as any)[stat] - (a.stats as any)[stat]);
+			teamsForStatRanks.sort(
+				(a, b) => (b.stats as any)[stat] - (a.stats as any)[stat],
+			);
 
-			for (const [j, t] of teams.entries()) {
+			for (const [j, t] of teamsForStatRanks.entries()) {
 				if (t.tid === g.get("userTid")) {
 					const entry = teamStats.find((teamStat) => teamStat.stat === stat);
 
@@ -212,7 +222,7 @@ const updateTeams = async (inputs: unknown, updateEvents: UpdateEvents) => {
 							stat.startsWith("opp") ||
 							(isSport("baseball") && stat === "era")
 						) {
-							entry.rank = teams.length + 1 - entry.rank;
+							entry.rank = teamsForStatRanks.length + 1 - entry.rank;
 						}
 					}
 

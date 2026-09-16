@@ -369,6 +369,12 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 
 	test("promotions and relegations are in the news", async () => {
 		const events: EventBBGM[] = await idb.league.getAll("events");
+		assert(
+			!events.some((event) =>
+				event.text?.includes("eliminated from playoff contention"),
+			),
+			"World clubs received league playoff elimination news",
+		);
 
 		for (const season of completedSeasons) {
 			for (const type of ["promotion", "relegation"] as const) {

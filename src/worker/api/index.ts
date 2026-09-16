@@ -4596,6 +4596,9 @@ const updateTeamInfo = async ({
 	const teams = await idb.cache.teams.getAll();
 
 	const newTeamsByTid = groupByUnique(newTeams, "tid");
+	const world = !competition.isSingleDivision(
+		competition.getCompetitionStructure(),
+	);
 
 	const newTeamsIncludingDisabled = [];
 
@@ -4611,6 +4614,12 @@ const updateTeamInfo = async ({
 			}
 		}
 		newTeamsIncludingDisabled.push(newTeam);
+
+		if (world && from === "manageTeams" && newTeam.did !== t.did) {
+			throw new Error(
+				"Changing a club's Division from Manage Teams is not supported in a World.",
+			);
+		}
 
 		if (newTeam.did !== undefined) {
 			const divs = g.get("divs");

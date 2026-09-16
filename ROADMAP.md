@@ -219,7 +219,6 @@ What landed:
 
 Still open for league tables:
 
-- Not yet looked at in a browser. The dev server's game worker is shared by every tab, so testing a World there switches whatever league is open in other tabs.
 - A "favorites" view showing just the Divisions of followed clubs.
 
 Still to do:
@@ -313,7 +312,7 @@ Still open:
   - A squad well under the roster minimum can have a team rating below zero until the AI fills its roster before the first game.
   - **Board objectives:** "Avoid relegation" is met about 45% of the time and "Finish mid-table" about 80%, the rest about 75%. Decided to leave them: relegation-threatened clubs often do go down.
   - **Hype:** ZenGM takes hype away for an average record every game and for missing the playoffs every season, and gives it back for making the playoffs. A World has no playoffs, so every club missed them and hype fell every season (from 0.46 to 0.06 for lower tiers in 10 seasons), dragging revenue with it. In a World an even record now keeps hype level, missing the (nonexistent) playoffs costs nothing, and promotion gains 0.05 hype while relegation loses it (`PROMOTION_HYPE`).
-- Manual playtest pass focused on the transfer market economy (does it produce sensible AI behavior, do wages stay plausible over a multi-season save).
+- **First full-size manual playtest** (2026-09-15): managed Boise in the American Third Division for 3 seasons in a 112-club UK/Spain/USA World. Scheduling, tables, promotion/relegation, academies, contracts, and every season transition worked. Boise finished 13th, 16th, and 16th as its cash fell from $10M to -$61M and its wage budget fell from $127M to $28.5M. No listed first-team player drew an offer in two summers, confirming that lower-tier starting payrolls, budgets, and transfer liquidity still need tuning. Fixed the directly actionable UI and logic problems found in the pass: AI offer attempts now try other eligible buyers instead of stopping at one random ineligible club; the two large transfer-market tables are paginated; World clubs no longer get league playoff-elimination news; dashboard stat ranks are within the user's Division; Manage Teams is hidden in a World and its worker rejects structural moves from a stale or direct page; and generic signing news uses a World's full club names. Promotion playoffs still resolve as one end-of-season batch, and the lower-tier financial transition remains open for a separately measured economy change.
 
 ### Epic 9 — Extension points for later (explicitly not in MVP)
 

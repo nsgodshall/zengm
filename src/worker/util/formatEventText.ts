@@ -21,6 +21,11 @@ type PickAsset = {
 	originalTid: number;
 };
 
+const getTeamName = (teamInfo: { name: string; region: string }) =>
+	(g.get("competitionDivisions")?.length ?? 0) > 1
+		? `${teamInfo.region} ${teamInfo.name}`.trim()
+		: teamInfo.name;
+
 export const assetIsPlayer = (
 	asset: PlayerAsset | PickAsset,
 ): asset is PlayerAsset => {
@@ -135,7 +140,7 @@ export const formatEventText = async (event: EventBBGM) => {
 						"roster",
 						`${teamInfo.abbrev}_${tid}`,
 						event.season,
-					])}">${teamInfo.name}</a>`
+					])}">${getTeamName(teamInfo)}</a>`
 				: "???";
 
 			if (text === "") {
@@ -185,7 +190,7 @@ export const formatEventText = async (event: EventBBGM) => {
 					"roster",
 					`${teamInfo.abbrev}_${tid}`,
 					event.season,
-				])}">${teamInfo.name}</a>`
+				])}">${getTeamName(teamInfo)}</a>`
 			: "???";
 
 		const p = await idb.getCopy.players({ pid: event.pids[0] }, "noCopyCache");
@@ -211,7 +216,7 @@ export const formatEventText = async (event: EventBBGM) => {
 							"roster",
 							`${teamInfo.abbrev}_${tid}`,
 							event.season,
-						])}">${teamInfo.name}</a>`
+						])}">${getTeamName(teamInfo)}</a>`
 					: "???";
 			}),
 		);

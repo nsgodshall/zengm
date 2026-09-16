@@ -12,6 +12,8 @@ import {
 } from "../season/genPlayoffSeries.ts";
 import evaluatePointsFormula from "./evaluatePointsFormula.ts";
 import { season } from "../index.ts";
+import { isSingleDivision } from "../competition/competitionStructure.ts";
+import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
 
 type ClinchedPlayoffs = TeamSeason["clinchedPlayoffs"];
 
@@ -279,6 +281,13 @@ const updateClinchedPlayoffs = async (
 	finalStandings: boolean,
 	conditions: Conditions,
 ) => {
+	// Worlds use league tables and promotion/relegation rather than ZenGM's
+	// league playoffs. Running this there produces misleading "eliminated from
+	// playoff contention" news for every club.
+	if (!isSingleDivision(getCompetitionStructure())) {
+		return;
+	}
+
 	const teamSeasons = await idb.cache.teamSeasons.indexGetAll(
 		"teamSeasonsBySeasonTid",
 		[[g.get("season")], [g.get("season"), "Z"]],

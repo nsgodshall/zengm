@@ -622,6 +622,7 @@ const TransferMarket = ({
 				cols={marketCols}
 				defaultSort={[9, "desc"]}
 				name="TransferMarket"
+				pagination
 				rows={marketRows}
 			/>
 
@@ -637,6 +638,7 @@ const TransferMarket = ({
 				cols={academyCols}
 				defaultSort={[8, "desc"]}
 				name="TransferMarketAcademy"
+				pagination
 				rows={academyRows}
 			/>
 

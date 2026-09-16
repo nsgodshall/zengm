@@ -1,4 +1,4 @@
-import { choice } from "../../../common/random.ts";
+import { choice, shuffle } from "../../../common/random.ts";
 import type { Player } from "../../../common/types.ts";
 import { idb } from "../../db/index.ts";
 import { g, helpers, local, logEvent, toUI } from "../../util/index.ts";
@@ -166,12 +166,7 @@ export const makeAiTransferOffers = async (
 			candidates,
 			(p) => p.value * (p.transferListed ? TRANSFER_LISTED_OFFER_WEIGHT : 1),
 		);
-		const buyerTid = choice(aiTids);
-		if (
-			!p ||
-			buyerTid === undefined ||
-			p.transferOffers?.some((offer) => offer.tid === buyerTid)
-		) {
+		if (!p) {
 			continue;
 		}
 
@@ -190,29 +185,47 @@ export const makeAiTransferOffers = async (
 			listed: !!p.transferListed,
 		});
 
-		if (await getBuyerProblem({ buyerTid, fee, p, wageBudgets })) {
-			continue;
+		// Look for an eligible buyer in random order. Previously a single buyer was
+		// picked before checking its roster, budget, and interest, so one ineligible
+		// club discarded the whole offer attempt even when another club could buy.
+		const buyerTids = aiTids.filter(
+			(tid) => !p.transferOffers?.some((offer) => offer.tid === tid),
+		);
+		shuffle(buyerTids);
+
+		let buyerTid: number | undefined;
+		for (const tid of buyerTids) {
+			if (await getBuyerProblem({ buyerTid: tid, fee, p, wageBudgets })) {
+				continue;
+			}
+
+			if (academy) {
+				const academyValues = academyPlayers
+					.filter((p2) => p2.academyTid === tid)
+					.map((p2) => p2.value);
+				if (!aiWantsAcademyPlayer({ value: p.value, academyValues })) {
+					continue;
+				}
+			} else {
+				const buyerValueChange = await valueChangeCalculator.evaluate({
+					tid,
+					pidsAdd: [p.pid],
+					pidsRemove: [],
+					dpidsAdd: [],
+					dpidsRemove: [],
+					tradingPartnerTid: p.tid,
+				});
+				if (buyerValueChange <= 0) {
+					continue;
+				}
+			}
+
+			buyerTid = tid;
+			break;
 		}
 
-		if (academy) {
-			const academyValues = academyPlayers
-				.filter((p2) => p2.academyTid === buyerTid)
-				.map((p2) => p2.value);
-			if (!aiWantsAcademyPlayer({ value: p.value, academyValues })) {
-				continue;
-			}
-		} else {
-			const buyerValueChange = await valueChangeCalculator.evaluate({
-				tid: buyerTid,
-				pidsAdd: [p.pid],
-				pidsRemove: [],
-				dpidsAdd: [],
-				dpidsRemove: [],
-				tradingPartnerTid: p.tid,
-			});
-			if (buyerValueChange <= 0) {
-				continue;
-			}
+		if (buyerTid === undefined) {
+			continue;
 		}
 
 		p.transferOffers = [
