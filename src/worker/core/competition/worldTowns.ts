@@ -199,6 +199,21 @@ export const MEXICAN_TOWNS: PilotTown[] = [
 	{ name: "Monclova", pop: 232, wikipedia: "Monclova" },
 	{ name: "Navojoa", pop: 165, wikipedia: "Navojoa" },
 	{ name: "Guasave", pop: 75, wikipedia: "Guasave" },
+	{
+		name: "San Luis Potosí",
+		clubName: "San Luis",
+		pop: 825,
+		wikipedia: "San_Luis_Potosí_City",
+	},
+	{ name: "Poza Rica", pop: 195, wikipedia: "Poza_Rica" },
+	{
+		name: "Ciudad del Carmen",
+		clubName: "Carmen",
+		pop: 170,
+		wikipedia: "Ciudad_del_Carmen,_Campeche",
+	},
+	{ name: "Minatitlán", pop: 155, wikipedia: "Minatitlán,_Veracruz" },
+	{ name: "Córdoba", pop: 145, wikipedia: "Córdoba,_Veracruz" },
 ];
 
 export const ITALIAN_TOWNS: PilotTown[] = [
@@ -481,6 +496,36 @@ export const REAL_MEXICAN_CLUB_NAMES = [
 	"Toluca",
 	"Veracruz",
 	"Zacatepec",
+	// International Soccer Zen GM mod (Epic 7): Mexico's real clubs (see
+	// competition/mexicanClubs.ts), which are baseball clubs
+	"Acereros de Monclova",
+	"Algodoneros de Guasave",
+	"Algodoneros Unión Laguna",
+	"Bravos de León",
+	"Cañeros de Los Mochis",
+	"Charros de Jalisco",
+	"Conspiradores de Querétaro",
+	"Diablos Rojos del México",
+	"Dorados de Chihuahua",
+	"El Águila de Veracruz",
+	"Generales de Durango",
+	"Guerreros de Oaxaca",
+	"Leones de Yucatán",
+	"Mariachis de Guadalajara",
+	"Mayos de Navojoa",
+	"Naranjeros de Hermosillo",
+	"Olmecas de Tabasco",
+	"Pericos de Puebla",
+	"Piratas de Campeche",
+	"Rieleros de Aguascalientes",
+	"Saraperos de Saltillo",
+	"Sultanes de Monterrey",
+	"Tigres de Quintana Roo",
+	"Tomateros de Culiacán",
+	"Toros de Tijuana",
+	"Venados de Mazatlán",
+	"Yaquis de Obregón",
+	"Águilas de Mexicali",
 ];
 
 export const REAL_ITALIAN_CLUB_NAMES = [
@@ -668,4 +713,24 @@ export const REAL_JAPANESE_CLUB_NAMES = [
 	"Zweigen Kanazawa",
 	"Ehime FC",
 	"Grulla Morioka",
+	// International Soccer Zen GM mod (Epic 7): Japan's real clubs (see
+	// competition/japaneseClubs.ts), the NPB clubs and the J.League clubs that
+	// weren't already here
+	"Chiba Lotte Marines",
+	"Chunichi Dragons",
+	"Fukuoka SoftBank Hawks",
+	"Hanshin Tigers",
+	"Hiroshima Toyo Carp",
+	"Hokkaido Nippon-Ham Fighters",
+	"Kashima Antlers",
+	"Kashiwa Reysol",
+	"Machida Zelvia",
+	"Orix Buffaloes",
+	"Sagan Tosu",
+	"Saitama Seibu Lions",
+	"Shonan Bellmare",
+	"Tohoku Rakuten Golden Eagles",
+	"Tokyo Yakult Swallows",
+	"Yokohama DeNA BayStars",
+	"Yomiuri Giants",
 ];

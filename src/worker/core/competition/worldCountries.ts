@@ -19,6 +19,8 @@ import {
 } from "./worldTowns.ts";
 import { AMERICAN_CLUBS_BY_TIER } from "./americanClubs.ts";
 import { GERMAN_CLUBS_BY_TIER } from "./germanClubs.ts";
+import { JAPANESE_CLUBS_BY_TIER } from "./japaneseClubs.ts";
+import { MEXICAN_CLUBS_BY_TIER } from "./mexicanClubs.ts";
 import { BRITISH_CLUBS_BY_TIER } from "./britishClubs.ts";
 import { SPANISH_CLUBS_BY_TIER } from "./spanishClubs.ts";
 
@@ -159,6 +161,8 @@ export const WORLD_COUNTRIES: WorldCountry[] = [
 		numTiers: 2,
 		towns: MEXICAN_TOWNS,
 		realClubNames: REAL_MEXICAN_CLUB_NAMES,
+		realClubsByTier: MEXICAN_CLUBS_BY_TIER,
+		realClubsInOrder: true,
 		namePatterns: [
 			...withPrefixes([
 				"Club",
@@ -232,6 +236,8 @@ export const WORLD_COUNTRIES: WorldCountry[] = [
 		numTiers: 2,
 		towns: JAPANESE_TOWNS,
 		realClubNames: REAL_JAPANESE_CLUB_NAMES,
+		realClubsByTier: JAPANESE_CLUBS_BY_TIER,
+		realClubsInOrder: true,
 		namePatterns: [
 			...withSuffixes([
 				"FC",

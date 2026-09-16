@@ -154,7 +154,9 @@ describe("real clubs", () => {
 			"uk",
 			"spain",
 			"usa",
+			"mexico",
 			"germany",
+			"japan",
 		]);
 		for (const country of countriesWithRealClubs) {
 			expect(country.realClubsByTier!.length).toBeLessThanOrEqual(
