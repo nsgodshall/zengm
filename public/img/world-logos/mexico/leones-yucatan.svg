@@ -4,10 +4,10 @@
 	 viewBox="0 0 300 300" style="enable-background:new 0 0 300 300;" xml:space="preserve">
 <style type="text/css">
 	.st0{fill:#134D2B;}
-	.st1{fill-rule:evenodd;clip-rule:evenodd;fill:#FFFFFF;}
+	.st1{fill-rule:evenodd;clip-rule:evenodd;fill:#134D2B;}
 	.st2{fill-rule:evenodd;clip-rule:evenodd;fill:#E66125;}
 </style>
-<rect class="st0" width="300" height="300"/>
+
 <polygon class="st1" points="77.8,268.5 77.8,212.8 121.4,212.8 121.4,155.1 40,87.2 12.5,87.2 12.5,31.5 135.1,31.5 135.1,87.2 
 	127.5,87.2 150,104 172.5,87.2 164.9,87.2 164.9,31.5 287.5,31.5 287.5,87.2 260,87.2 178.6,155.1 178.6,212.8 230.2,212.8 
 	230.2,171 287.5,171 287.5,268.5 "/>
