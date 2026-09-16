@@ -19,7 +19,8 @@ import { getCompetitionStructure } from "../competition/ensureCompetitionStructu
 import { canSignWithinWageBudget } from "../competition/transferMarket.ts";
 import { getWageBudgets } from "../competition/wageBudgets.ts";
 import {
-	buildClubSquadPlan,
+	buildClubSummerPlan,
+	canAddContractAfterMinimumRosterReserve,
 	evaluatePlayerForClubSquadPlan,
 } from "../competition/clubSquadPlan.ts";
 
@@ -145,7 +146,7 @@ const newPhaseResignPlayers = async (
 				: (tierByDivisionId.get(t.divisionId) ?? 1),
 		]),
 	);
-	const squadPlansByTid = new Map(
+	const summerPlansByTid = new Map(
 		[...tierByTid]
 			.filter(([, tier]) => tier > 1)
 			.map(([tid]) => {
@@ -154,10 +155,17 @@ const newPhaseResignPlayers = async (
 					tid,
 					wageBudget === undefined
 						? undefined
-						: buildClubSquadPlan({
-								rosterValues: players
+						: buildClubSummerPlan({
+								players: players
 									.filter((p) => p.tid === tid)
-									.map((p) => p.valueNoPot),
+									.map((p) => ({
+										pid: p.pid,
+										value: p.value,
+										valueNoPot: p.valueNoPot,
+										age: g.get("season") - p.born.year,
+										contract: p.contract,
+									})),
+								season: g.get("season"),
 								wageBudget,
 								minContract: g.get("minContract"),
 								minimumRosterSize: g.get("minRosterSize"),
@@ -166,6 +174,13 @@ const newPhaseResignPlayers = async (
 							}),
 				] as const;
 			}),
+	);
+	const nextSeasonRosterSizesByTid = new Map(
+		[...summerPlansByTid]
+			.filter((entry): entry is [number, NonNullable<(typeof entry)[1]>] =>
+				Boolean(entry[1]),
+			)
+			.map(([tid, plan]) => [tid, plan.committedRosterSize]),
 	);
 
 	if (g.get("salaryCapType") === "hard" || wageBudgets) {
@@ -314,10 +329,35 @@ const newPhaseResignPlayers = async (
 			) {
 				reSignPlayer = false;
 			}
-			const squadPlan = squadPlansByTid.get(p.tid);
-			if (contract.amount > g.get("minContract") && squadPlan) {
+			const summerPlan = summerPlansByTid.get(p.tid);
+			const nextSeasonRosterSize = nextSeasonRosterSizesByTid.get(p.tid);
+			if (
+				payroll !== undefined &&
+				summerPlan &&
+				nextSeasonRosterSize !== undefined &&
+				!canAddContractAfterMinimumRosterReserve({
+					payroll,
+					amount: contract.amount,
+					wageBudget: summerPlan.squadPlan.wageBudget,
+					minContract: summerPlan.squadPlan.minContract,
+					minimumRosterSize: summerPlan.squadPlan.minimumRosterSize,
+					rosterSize: nextSeasonRosterSize,
+				})
+			) {
+				reSignPlayer = false;
+			}
+			const plannedAction = summerPlan?.playerActions.find(
+				(action) => action.pid === p.pid,
+			)?.action;
+			if (
+				!draftPick &&
+				(plannedAction === "release" || plannedAction === "transfer")
+			) {
+				reSignPlayer = false;
+			}
+			if (contract.amount > g.get("minContract") && summerPlan) {
 				const { contractLimit } = evaluatePlayerForClubSquadPlan({
-					plan: squadPlan,
+					plan: summerPlan.squadPlan,
 					playerValue: p.valueNoPot,
 				});
 				if (contract.amount > contractLimit) {
@@ -367,6 +407,9 @@ const newPhaseResignPlayers = async (
 
 						if (payroll !== undefined) {
 							payrollsByTid.set(p.tid, contract.amount + payroll);
+						}
+						if (nextSeasonRosterSize !== undefined) {
+							nextSeasonRosterSizesByTid.set(p.tid, nextSeasonRosterSize + 1);
 						}
 
 						// Need to recompute team value stuff now that a player was signed

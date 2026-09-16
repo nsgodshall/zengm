@@ -32,6 +32,7 @@ import {
 import { getWageBudgets } from "./wageBudgets.ts";
 import {
 	buildClubSquadPlan,
+	canAddContractAfterMinimumRosterReserve,
 	evaluatePlayerForClubSquadPlan,
 } from "./clubSquadPlan.ts";
 
@@ -361,7 +362,14 @@ export const aiTalentPoolSignings = async (
 		if (
 			wageBudget === undefined ||
 			wage > roleLimit ||
-			(await team.getPayroll(tid)) + wage > wageBudget
+			!canAddContractAfterMinimumRosterReserve({
+				payroll: await team.getPayroll(tid),
+				amount: wage,
+				wageBudget,
+				minContract: g.get("minContract"),
+				minimumRosterSize: g.get("minRosterSize"),
+				rosterSize: roster.length,
+			})
 		) {
 			continue;
 		}
@@ -462,6 +470,22 @@ export const signTalentPoolPlayer = async ({
 				`Your board values ${name} as a ${role} squad player and will approve at most ${formatFee(
 					contractLimit,
 				)} a season after reserving enough wage budget for a complete squad.`,
+			);
+		}
+		if (
+			!canAddContractAfterMinimumRosterReserve({
+				payroll: await team.getPayroll(userTid),
+				amount: wage,
+				wageBudget,
+				minContract: g.get("minContract"),
+				minimumRosterSize: g.get("minRosterSize"),
+				rosterSize: roster.length,
+			})
+		) {
+			return error(
+				`Your board is reserving enough of the wage budget for a complete ${g.get(
+					"minRosterSize",
+				)}-player squad.`,
 			);
 		}
 	}

@@ -52,6 +52,89 @@ export type ClubSquadPlayerEvaluation = {
 	improvesRole: boolean;
 };
 
+export type ClubSquadPlayerActionType =
+	| "core"
+	| "retain"
+	| "loan"
+	| "transfer"
+	| "release";
+
+export type ClubSquadPlayerInput = {
+	pid: number;
+	value: number;
+	valueNoPot: number;
+	age: number;
+	contract: {
+		amount: number;
+		exp: number;
+	};
+};
+
+export type ClubSquadPlayerAction = {
+	pid: number;
+	rank: number;
+	role: WorldSquadRole;
+	action: ClubSquadPlayerActionType;
+};
+
+export type ClubSquadNeed = {
+	kind: "fillMinimumRoster" | "repairRotation" | "upgradeStarter" | "addDepth";
+	priority: number;
+	players: number;
+	cutoffValue?: number;
+};
+
+export type ClubSummerPlan = {
+	squadPlan: ClubSquadPlan;
+	needs: ClubSquadNeed[];
+	playerActions: ClubSquadPlayerAction[];
+	committedRosterSize: number;
+	committedPayroll: number;
+	minimumContractReserve: number;
+};
+
+export const YOUNG_PLAYER_MAX_AGE = 23;
+export const YOUNG_PLAYER_POTENTIAL_MARGIN = 8;
+
+export const getWageBudgetAfterMinimumRosterReserve = ({
+	wageBudget,
+	minContract,
+	minimumRosterSize,
+	rosterSizeAfterSigning,
+}: {
+	wageBudget: number;
+	minContract: number;
+	minimumRosterSize: number;
+	rosterSizeAfterSigning: number;
+}) =>
+	wageBudget -
+	Math.max(0, minimumRosterSize - rosterSizeAfterSigning) * minContract;
+
+/** A non-minimum deal cannot spend the wages reserved for a complete squad. */
+export const canAddContractAfterMinimumRosterReserve = ({
+	payroll,
+	amount,
+	wageBudget,
+	minContract,
+	minimumRosterSize,
+	rosterSize,
+}: {
+	payroll: number;
+	amount: number;
+	wageBudget: number;
+	minContract: number;
+	minimumRosterSize: number;
+	rosterSize: number;
+}) =>
+	amount - 1 <= minContract ||
+	payroll + amount - 1 <=
+		getWageBudgetAfterMinimumRosterReserve({
+			wageBudget,
+			minContract,
+			minimumRosterSize,
+			rosterSizeAfterSigning: rosterSize + 1,
+		});
+
 const getRoleForRank = (
 	rank: number,
 	lastRankByRole: Record<WorldSquadRole, number>,
@@ -63,6 +146,14 @@ const getRoleForRank = (
 	}
 	return "depth";
 };
+
+const getRoleForRankInPlan = (plan: ClubSquadPlan, rank: number) =>
+	getRoleForRank(
+		rank,
+		Object.fromEntries(
+			WORLD_SQUAD_ROLES.map((role) => [role, plan.roles[role].lastRank]),
+		) as Record<WorldSquadRole, number>,
+	);
 
 export const getWorldNewContractLimit = ({
 	wageBudget,
@@ -168,15 +259,124 @@ export const evaluatePlayerForClubSquadPlan = ({
 }): ClubSquadPlayerEvaluation => {
 	const rank =
 		1 + plan.rosterValues.filter((value) => value > playerValue).length;
-	const lastRankByRole = Object.fromEntries(
-		WORLD_SQUAD_ROLES.map((role) => [role, plan.roles[role].lastRank]),
-	) as Record<WorldSquadRole, number>;
-	const role = getRoleForRank(rank, lastRankByRole);
+	const role = getRoleForRankInPlan(plan, rank);
 	const cutoffValue = plan.roles[role].cutoffValue;
 	return {
 		role,
 		rank,
 		contractLimit: plan.roles[role].contractLimit,
 		improvesRole: cutoffValue === undefined || playerValue > cutoffValue,
+	};
+};
+
+/**
+ * The club's ordered summer work and its intended action for every player.
+ * Transfers, loans, and academies can consume this list without inventing
+ * their own definition of core players or surplus depth.
+ */
+export const buildClubSummerPlan = ({
+	players,
+	season,
+	wageBudget,
+	minContract,
+	minimumRosterSize,
+	maxRosterSize,
+	rotationSize,
+}: {
+	players: ClubSquadPlayerInput[];
+	season: number;
+	wageBudget: number;
+	minContract: number;
+	minimumRosterSize: number;
+	maxRosterSize: number;
+	rotationSize: number;
+}): ClubSummerPlan => {
+	const squadPlan = buildClubSquadPlan({
+		rosterValues: players.map((p) => p.valueNoPot),
+		wageBudget,
+		minContract,
+		minimumRosterSize,
+		maxRosterSize,
+		rotationSize,
+	});
+	const playersByCurrentAbility = [...players].sort(
+		(a, b) => b.valueNoPot - a.valueNoPot,
+	);
+	const playerActions = playersByCurrentAbility.map((p, index) => {
+		const rank = index + 1;
+		const role = getRoleForRankInPlan(squadPlan, rank);
+		const expiring = p.contract.exp <= season;
+		const youngWithUpside =
+			p.age <= YOUNG_PLAYER_MAX_AGE &&
+			p.value >= p.valueNoPot + YOUNG_PLAYER_POTENTIAL_MARGIN;
+
+		let action: ClubSquadPlayerActionType;
+		if (rank <= squadPlan.roles.key.lastRank) {
+			action = "core";
+		} else if (rank <= minimumRosterSize) {
+			action = "retain";
+		} else if (expiring && p.contract.amount > minContract) {
+			// Do not let a nonessential renewal consume money needed to repair
+			// the competitive squad.
+			action = "release";
+		} else if (youngWithUpside) {
+			action = "loan";
+		} else if (rank <= squadPlan.targetRosterSize) {
+			action = "retain";
+		} else if (expiring) {
+			action = "release";
+		} else {
+			action = "transfer";
+		}
+
+		return { pid: p.pid, rank, role, action };
+	});
+
+	const needs: ClubSquadNeed[] = [];
+	const minimumRosterGap = Math.max(0, minimumRosterSize - players.length);
+	if (minimumRosterGap > 0) {
+		needs.push({
+			kind: "fillMinimumRoster",
+			priority: 1,
+			players: minimumRosterGap,
+		});
+	}
+	const rotationGap = Math.max(0, rotationSize - players.length);
+	if (rotationGap > 0) {
+		needs.push({
+			kind: "repairRotation",
+			priority: 2,
+			players: rotationGap,
+		});
+	} else if (players.length >= minimumRosterSize) {
+		needs.push({
+			kind: "upgradeStarter",
+			priority: 2,
+			players: 1,
+			cutoffValue: squadPlan.roles.starter.cutoffValue,
+		});
+	}
+	const depthGap = Math.max(
+		0,
+		squadPlan.targetRosterSize - Math.max(players.length, minimumRosterSize),
+	);
+	if (depthGap > 0) {
+		needs.push({ kind: "addDepth", priority: 3, players: depthGap });
+	}
+
+	const committed = players.filter((p) => p.contract.exp > season);
+	const committedRosterSize = committed.length;
+	const committedPayroll = committed.reduce(
+		(total, p) => total + p.contract.amount,
+		0,
+	);
+	return {
+		squadPlan,
+		needs,
+		playerActions,
+		committedRosterSize,
+		committedPayroll,
+		minimumContractReserve:
+			Math.max(0, minimumRosterSize - committedRosterSize) * minContract,
 	};
 };

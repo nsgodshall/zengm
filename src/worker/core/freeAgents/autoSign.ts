@@ -12,6 +12,7 @@ import { getWageBudgets } from "../competition/wageBudgets.ts";
 import {
 	buildClubSquadPlan,
 	evaluatePlayerForClubSquadPlan,
+	getWageBudgetAfterMinimumRosterReserve,
 } from "../competition/clubSquadPlan.ts";
 
 /**
@@ -113,7 +114,14 @@ const autoSign = async () => {
 			playersOnRoster,
 			playersSorted,
 			payroll,
-			wageBudget,
+			squadPlan
+				? getWageBudgetAfterMinimumRosterReserve({
+						wageBudget: squadPlan.wageBudget,
+						minContract: squadPlan.minContract,
+						minimumRosterSize: squadPlan.minimumRosterSize,
+						rosterSizeAfterSigning: squadPlan.rosterSize + 1,
+					})
+				: wageBudget,
 			squadPlan
 				? (candidate) =>
 						evaluatePlayerForClubSquadPlan({

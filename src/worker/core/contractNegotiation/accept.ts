@@ -11,6 +11,7 @@ import { canSignWithinWageBudget } from "../competition/transferMarket.ts";
 import { getWageBudgets } from "../competition/wageBudgets.ts";
 import {
 	buildClubSquadPlan,
+	canAddContractAfterMinimumRosterReserve,
 	evaluatePlayerForClubSquadPlan,
 } from "../competition/clubSquadPlan.ts";
 
@@ -111,6 +112,20 @@ const accept = async <
 					contractLimit / 1000,
 					"M",
 				)} a season, after reserving enough wage budget for a complete squad.`;
+			}
+			if (
+				!canAddContractAfterMinimumRosterReserve({
+					payroll,
+					amount,
+					wageBudget,
+					minContract: g.get("minContract"),
+					minimumRosterSize: g.get("minRosterSize"),
+					rosterSize: roster.length,
+				})
+			) {
+				return `Your board is reserving enough of the wage budget for a complete ${g.get(
+					"minRosterSize",
+				)}-player squad.`;
 			}
 		}
 	}

@@ -1,6 +1,8 @@
 import { describe, expect, test } from "vitest";
 import {
 	buildClubSquadPlan,
+	buildClubSummerPlan,
+	canAddContractAfterMinimumRosterReserve,
 	evaluatePlayerForClubSquadPlan,
 	getWorldNewContractLimit,
 	WORLD_MINIMUM_TEAMMATES_RESERVED,
@@ -69,6 +71,93 @@ describe("buildClubSquadPlan", () => {
 	});
 });
 
+describe("buildClubSummerPlan", () => {
+	const player = (
+		pid: number,
+		valueNoPot: number,
+		options: {
+			value?: number;
+			age?: number;
+			amount?: number;
+			exp?: number;
+		} = {},
+	) => ({
+		pid,
+		valueNoPot,
+		value: options.value ?? valueNoPot,
+		age: options.age ?? 28,
+		contract: {
+			amount: options.amount ?? 1_000,
+			exp: options.exp ?? 2031,
+		},
+	});
+	const summerPlan = (players: ReturnType<typeof player>[], season = 2030) =>
+		buildClubSummerPlan({
+			players,
+			season,
+			wageBudget: 100_000,
+			minContract: 1_000,
+			minimumRosterSize: 14,
+			maxRosterSize: 18,
+			rotationSize: 10,
+		});
+
+	test("orders roster construction before upgrades and depth", () => {
+		const short = summerPlan(
+			Array.from({ length: 8 }, (_, i) => player(i, 80 - i)),
+		);
+		expect(short.needs).toEqual([
+			{ kind: "fillMinimumRoster", priority: 1, players: 6 },
+			{ kind: "repairRotation", priority: 2, players: 2 },
+			{ kind: "addDepth", priority: 3, players: 2 },
+		]);
+
+		const complete = summerPlan(
+			Array.from({ length: 14 }, (_, i) => player(i, 80 - i)),
+		);
+		expect(complete.needs).toEqual([
+			{
+				kind: "upgradeStarter",
+				priority: 2,
+				players: 1,
+				cutoffValue: 70,
+			},
+			{ kind: "addDepth", priority: 3, players: 2 },
+		]);
+	});
+
+	test("marks core players, useful depth, prospects, and surplus contracts", () => {
+		const players = Array.from({ length: 18 }, (_, i) =>
+			player(i + 1, 100 - i),
+		);
+		players[14] = player(15, 86, { amount: 5_000, exp: 2030 });
+		players[15] = player(16, 85, { value: 100, age: 21 });
+		players[16] = player(17, 84, { value: 100, age: 21 });
+		players[17] = player(18, 83, { exp: 2032 });
+
+		const actions = new Map(
+			summerPlan(players).playerActions.map((row) => [row.pid, row.action]),
+		);
+		expect(actions.get(1)).toBe("core");
+		expect(actions.get(14)).toBe("retain");
+		expect(actions.get(15)).toBe("release");
+		expect(actions.get(16)).toBe("loan");
+		expect(actions.get(17)).toBe("loan");
+		expect(actions.get(18)).toBe("transfer");
+	});
+
+	test("reserves minimum wages for every place not already under contract", () => {
+		const plan = summerPlan([
+			player(1, 60, { amount: 10_000, exp: 2031 }),
+			player(2, 50, { amount: 8_000, exp: 2031 }),
+			player(3, 40, { amount: 5_000, exp: 2030 }),
+		]);
+		expect(plan.committedRosterSize).toBe(2);
+		expect(plan.committedPayroll).toBe(18_000);
+		expect(plan.minimumContractReserve).toBe(12_000);
+	});
+});
+
 describe("evaluatePlayerForClubSquadPlan", () => {
 	test("classifies a player and reports whether he improves the role cutoff", () => {
 		const plan = buildPlan();
@@ -117,5 +206,34 @@ describe("World lower-tier contract limits", () => {
 				role: "depth",
 			}),
 		).toBe(1_000);
+	});
+
+	test("reserves minimum wages for still-empty roster places", () => {
+		const signing = {
+			payroll: 80_000,
+			wageBudget: 100_000,
+			minContract: 1_000,
+			minimumRosterSize: 14,
+			rosterSize: 8,
+		};
+		expect(
+			canAddContractAfterMinimumRosterReserve({
+				...signing,
+				amount: 15_000,
+			}),
+		).toBe(true);
+		expect(
+			canAddContractAfterMinimumRosterReserve({
+				...signing,
+				amount: 16_000,
+			}),
+		).toBe(false);
+		expect(
+			canAddContractAfterMinimumRosterReserve({
+				...signing,
+				payroll: 110_000,
+				amount: 1_000,
+			}),
+		).toBe(true);
 	});
 });

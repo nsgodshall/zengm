@@ -44,7 +44,10 @@ renewals, user negotiations, and international talent-pool recruitment.
 
 ### Phase 2: summer action list
 
-**Status: next.**
+**Status: implemented.** Clubs now classify every player, order their summer
+needs, reserve minimum wages for unresolved roster places, avoid expensive
+nonessential renewals, and receive minimum-contract upgrades in fair rounds
+with lower tiers choosing first.
 
 - Mark players as core, retain, available for transfer, loan, or release.
 - Generate ordered needs: fill the minimum roster, repair the rotation,
@@ -55,6 +58,8 @@ renewals, user negotiations, and international talent-pool recruitment.
   whole useful free-agent pool.
 
 ### Phase 3: use the plan in every player-movement system
+
+**Status: next.**
 
 - AI transfers buy for a recorded need and sell from recorded surplus.
 - Loan borrowers target a real rotation opening; lenders protect required

@@ -2,7 +2,9 @@ import { expect, test } from "vitest";
 import type { Player } from "../../../common/types.ts";
 import {
 	getMinimumContractUpgrade,
+	MINIMUM_CONTRACT_UPGRADE_ROUNDS,
 	MINIMUM_CONTRACT_UPGRADE_VALUE_GAIN,
+	orderMinimumContractUpgradeTeams,
 } from "./upgradeMinimumContracts.ts";
 
 const fakePlayer = ({
@@ -52,4 +54,24 @@ test("does nothing when the improvement is too small", () => {
 			minContract: 1_200,
 		}),
 	).toBeUndefined();
+});
+
+test("uses more than one fair upgrade round", () => {
+	expect(MINIMUM_CONTRACT_UPGRADE_ROUNDS).toBeGreaterThan(1);
+});
+
+test("lower-tier clubs choose first while preserving the order within a tier", () => {
+	expect(
+		orderMinimumContractUpgradeTeams([
+			{ tid: 1, tier: 1 },
+			{ tid: 2, tier: 3 },
+			{ tid: 3, tier: 2 },
+			{ tid: 4, tier: 3 },
+		]),
+	).toEqual([
+		{ tid: 2, tier: 3 },
+		{ tid: 4, tier: 3 },
+		{ tid: 3, tier: 2 },
+		{ tid: 1, tier: 1 },
+	]);
 });
