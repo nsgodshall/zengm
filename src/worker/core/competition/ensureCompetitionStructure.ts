@@ -12,7 +12,11 @@ import {
 	getCrestDataUrl,
 	pickCrestPattern,
 } from "./crests.ts";
-import { getStadiumCapacity, WORLD_MAX_ROSTER_SIZE } from "./worldSettings.ts";
+import {
+	getStadiumCapacity,
+	WORLD_MAX_ROSTER_SIZE,
+	WORLD_MIN_ROSTER_SIZE,
+} from "./worldSettings.ts";
 import {
 	type CompetitionStructure,
 	getDefaultCompetitionStructure,
@@ -161,6 +165,19 @@ const ensureCompetitionStructure = async () => {
 		g.get("numGames", g.get("season") + 1) !== seasonLength
 	) {
 		await league.setGameAttributes({ numGames: seasonLength });
+	}
+
+	// International Soccer Zen GM mod (Epic 8): older Worlds inherited
+	// basketball's 10-player minimum. Raise only the untouched default; preserve
+	// any value the user deliberately configured.
+	if (
+		!isSingleDivision(structure) &&
+		!(g as unknown as { worldMinimumRosterSet?: true }).worldMinimumRosterSet
+	) {
+		if (g.get("minRosterSize") === defaultGameAttributes.minRosterSize) {
+			await league.setGameAttributes({ minRosterSize: WORLD_MIN_ROSTER_SIZE });
+		}
+		await league.setGameAttributes({ worldMinimumRosterSet: true });
 	}
 
 	// International Soccer Zen GM mod (Epic 8): a World made before crests,

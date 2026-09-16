@@ -350,6 +350,7 @@ const createGameAttributes = async (
 			gameAttributes.awards = getWorldAwards();
 			gameAttributes.worldSoccerAwards = true;
 			gameAttributes.worldContentFilled = true;
+			gameAttributes.worldMinimumRosterSet = true;
 
 			// Per-game salaries and revenue, contracts, and awards go by the
 			// league-wide season length, so it has to match the Divisions' own

@@ -7,6 +7,13 @@
 // getNumPlayersPerTeam and freeAgents.getBest).
 export const WORLD_MAX_ROSTER_SIZE = 18;
 
+// International Soccer Zen GM mod (Epic 8): the ordinary basketball minimum
+// of 10 let lower-tier clubs begin a season with too few players after their
+// expensive starting contracts expired. There are ample minimum-wage free
+// agents, so require a modest 14-player first team while leaving four places
+// for transfers, loans, and academy promotions.
+export const WORLD_MIN_ROSTER_SIZE = 14;
+
 export const MIN_STADIUM_CAPACITY = 10_000;
 export const MAX_STADIUM_CAPACITY = 80_000;
 

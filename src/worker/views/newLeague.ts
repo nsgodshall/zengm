@@ -10,7 +10,10 @@ import { defaultInjuries } from "../util/defaultInjuries.ts";
 import { newLeagueGodModeLimits } from "../util/newLeagueGodModeLimits.ts";
 import { getNewLeagueLid } from "../util/getNewLeagueLid.ts";
 import { defaultGameAttributes } from "../../common/defaultGameAttributes.ts";
-import { WORLD_MAX_ROSTER_SIZE } from "../core/competition/worldSettings.ts";
+import {
+	WORLD_MAX_ROSTER_SIZE,
+	WORLD_MIN_ROSTER_SIZE,
+} from "../core/competition/worldSettings.ts";
 
 const getDefaultRealStats = () => {
 	return env.mobile ? "none" : "allActiveHOF";
@@ -474,6 +477,7 @@ export const getRealTeamInfo = async () => {
 // instead of ZenGM's defaults (see competition/worldSettings.ts)
 const WORLD_SETTINGS = {
 	maxRosterSize: WORLD_MAX_ROSTER_SIZE,
+	minRosterSize: WORLD_MIN_ROSTER_SIZE,
 };
 
 export const getWorldDefaultSettings = () => ({

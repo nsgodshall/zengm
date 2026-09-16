@@ -65,6 +65,13 @@ const mean = (values: number[]) =>
 	values.length === 0
 		? Number.NaN
 		: values.reduce((sum, value) => sum + value, 0) / values.length;
+const percentile = (values: number[], fraction: number) => {
+	if (values.length === 0) {
+		return Number.NaN;
+	}
+	const sorted = [...values].sort((a, b) => a - b);
+	return sorted[Math.round((sorted.length - 1) * fraction)]!;
+};
 const round = (value: number | undefined, digits = 1) =>
 	value === undefined || Number.isNaN(value)
 		? "-"
@@ -119,6 +126,12 @@ const takeSnapshot = async () => {
 	const { divisionById, countryNameById } = getStructureInfo();
 	const wageBudgets = await getWageBudgets();
 	const players: Player[] = await idb.cache.players.getAll();
+	const freeAgents = players.filter((p) => p.tid === PLAYER.FREE_AGENT);
+	const freeAgentRows = freeAgents.map((p) => ({
+		demand: p.contract.amount / 1000,
+		ovr: p.ratings.at(-1)!.ovr,
+	}));
+	const minContract = g.get("minContract") / 1000;
 
 	const clubs = [];
 	for (const t of await idb.cache.teams.getAll()) {
@@ -138,6 +151,15 @@ const takeSnapshot = async () => {
 			showNoStats: true,
 			showRookies: true,
 		});
+		const payroll = (await team.getPayroll(t.tid)) / 1000;
+		const wageBudget = (wageBudgets.get(t.tid) ?? 0) / 1000;
+		const contractAmounts = roster
+			.map((p) => p.contract.amount / 1000)
+			.sort((a, b) => b - a);
+		const wageSpace = Math.max(0, wageBudget - payroll);
+		const affordableFreeAgents = freeAgentRows.filter(
+			(row) => row.demand <= minContract || row.demand <= wageSpace,
+		);
 
 		clubs.push({
 			tid: t.tid,
@@ -152,8 +174,26 @@ const takeSnapshot = async () => {
 			).length,
 			loanedIn: roster.filter((p) => (p as any).loan).length,
 			injured: roster.filter((p) => p.injury.gamesRemaining > 0).length,
-			payroll: (await team.getPayroll(t.tid)) / 1000,
-			wageBudget: (wageBudgets.get(t.tid) ?? 0) / 1000,
+			payroll,
+			wageBudget,
+			wageSpace,
+			rosterGapTo14: Math.max(0, 14 - roster.length),
+			meanContract: mean(contractAmounts),
+			topContract: contractAmounts[0] ?? 0,
+			top3ContractShare:
+				payroll > 0
+					? contractAmounts
+							.slice(0, 3)
+							.reduce((sum, amount) => sum + amount, 0) / payroll
+					: 0,
+			numMinContracts: roster.filter(
+				(p) => p.contract.amount <= g.get("minContract"),
+			).length,
+			numAffordableFreeAgents: affordableFreeAgents.length,
+			bestAffordableFreeAgentOvr:
+				affordableFreeAgents.length > 0
+					? Math.max(...affordableFreeAgents.map((row) => row.ovr))
+					: undefined,
 			cash: (teamSeason?.cash ?? 0) / 1000,
 			pop: teamSeason?.pop,
 			hype: teamSeason?.hype,
@@ -177,12 +217,37 @@ const takeSnapshot = async () => {
 	const leagueInfo = {
 		season,
 		numClubPlayers: onClubs.length,
-		numFreeAgents: players.filter((p) => p.tid === PLAYER.FREE_AGENT).length,
-		freeAgentMeanOvr: mean(
-			players
-				.filter((p) => p.tid === PLAYER.FREE_AGENT)
-				.map((p) => p.ratings.at(-1)!.ovr),
+		numFreeAgents: freeAgents.length,
+		freeAgentMeanOvr: mean(freeAgentRows.map((row) => row.ovr)),
+		freeAgentsAtMin: freeAgents.filter(
+			(p) => p.contract.amount <= g.get("minContract"),
+		).length,
+		freeAgentDemandPercentiles: [0.1, 0.25, 0.5, 0.75, 0.9].map((fraction) =>
+			percentile(
+				freeAgentRows.map((row) => row.demand),
+				fraction,
+			),
 		),
+		freeAgentDemandByOvr: [
+			[-Infinity, 29],
+			[30, 39],
+			[40, 49],
+			[50, 59],
+			[60, Infinity],
+		].map(([minOvr, maxOvr]) => {
+			const rows = freeAgentRows.filter(
+				(row) => row.ovr >= minOvr! && row.ovr <= maxOvr!,
+			);
+			return {
+				ovr: `${minOvr === -Infinity ? "under 30" : maxOvr === Infinity ? "60+" : `${minOvr}-${maxOvr}`}`,
+				count: rows.length,
+				meanDemand: mean(rows.map((row) => row.demand)),
+				medianDemand: percentile(
+					rows.map((row) => row.demand),
+					0.5,
+				),
+			};
+		}),
 		numAcademy: academy.length,
 		numUndraftedWithoutAcademy: players.filter(
 			(p) => p.tid === PLAYER.UNDRAFTED && p.academyTid === undefined,
@@ -544,6 +609,8 @@ const formatSummary = (
 			"Club players",
 			"FAs",
 			"FA ovr",
+			"FA at min",
+			"FA demand p10/p25/p50/p75/p90",
 			"Academy",
 			"Undrafted no academy",
 			"Academy ages",
@@ -563,6 +630,8 @@ const formatSummary = (
 			l.numClubPlayers,
 			l.numFreeAgents,
 			round(l.freeAgentMeanOvr),
+			l.freeAgentsAtMin,
+			l.freeAgentDemandPercentiles.map((value) => round(value)).join("/"),
 			l.numAcademy,
 			l.numUndraftedWithoutAcademy,
 			l.academyAgeRange.join("-"),
@@ -599,7 +668,20 @@ const formatSummary = (
 				`${Math.min(...clubs.map((c) => c.academySize))}-${Math.max(...clubs.map((c) => c.academySize))}`,
 				round(mean(clubs.map((c) => c.payroll))),
 				round(mean(clubs.map((c) => c.wageBudget))),
+				round(mean(clubs.map((c) => c.wageSpace))),
 				clubs.filter((c) => c.payroll > c.wageBudget + 0.001).length,
+				clubs.reduce((total, c) => total + c.rosterGapTo14, 0),
+				round(mean(clubs.map((c) => c.top3ContractShare)), 2),
+				round(mean(clubs.map((c) => c.numMinContracts)), 1),
+				round(mean(clubs.map((c) => c.numAffordableFreeAgents)), 0),
+				round(
+					mean(
+						clubs
+							.map((c) => c.bestAffordableFreeAgentOvr)
+							.filter((value) => value !== undefined),
+					),
+					0,
+				),
 				round(mean(clubs.map((c) => c.cash))),
 				round(Math.min(...clubs.map((c) => c.cash))),
 				round(Math.max(...clubs.map((c) => c.cash))),
@@ -619,7 +701,13 @@ const formatSummary = (
 			"Academy",
 			"Payroll",
 			"Wage budget",
+			"Wage space",
 			"Over budget",
+			"Gap to 14",
+			"Top 3 share",
+			"Min contracts",
+			"Affordable FAs",
+			"Best affordable ovr",
 			"Cash mean",
 			"Cash min",
 			"Cash max",
@@ -629,6 +717,20 @@ const formatSummary = (
 			"Loaned in",
 		],
 		tierRows,
+	);
+
+	lines.push("## Free-agent demand by quality", "");
+	table(
+		["Season", "Ovr", "Players", "Mean demand", "Median demand"],
+		snapshots.flatMap((snapshot) =>
+			snapshot.league.freeAgentDemandByOvr.map((row) => [
+				snapshot.season,
+				row.ovr,
+				row.count,
+				round(row.meanDemand),
+				round(row.medianDemand),
+			]),
+		),
 	);
 
 	lines.push("## Seasons", "");
@@ -777,7 +879,9 @@ describe.runIf(NUM_SEASONS > 0)("a realistic World over many seasons", () => {
 				await writeReport("snapshots.json", snapshots);
 				await logProgress("regular season started");
 			}
-			await playUntil(STARTING_SEASON + NUM_SEASONS, PHASE.PRESEASON);
+			// A comparable post-run snapshot: after the completed seasons' final
+			// summer roster construction, at the next regular-season start.
+			await playUntil(STARTING_SEASON + NUM_SEASONS, PHASE.REGULAR_SEASON);
 			snapshots.push(await takeSnapshot());
 			await writeReport("snapshots.json", snapshots);
 			await logProgress("done playing");

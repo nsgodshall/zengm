@@ -683,6 +683,9 @@ export type GameAttributesLeague = {
 	// crests, bigger rosters, and stadiums by market has been given them (see
 	// ensureCompetitionStructure)
 	worldContentFilled?: true;
+	// International Soccer Zen GM mod (Epic 8): set once an older World has
+	// adopted the 14-player minimum roster, unless the user had customized it
+	worldMinimumRosterSet?: true;
 	// International Soccer Zen GM mod (Epic 4): the transfer window whose talent
 	// pool has arrived, so it only arrives once (see competition/talentPoolMoves.ts)
 	talentPoolKey?: string;

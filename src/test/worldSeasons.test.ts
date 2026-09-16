@@ -36,6 +36,7 @@ import {
 import {
 	getStadiumCapacity,
 	WORLD_MAX_ROSTER_SIZE,
+	WORLD_MIN_ROSTER_SIZE,
 } from "../worker/core/competition/worldSettings.ts";
 import { RELEGATION_CLAUSE_SETTINGS } from "../worker/core/competition/relegationClauses.ts";
 import createStreamFromLeagueObject from "../worker/core/league/create/createStreamFromLeagueObject.ts";
@@ -661,7 +662,12 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			"maxRosterSize",
 			defaultGameAttributes.maxRosterSize,
 		);
+		g.setWithoutSavingToDB(
+			"minRosterSize",
+			defaultGameAttributes.minRosterSize,
+		);
 		delete (g as unknown as { worldContentFilled?: true }).worldContentFilled;
+		g.setWithoutSavingToDB("worldMinimumRosterSet", undefined);
 
 		await competition.ensureCompetitionStructure();
 
@@ -677,6 +683,8 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		);
 		assert.strictEqual(teamSeason.imgURL, filled.imgURL);
 		assert.strictEqual(g.get("maxRosterSize"), WORLD_MAX_ROSTER_SIZE);
+		assert.strictEqual(g.get("minRosterSize"), WORLD_MIN_ROSTER_SIZE);
+		assert.strictEqual(g.get("worldMinimumRosterSet"), true);
 		assert.strictEqual(g.get("worldContentFilled"), true);
 	});
 

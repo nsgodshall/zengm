@@ -1,4 +1,4 @@
-import { competition, season } from "../index.ts";
+import { competition, season, team } from "../index.ts";
 import { idb } from "../../db/index.ts";
 import { g, helpers, local, logEvent, toUI } from "../../util/index.ts";
 import type { Conditions, Game, PhaseReturn } from "../../../common/types.ts";
@@ -150,6 +150,15 @@ const newPhaseRegularSeason = async (
 	);
 
 	await season.setSchedule(await season.newSchedule(teams));
+
+	// International Soccer Zen GM mod (Epic 8): finish AI roster construction
+	// before the season begins. Free agency deliberately includes randomness,
+	// but a lower-tier club must not carry that randomness into the season with
+	// fewer than the World's modest minimum squad. During auto play the user's
+	// club is AI-controlled too, matching checkRosterSizes' normal behavior.
+	if (!competition.isSingleDivision(competition.getCompetitionStructure())) {
+		await team.checkRosterSizes("other");
+	}
 
 	// International Soccer Zen GM mod (Epic 6): the board sets each World club's
 	// objective from the squad it starts the season with

@@ -9,6 +9,7 @@ import {
 	MAX_STADIUM_CAPACITY,
 	MIN_STADIUM_CAPACITY,
 	WORLD_MAX_ROSTER_SIZE,
+	WORLD_MIN_ROSTER_SIZE,
 } from "../worker/core/competition/worldSettings.ts";
 import { last } from "../common/utils.ts";
 import {
@@ -247,6 +248,7 @@ describe("the pilot World", () => {
 
 	test("rosters are bigger than ZenGM's, with room to grow", async () => {
 		assert.strictEqual(g.get("maxRosterSize"), WORLD_MAX_ROSTER_SIZE);
+		assert.strictEqual(g.get("minRosterSize"), WORLD_MIN_ROSTER_SIZE);
 		for (const t of await idb.cache.teams.getAll()) {
 			const roster = await idb.cache.players.indexGetAll("playersByTid", t.tid);
 			assert(

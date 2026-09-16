@@ -4,11 +4,19 @@ import {
 	MAX_STADIUM_CAPACITY,
 	MIN_STADIUM_CAPACITY,
 	WORLD_MAX_ROSTER_SIZE,
+	WORLD_MIN_ROSTER_SIZE,
 } from "./worldSettings.ts";
 
 describe("WORLD_MAX_ROSTER_SIZE", () => {
 	test("is bigger than ZenGM's basketball roster limit of 15", () => {
 		expect(WORLD_MAX_ROSTER_SIZE).toBe(18);
+	});
+});
+
+describe("WORLD_MIN_ROSTER_SIZE", () => {
+	test("keeps a modest lower-tier squad without filling every roster place", () => {
+		expect(WORLD_MIN_ROSTER_SIZE).toBe(14);
+		expect(WORLD_MIN_ROSTER_SIZE).toBeLessThan(WORLD_MAX_ROSTER_SIZE);
 	});
 });
 
