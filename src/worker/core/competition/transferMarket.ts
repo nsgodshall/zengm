@@ -157,6 +157,11 @@ export const DEBT_REPAYMENT_SEASONS = 3;
 // A club with cash to spare can spend this fraction of it on wages each season
 export const SURPLUS_SPENDING_FRACTION = 0.2;
 
+// After each of a new World's first seasons, this much of its starting payroll
+// stops protecting its wage budget. The floor is 75%, 50%, and 25% after the
+// first three seasons, then the revenue/debt budget stands on its own.
+export const STARTING_PAYROLL_FLOOR_STEP = 0.25;
+
 /**
  * A club's wage budget, in thousands of dollars.
  *
@@ -174,7 +179,9 @@ export const SURPLUS_SPENDING_FRACTION = 0.2;
  * biggest) stands in for revenue, scaling the cap, and its budget also covers
  * its payroll when the World was created (`startingPayroll`), plus
  * STARTING_BUDGET_ROOM of the cap to sign someone, since starting rosters
- * aren't built to any budget.
+ * aren't built to any budget. Once revenue takes over, a declining floor of
+ * 75%, 50%, and 25% of that starting payroll gives the club three seasons to
+ * restructure. The revenue/debt budget still wins whenever it is higher.
  */
 export const getWageBudget = ({
 	salaryCap,
@@ -185,6 +192,7 @@ export const getWageBudget = ({
 	popRank,
 	numTeams,
 	startingPayroll,
+	seasonsCompleted,
 }: {
 	salaryCap: number;
 	revenue: number | undefined;
@@ -194,16 +202,26 @@ export const getWageBudget = ({
 	popRank: number;
 	numTeams: number;
 	startingPayroll?: number;
+	seasonsCompleted?: number;
 }) => {
 	if (revenue !== undefined) {
 		const cashAdjustment =
 			cash < 0
 				? cash / DEBT_REPAYMENT_SEASONS
 				: SURPLUS_SPENDING_FRACTION * cash;
+		const startingPayrollFloor =
+			startingPayroll !== undefined && seasonsCompleted !== undefined
+				? startingPayroll *
+					Math.max(0, 1 - STARTING_PAYROLL_FLOOR_STEP * seasonsCompleted)
+				: 0;
 		return Math.round(
 			Math.min(
 				MAX_WAGE_BUDGET_CAP_MULTIPLE * salaryCap,
-				Math.max(minWageBudget, revenue - runningCosts + cashAdjustment),
+				Math.max(
+					minWageBudget,
+					revenue - runningCosts + cashAdjustment,
+					startingPayrollFloor,
+				),
 			),
 		);
 	}

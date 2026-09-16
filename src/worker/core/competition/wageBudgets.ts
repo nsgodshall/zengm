@@ -23,6 +23,10 @@ export const getWageBudgets = async () => {
 	const currentSeason = g.get("season");
 	const revenueSeason =
 		g.get("phase") > PHASE.PLAYOFFS ? currentSeason : currentSeason - 1;
+	const seasonsCompleted = Math.max(
+		0,
+		revenueSeason - g.get("startingSeason") + 1,
+	);
 
 	const teamSeasons = await idb.cache.teamSeasons.indexGetAll(
 		"teamSeasonsBySeasonTid",
@@ -91,6 +95,7 @@ export const getWageBudgets = async () => {
 				popRank: popRanks[i] ?? teams.length,
 				numTeams: teams.length,
 				startingPayroll: t.startingPayroll,
+				seasonsCompleted,
 			}),
 		);
 	}

@@ -176,17 +176,22 @@ describe("getWageBudget", () => {
 		expect(getWageBudget({ ...afterASeason, revenue: 1000000 })).toBe(200000);
 	});
 
-	test("before a club's first season is over, its budget covers its starting payroll with some room", () => {
-		const budget = (startingPayroll: number | undefined, revenue?: number) =>
+	test("a starting payroll gets room before the first season and a declining floor after it", () => {
+		const budget = (
+			startingPayroll: number | undefined,
+			revenue?: number,
+			seasonsCompleted?: number,
+		) =>
 			getWageBudget({
 				salaryCap: 100000,
 				revenue,
-				runningCosts: 100000,
+				runningCosts: 150000,
 				cash: 0,
 				minWageBudget: 0,
 				popRank: 5,
 				numTeams: 5,
 				startingPayroll,
+				seasonsCompleted,
 			});
 
 		// The smallest market's budget is 0.8 times the cap
@@ -194,8 +199,15 @@ describe("getWageBudget", () => {
 		expect(budget(50000)).toBe(80000);
 		expect(budget(150000)).toBe(160000);
 
-		// Once there's revenue, the starting payroll doesn't count
-		expect(budget(150000, 200000)).toBe(100000);
+		// Once there's revenue, the floor drops by 25% of the starting payroll
+		// each season. Here the ordinary revenue budget is $50M.
+		expect(budget(150000, 200000, 1)).toBe(112500);
+		expect(budget(150000, 200000, 2)).toBe(75000);
+		expect(budget(150000, 200000, 3)).toBe(50000);
+		expect(budget(150000, 200000, 4)).toBe(50000);
+
+		// The usual maximum still applies during the transition.
+		expect(budget(500000, 200000, 1)).toBe(200000);
 	});
 
 	test("without revenue yet, bigger markets get bigger budgets", () => {
