@@ -66,7 +66,9 @@ export const getAcademyCohortSeasons = ({
 
 // How much a club's academy strength drops for each tier below the top. The
 // scouting budget's effect ranges from about -1.1 to 1.1.
-export const ACADEMY_TIER_PENALTY = 0.5;
+// Tier still matters, but not so much that a lower-division academy is locked
+// out of the occasional high-end prospect. Luck can now bridge two tiers.
+export const ACADEMY_TIER_PENALTY = 0.25;
 
 /**
  * How good a club's academy is: its scouting budget (the 3-season average

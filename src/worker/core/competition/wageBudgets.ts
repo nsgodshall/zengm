@@ -9,6 +9,7 @@ import {
 	MAX_WAGE_BUDGET_CAP_MULTIPLE,
 } from "./transferMarket.ts";
 import {
+	getCapitalInvestment,
 	getProjectedRevenue,
 	getReinvestedBudgetLevel,
 } from "./worldRevenue.ts";
@@ -128,7 +129,11 @@ export const getBudgetReinvestment = async (tid: number, season: number) => {
 	}
 	const { cash } = teamSeason;
 
-	return (level: number) => getReinvestedBudgetLevel({ level, cash, revenue });
+	return {
+		getLevel: (level: number) =>
+			getReinvestedBudgetLevel({ level, cash, revenue }),
+		investment: getCapitalInvestment({ cash, revenue }),
+	};
 };
 
 /**

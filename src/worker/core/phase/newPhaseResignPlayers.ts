@@ -18,6 +18,7 @@ import { isSingleDivision } from "../competition/competitionStructure.ts";
 import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
 import { canSignWithinWageBudget } from "../competition/transferMarket.ts";
 import { getWageBudgets } from "../competition/wageBudgets.ts";
+import { getWorldNewContractLimitForPlayer } from "../competition/contractLimits.ts";
 
 export const FREE_AGENCY_DAYS = 30;
 
@@ -126,6 +127,21 @@ const newPhaseResignPlayers = async (
 	const wageBudgets = isSingleDivision(getCompetitionStructure())
 		? undefined
 		: await getWageBudgets();
+	const structure = getCompetitionStructure();
+	const tierByDivisionId = new Map(
+		structure.competitionDivisions.map((division) => [
+			division.divisionId,
+			division.tier,
+		]),
+	);
+	const tierByTid = new Map(
+		(await idb.cache.teams.getAll()).map((t) => [
+			t.tid,
+			t.divisionId === undefined
+				? 1
+				: (tierByDivisionId.get(t.divisionId) ?? 1),
+		]),
+	);
 
 	if (g.get("salaryCapType") === "hard" || wageBudgets) {
 		for (let tid = 0; tid < g.get("numTeams"); tid++) {
@@ -272,6 +288,23 @@ const newPhaseResignPlayers = async (
 				})
 			) {
 				reSignPlayer = false;
+			}
+			if (
+				contract.amount > g.get("minContract") &&
+				wageBudget !== undefined &&
+				(tierByTid.get(p.tid) ?? 1) > 1
+			) {
+				const { limit } = getWorldNewContractLimitForPlayer({
+					wageBudget,
+					minContract: g.get("minContract"),
+					playerValue: p.valueNoPot,
+					rosterValues: players
+						.filter((other) => other.tid === p.tid)
+						.map((other) => other.valueNoPot),
+				});
+				if (contract.amount > limit) {
+					reSignPlayer = false;
+				}
 			}
 
 			if (reSignPlayer) {

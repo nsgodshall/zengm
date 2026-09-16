@@ -25,6 +25,9 @@ const getBest = <T extends PlayerWithoutKey>(
 	// International Soccer Zen GM mod (Epic 4): in a World, the club's own wage
 	// budget takes the place of the league-wide salary cap
 	wageBudget?: number,
+	// A World lower-tier club also limits one new contract by the role the
+	// player would have in its squad. Undefined keeps the normal ZenGM rules.
+	getContractLimit?: (p: T) => number,
 ): T | void => {
 	const maxRosterSize = g.get("maxRosterSize");
 	const minContract = g.get("minContract");
@@ -114,10 +117,12 @@ const getBest = <T extends PlayerWithoutKey>(
 	};
 
 	for (const p of playersSorted) {
+		const contractLimit = getContractLimit?.(p);
 		const salaryCapCheck =
-			payroll === undefined ||
-			skipSalaryCapCheck ||
-			p.contract.amount + payroll <= salaryCap;
+			(contractLimit === undefined || p.contract.amount <= contractLimit) &&
+			(payroll === undefined ||
+				skipSalaryCapCheck ||
+				p.contract.amount + payroll <= salaryCap);
 
 		// Don't sign minimum contract players to fill out the roster
 		const shouldAddPlayerNormal =

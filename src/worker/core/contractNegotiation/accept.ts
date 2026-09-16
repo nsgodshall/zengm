@@ -9,6 +9,7 @@ import { isSingleDivision } from "../competition/competitionStructure.ts";
 import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
 import { canSignWithinWageBudget } from "../competition/transferMarket.ts";
 import { getWageBudgets } from "../competition/wageBudgets.ts";
+import { getWorldNewContractLimitForPlayer } from "../competition/contractLimits.ts";
 
 /**
  * Accept the player's offer.
@@ -35,6 +36,10 @@ const accept = async <
 }) => {
 	const salaryCapType = g.get("salaryCapType");
 	const tid = g.get("userTid");
+	const p = await idb.cache.players.get(negotiation.pid);
+	if (!p) {
+		return "Invalid pid";
+	}
 
 	if (salaryCapType !== "none") {
 		const payroll = await team.getPayroll(tid);
@@ -74,6 +79,31 @@ const accept = async <
 				"M",
 			)} to ${negotiation.resigning ? "re-sign" : "sign"} players to contracts higher than the minimum salary.`;
 		}
+
+		const t = await idb.cache.teams.get(tid);
+		const structure = getCompetitionStructure();
+		const tier = structure.competitionDivisions.find(
+			(division) => division.divisionId === t?.divisionId,
+		)?.tier;
+		if (
+			wageBudget !== undefined &&
+			(tier ?? 1) > 1 &&
+			amount > g.get("minContract")
+		) {
+			const roster = await idb.cache.players.indexGetAll("playersByTid", tid);
+			const { limit, role } = getWorldNewContractLimitForPlayer({
+				wageBudget,
+				minContract: g.get("minContract"),
+				playerValue: p.valueNoPot,
+				rosterValues: roster.map((other) => other.valueNoPot),
+			});
+			if (amount > limit) {
+				return `Your board values this player as a ${role} squad player and will approve at most ${helpers.formatCurrency(
+					limit / 1000,
+					"M",
+				)} a season, after reserving enough wage budget for a complete squad.`;
+			}
+		}
 	}
 
 	// This error is for sanity checking in multi team mode. Need to check for existence of negotiation.tid because it
@@ -86,11 +116,6 @@ const accept = async <
 		} ${
 			g.get("teamInfoCache")[tid]?.name
 		}. Either switch teams or cancel this negotiation.`;
-	}
-
-	const p = await idb.cache.players.get(negotiation.pid);
-	if (!p) {
-		return "Invalid pid";
 	}
 
 	// Make sure the user didn't do something in another tab to change the willingness to negotiate, such as trading away players

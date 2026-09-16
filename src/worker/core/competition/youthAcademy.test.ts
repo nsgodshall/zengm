@@ -94,6 +94,7 @@ describe("getAcademyStrength", () => {
 	});
 
 	test("each tier below the top costs the same", () => {
+		expect(ACADEMY_TIER_PENALTY).toBeLessThan(0.5);
 		expect(
 			getAcademyStrength({ scoutingLevel: DEFAULT_LEVEL, tier: 2 }),
 		).toBeCloseTo(-ACADEMY_TIER_PENALTY);

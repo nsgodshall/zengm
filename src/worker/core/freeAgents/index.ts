@@ -4,6 +4,7 @@ import ensureEnoughPlayers from "./ensureEnoughPlayers.ts";
 import getBest from "./getBest.ts";
 import normalizeContractDemands from "./normalizeContractDemands.ts";
 import play from "./play.ts";
+import upgradeMinimumContracts from "./upgradeMinimumContracts.ts";
 
 export default {
 	autoSign,
@@ -12,4 +13,5 @@ export default {
 	getBest,
 	normalizeContractDemands,
 	play,
+	upgradeMinimumContracts,
 };

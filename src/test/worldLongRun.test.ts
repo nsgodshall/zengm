@@ -106,6 +106,16 @@ const playUntil = async (season: number, phase: number) => {
 	);
 };
 
+// A long run analyzes standings, team seasons, events, and player histories,
+// not individual box scores. fake-indexeddb retains those large objects in the
+// Node heap even after normal old-box-score cleanup, so discard them after each
+// snapshot rather than requiring an 8 GB heap for a 20-season run.
+const discardBoxScores = async () => {
+	await idb.cache.games.clear();
+	await idb.cache.flush(["games"]);
+	await idb.league.clear("games");
+};
+
 const getStructureInfo = () => {
 	const structure = competition.getCompetitionStructure();
 	const divisionById = new Map(
@@ -796,10 +806,44 @@ const formatSummary = (
 		);
 	}
 
+	lines.push("## Movement and champions", "");
+	const movement = analysis.clubMovement;
+	table(
+		["Move", "Clubs", "Immediate reverse", "Rate"],
+		[
+			...Object.entries(movement.promotionSurvival).flatMap(([tier, row]) => [
+				[
+					`Promoted ${tier}`,
+					row.promoted,
+					row.relegatedNextSeason,
+					`${round((100 * row.relegatedNextSeason) / row.promoted)}%`,
+				],
+				[
+					`Champions ${tier}`,
+					row.champions,
+					row.championsRelegated,
+					`${round((100 * row.championsRelegated) / row.champions)}%`,
+				],
+				[
+					`Playoff winners ${tier}`,
+					row.playoffWinners,
+					row.playoffWinnersRelegated,
+					`${round((100 * row.playoffWinnersRelegated) / row.playoffWinners)}%`,
+				],
+			]),
+			[
+				"Relegated clubs",
+				movement.relegationReturns.relegated,
+				movement.relegationReturns.promotedNextSeason,
+				`${round(
+					(100 * movement.relegationReturns.promotedNextSeason) /
+						movement.relegationReturns.relegated,
+				)}%`,
+			],
+		],
+	);
 	lines.push(
-		"## Movement and champions",
-		"",
-		JSON.stringify(analysis.clubMovement),
+		`Never moved: ${movement.numNeverMoved}/${movement.numClubs}; yo-yos: ${movement.numYoYos}`,
 		"",
 	);
 	for (const [division, champions] of Object.entries(
@@ -864,7 +908,10 @@ describe.runIf(NUM_SEASONS > 0)("a realistic World over many seasons", () => {
 				lid: 0,
 				name: "Long run World",
 				setLeagueCreationStatus: () => {},
-				settings: CONTROL ? getDefaultSettings() : getWorldDefaultSettings(),
+				settings: {
+					...(CONTROL ? getDefaultSettings() : getWorldDefaultSettings()),
+					saveOldBoxScores: { pastSeasons: 0 },
+				},
 				shuffleRosters: false,
 				startingSeasonFromInput: String(STARTING_SEASON),
 				teamsFromInput: info.teams,
@@ -877,6 +924,7 @@ describe.runIf(NUM_SEASONS > 0)("a realistic World over many seasons", () => {
 				await playUntil(STARTING_SEASON + i, PHASE.REGULAR_SEASON);
 				snapshots.push(await takeSnapshot());
 				await writeReport("snapshots.json", snapshots);
+				await discardBoxScores();
 				await logProgress("regular season started");
 			}
 			// A comparable post-run snapshot: after the completed seasons' final
@@ -884,6 +932,7 @@ describe.runIf(NUM_SEASONS > 0)("a realistic World over many seasons", () => {
 			await playUntil(STARTING_SEASON + NUM_SEASONS, PHASE.REGULAR_SEASON);
 			snapshots.push(await takeSnapshot());
 			await writeReport("snapshots.json", snapshots);
+			await discardBoxScores();
 			await logProgress("done playing");
 			if (CONTROL) {
 				return;

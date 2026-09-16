@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { MAX_LEVEL } from "../../../common/budgetLevels.ts";
 import {
 	AVERAGE_HYPE,
+	getCapitalInvestment,
 	getChampionPrize,
 	getProjectedRevenue,
 	getPromotionPrize,
@@ -10,6 +11,18 @@ import {
 	regressHype,
 	WORLD_REVENUE_SETTINGS,
 } from "./worldRevenue.ts";
+
+describe("getCapitalInvestment", () => {
+	test("keeps one season of revenue and invests a bounded share of the rest", () => {
+		expect(getCapitalInvestment({ cash: 100_000, revenue: 200_000 })).toBe(0);
+		expect(getCapitalInvestment({ cash: 300_000, revenue: 200_000 })).toBe(
+			25_000,
+		);
+		expect(getCapitalInvestment({ cash: 3_000_000, revenue: 200_000 })).toBe(
+			200_000,
+		);
+	});
+});
 
 describe("getReinvestedBudgetLevel", () => {
 	const revenue = 200_000;

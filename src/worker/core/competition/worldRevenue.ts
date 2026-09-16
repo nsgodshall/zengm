@@ -35,6 +35,32 @@ export const WORLD_REVENUE_SETTINGS = {
 	// spare cash, counting up to maxReinvestSeasons of it
 	reinvestLevelsPerSeason: 20,
 	maxReinvestSeasons: 3,
+
+	// AI clubs put some cash above one season's revenue into their academy,
+	// training ground, medical setup, and stadium each summer. This is an
+	// up-front capital investment, separate from the operating expenses those
+	// budget levels produce during the season.
+	capitalInvestmentRate: 0.25,
+	maxCapitalInvestmentSeasons: 1,
+};
+
+/** Cash an AI club reinvests in infrastructure in the preseason. */
+export const getCapitalInvestment = ({
+	cash,
+	revenue,
+}: {
+	cash: number;
+	revenue: number;
+}) => {
+	if (revenue <= 0 || cash <= revenue) {
+		return 0;
+	}
+	return Math.round(
+		Math.min(
+			WORLD_REVENUE_SETTINGS.maxCapitalInvestmentSeasons * revenue,
+			WORLD_REVENUE_SETTINGS.capitalInvestmentRate * (cash - revenue),
+		),
+	);
 };
 
 /** A club's national TV revenue as a multiple of ZenGM's, for its tier */

@@ -1,4 +1,4 @@
-import { competition, season, team } from "../index.ts";
+import { competition, freeAgents, season, team } from "../index.ts";
 import { idb } from "../../db/index.ts";
 import { g, helpers, local, logEvent, toUI } from "../../util/index.ts";
 import type { Conditions, Game, PhaseReturn } from "../../../common/types.ts";
@@ -157,6 +157,7 @@ const newPhaseRegularSeason = async (
 	// fewer than the World's modest minimum squad. During auto play the user's
 	// club is AI-controlled too, matching checkRosterSizes' normal behavior.
 	if (!competition.isSingleDivision(competition.getCompetitionStructure())) {
+		await freeAgents.upgradeMinimumContracts();
 		await team.checkRosterSizes("other");
 	}
 

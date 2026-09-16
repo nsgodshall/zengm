@@ -199,6 +199,14 @@ const newPhasePreseason = async (
 	}
 
 	const activeTeams = teams.filter((t) => !t.disabled);
+	const newTeamSeasonsByTid = new Map(
+		(
+			await idb.cache.teamSeasons.indexGetAll("teamSeasonsBySeasonTid", [
+				[newSeason],
+				[newSeason, "Z"],
+			])
+		).map((teamSeason) => [teamSeason.tid, teamSeason]),
+	);
 	const popRanks = helpers.getPopRanks(activeTeams);
 	for (const [t, popRank] of Iterator.zip([activeTeams, popRanks], {
 		mode: "strict",
@@ -225,9 +233,18 @@ const newPhasePreseason = async (
 				"facilities",
 			] as const) {
 				if (reinvest && key !== "scouting") {
-					t.budget[key] = reinvest(finances.defaultBudgetLevel(popRank));
+					t.budget[key] = reinvest.getLevel(
+						finances.defaultBudgetLevel(popRank),
+					);
 				} else if (Math.random() < 0.5) {
 					t.budget[key] = finances.defaultBudgetLevel(popRank);
+				}
+			}
+			if (reinvest && reinvest.investment > 0) {
+				const teamSeason = newTeamSeasonsByTid.get(t.tid);
+				if (teamSeason) {
+					teamSeason.cash -= reinvest.investment;
+					await idb.cache.teamSeasons.put(teamSeason);
 				}
 			}
 

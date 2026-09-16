@@ -30,6 +30,7 @@ import {
 	getTransferFee,
 } from "./transferMarket.ts";
 import { getWageBudgets } from "./wageBudgets.ts";
+import { getWorldNewContractLimitForPlayer } from "./contractLimits.ts";
 
 // International Soccer Zen GM mod (Epic 4): moving players in and out of the
 // international talent pool (see competition/talentPool.ts). Pool players are
@@ -295,6 +296,16 @@ export const aiTalentPoolSignings = async (
 	const season = g.get("season");
 	const rotationSize = 2 * g.get("numPlayersOnCourt");
 	const wageBudgets = await getWageBudgets();
+	const structure = getCompetitionStructure();
+	const tierByDivisionId = new Map(
+		structure.competitionDivisions.map((division) => [
+			division.divisionId,
+			division.tier,
+		]),
+	);
+	const teamsByTid = new Map(
+		(await idb.cache.teams.getAll()).map((t) => [t.tid, t]),
+	);
 
 	let numSigned = 0;
 	for (let i = 0; i < numAttempts; i++) {
@@ -321,9 +332,25 @@ export const aiTalentPoolSignings = async (
 		}
 
 		const wageBudget = wageBudgets.get(tid);
+		const wage = getTalentPoolWage(p);
+		const t = teamsByTid.get(tid);
+		const tier =
+			t?.divisionId === undefined
+				? 1
+				: (tierByDivisionId.get(t.divisionId) ?? 1);
+		const roleLimit =
+			wageBudget === undefined || tier <= 1
+				? Infinity
+				: getWorldNewContractLimitForPlayer({
+						wageBudget,
+						minContract: g.get("minContract"),
+						playerValue: p.valueNoPot,
+						rosterValues: roster.map((other) => other.valueNoPot),
+					}).limit;
 		if (
 			wageBudget === undefined ||
-			(await team.getPayroll(tid)) + getTalentPoolWage(p) > wageBudget
+			wage > roleLimit ||
+			(await team.getPayroll(tid)) + wage > wageBudget
 		) {
 			continue;
 		}
@@ -400,6 +427,26 @@ export const signTalentPoolPlayer = async ({
 				wage,
 			)} take your payroll over your wage budget of ${formatFee(wageBudget)}.`,
 		);
+	}
+	const userTeam = await idb.cache.teams.get(userTid);
+	const structure = getCompetitionStructure();
+	const tier = structure.competitionDivisions.find(
+		(division) => division.divisionId === userTeam?.divisionId,
+	)?.tier;
+	if ((tier ?? 1) > 1) {
+		const { limit, role } = getWorldNewContractLimitForPlayer({
+			wageBudget,
+			minContract: g.get("minContract"),
+			playerValue: p.valueNoPot,
+			rosterValues: roster.map((other) => other.valueNoPot),
+		});
+		if (wage > limit) {
+			return error(
+				`Your board values ${name} as a ${role} squad player and will approve at most ${formatFee(
+					limit,
+				)} a season after reserving enough wage budget for a complete squad.`,
+			);
+		}
 	}
 
 	const fee = getTalentPoolFee(p);

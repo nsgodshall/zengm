@@ -9,6 +9,7 @@ import { shuffle } from "../../../common/random.ts";
 import { isSingleDivision } from "../competition/competitionStructure.ts";
 import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
 import { getWageBudgets } from "../competition/wageBudgets.ts";
+import { getWorldNewContractLimitForPlayer } from "../competition/contractLimits.ts";
 
 /**
  * AI teams sign free agents.
@@ -39,6 +40,12 @@ const autoSign = async () => {
 
 	// Randomly order teams
 	const teams = await idb.cache.teams.getAll();
+	const tierByDivisionId = new Map(
+		getCompetitionStructure().competitionDivisions.map((division) => [
+			division.divisionId,
+			division.tier,
+		]),
+	);
 	shuffle(teams);
 
 	for (const t of teams) {
@@ -82,11 +89,26 @@ const autoSign = async () => {
 
 		// Ignore roster size, will drop bad player if necessary in checkRosterSizes, and getBest won't sign min contract player unless under the roster limit
 		const payroll = await team.getPayroll(t.tid);
+		const wageBudget = wageBudgets?.get(t.tid);
+		const isLowerTier =
+			t.divisionId !== undefined &&
+			(tierByDivisionId.get(t.divisionId) ?? 1) > 1;
 		const p = getBest(
 			playersOnRoster,
 			playersSorted,
 			payroll,
-			wageBudgets?.get(t.tid),
+			wageBudget,
+			isLowerTier && wageBudget !== undefined
+				? (candidate) =>
+						getWorldNewContractLimitForPlayer({
+							wageBudget,
+							minContract: g.get("minContract"),
+							playerValue: candidate.valueNoPot,
+							rosterValues: playersOnRoster.map(
+								(rosterPlayer) => rosterPlayer.valueNoPot,
+							),
+						}).limit
+				: undefined,
 		);
 		if (p) {
 			// Remove from list of free agents
