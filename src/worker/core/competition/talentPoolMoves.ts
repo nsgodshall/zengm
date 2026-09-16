@@ -30,7 +30,10 @@ import {
 	getTransferFee,
 } from "./transferMarket.ts";
 import { getWageBudgets } from "./wageBudgets.ts";
-import { getWorldNewContractLimitForPlayer } from "./contractLimits.ts";
+import {
+	buildClubSquadPlan,
+	evaluatePlayerForClubSquadPlan,
+} from "./clubSquadPlan.ts";
 
 // International Soccer Zen GM mod (Epic 4): moving players in and out of the
 // international talent pool (see competition/talentPool.ts). Pool players are
@@ -338,15 +341,23 @@ export const aiTalentPoolSignings = async (
 			t?.divisionId === undefined
 				? 1
 				: (tierByDivisionId.get(t.divisionId) ?? 1);
-		const roleLimit =
-			wageBudget === undefined || tier <= 1
-				? Infinity
-				: getWorldNewContractLimitForPlayer({
+		const squadPlan =
+			wageBudget !== undefined && tier > 1
+				? buildClubSquadPlan({
 						wageBudget,
 						minContract: g.get("minContract"),
-						playerValue: p.valueNoPot,
 						rosterValues: roster.map((other) => other.valueNoPot),
-					}).limit;
+						minimumRosterSize: g.get("minRosterSize"),
+						maxRosterSize: g.get("maxRosterSize"),
+						rotationSize,
+					})
+				: undefined;
+		const roleLimit = squadPlan
+			? evaluatePlayerForClubSquadPlan({
+					plan: squadPlan,
+					playerValue: p.valueNoPot,
+				}).contractLimit
+			: Infinity;
 		if (
 			wageBudget === undefined ||
 			wage > roleLimit ||
@@ -434,16 +445,22 @@ export const signTalentPoolPlayer = async ({
 		(division) => division.divisionId === userTeam?.divisionId,
 	)?.tier;
 	if ((tier ?? 1) > 1) {
-		const { limit, role } = getWorldNewContractLimitForPlayer({
+		const squadPlan = buildClubSquadPlan({
 			wageBudget,
 			minContract: g.get("minContract"),
-			playerValue: p.valueNoPot,
 			rosterValues: roster.map((other) => other.valueNoPot),
+			minimumRosterSize: g.get("minRosterSize"),
+			maxRosterSize: g.get("maxRosterSize"),
+			rotationSize: 2 * g.get("numPlayersOnCourt"),
 		});
-		if (wage > limit) {
+		const { contractLimit, role } = evaluatePlayerForClubSquadPlan({
+			plan: squadPlan,
+			playerValue: p.valueNoPot,
+		});
+		if (wage > contractLimit) {
 			return error(
 				`Your board values ${name} as a ${role} squad player and will approve at most ${formatFee(
-					limit,
+					contractLimit,
 				)} a season after reserving enough wage budget for a complete squad.`,
 			);
 		}

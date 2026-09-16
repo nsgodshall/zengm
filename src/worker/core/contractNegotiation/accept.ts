@@ -9,7 +9,10 @@ import { isSingleDivision } from "../competition/competitionStructure.ts";
 import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
 import { canSignWithinWageBudget } from "../competition/transferMarket.ts";
 import { getWageBudgets } from "../competition/wageBudgets.ts";
-import { getWorldNewContractLimitForPlayer } from "../competition/contractLimits.ts";
+import {
+	buildClubSquadPlan,
+	evaluatePlayerForClubSquadPlan,
+} from "../competition/clubSquadPlan.ts";
 
 /**
  * Accept the player's offer.
@@ -91,15 +94,21 @@ const accept = async <
 			amount > g.get("minContract")
 		) {
 			const roster = await idb.cache.players.indexGetAll("playersByTid", tid);
-			const { limit, role } = getWorldNewContractLimitForPlayer({
+			const squadPlan = buildClubSquadPlan({
 				wageBudget,
 				minContract: g.get("minContract"),
-				playerValue: p.valueNoPot,
 				rosterValues: roster.map((other) => other.valueNoPot),
+				minimumRosterSize: g.get("minRosterSize"),
+				maxRosterSize: g.get("maxRosterSize"),
+				rotationSize: 2 * g.get("numPlayersOnCourt"),
 			});
-			if (amount > limit) {
+			const { contractLimit, role } = evaluatePlayerForClubSquadPlan({
+				plan: squadPlan,
+				playerValue: p.valueNoPot,
+			});
+			if (amount > contractLimit) {
 				return `Your board values this player as a ${role} squad player and will approve at most ${helpers.formatCurrency(
-					limit / 1000,
+					contractLimit / 1000,
 					"M",
 				)} a season, after reserving enough wage budget for a complete squad.`;
 			}

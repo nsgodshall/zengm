@@ -9,7 +9,10 @@ import { shuffle } from "../../../common/random.ts";
 import { isSingleDivision } from "../competition/competitionStructure.ts";
 import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
 import { getWageBudgets } from "../competition/wageBudgets.ts";
-import { getWorldNewContractLimitForPlayer } from "../competition/contractLimits.ts";
+import {
+	buildClubSquadPlan,
+	evaluatePlayerForClubSquadPlan,
+} from "../competition/clubSquadPlan.ts";
 
 /**
  * AI teams sign free agents.
@@ -93,21 +96,30 @@ const autoSign = async () => {
 		const isLowerTier =
 			t.divisionId !== undefined &&
 			(tierByDivisionId.get(t.divisionId) ?? 1) > 1;
+		const squadPlan =
+			isLowerTier && wageBudget !== undefined
+				? buildClubSquadPlan({
+						rosterValues: playersOnRoster.map(
+							(rosterPlayer) => rosterPlayer.valueNoPot,
+						),
+						wageBudget,
+						minContract: g.get("minContract"),
+						minimumRosterSize: g.get("minRosterSize"),
+						maxRosterSize: g.get("maxRosterSize"),
+						rotationSize: 2 * g.get("numPlayersOnCourt"),
+					})
+				: undefined;
 		const p = getBest(
 			playersOnRoster,
 			playersSorted,
 			payroll,
 			wageBudget,
-			isLowerTier && wageBudget !== undefined
+			squadPlan
 				? (candidate) =>
-						getWorldNewContractLimitForPlayer({
-							wageBudget,
-							minContract: g.get("minContract"),
+						evaluatePlayerForClubSquadPlan({
+							plan: squadPlan,
 							playerValue: candidate.valueNoPot,
-							rosterValues: playersOnRoster.map(
-								(rosterPlayer) => rosterPlayer.valueNoPot,
-							),
-						}).limit
+						}).contractLimit
 				: undefined,
 		);
 		if (p) {

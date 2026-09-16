@@ -18,7 +18,10 @@ import { isSingleDivision } from "../competition/competitionStructure.ts";
 import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
 import { canSignWithinWageBudget } from "../competition/transferMarket.ts";
 import { getWageBudgets } from "../competition/wageBudgets.ts";
-import { getWorldNewContractLimitForPlayer } from "../competition/contractLimits.ts";
+import {
+	buildClubSquadPlan,
+	evaluatePlayerForClubSquadPlan,
+} from "../competition/clubSquadPlan.ts";
 
 export const FREE_AGENCY_DAYS = 30;
 
@@ -141,6 +144,28 @@ const newPhaseResignPlayers = async (
 				? 1
 				: (tierByDivisionId.get(t.divisionId) ?? 1),
 		]),
+	);
+	const squadPlansByTid = new Map(
+		[...tierByTid]
+			.filter(([, tier]) => tier > 1)
+			.map(([tid]) => {
+				const wageBudget = wageBudgets?.get(tid);
+				return [
+					tid,
+					wageBudget === undefined
+						? undefined
+						: buildClubSquadPlan({
+								rosterValues: players
+									.filter((p) => p.tid === tid)
+									.map((p) => p.valueNoPot),
+								wageBudget,
+								minContract: g.get("minContract"),
+								minimumRosterSize: g.get("minRosterSize"),
+								maxRosterSize: g.get("maxRosterSize"),
+								rotationSize: 2 * g.get("numPlayersOnCourt"),
+							}),
+				] as const;
+			}),
 	);
 
 	if (g.get("salaryCapType") === "hard" || wageBudgets) {
@@ -289,20 +314,13 @@ const newPhaseResignPlayers = async (
 			) {
 				reSignPlayer = false;
 			}
-			if (
-				contract.amount > g.get("minContract") &&
-				wageBudget !== undefined &&
-				(tierByTid.get(p.tid) ?? 1) > 1
-			) {
-				const { limit } = getWorldNewContractLimitForPlayer({
-					wageBudget,
-					minContract: g.get("minContract"),
+			const squadPlan = squadPlansByTid.get(p.tid);
+			if (contract.amount > g.get("minContract") && squadPlan) {
+				const { contractLimit } = evaluatePlayerForClubSquadPlan({
+					plan: squadPlan,
 					playerValue: p.valueNoPot,
-					rosterValues: players
-						.filter((other) => other.tid === p.tid)
-						.map((other) => other.valueNoPot),
 				});
-				if (contract.amount > limit) {
+				if (contract.amount > contractLimit) {
 					reSignPlayer = false;
 				}
 			}
