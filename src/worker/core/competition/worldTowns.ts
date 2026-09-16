@@ -188,6 +188,17 @@ export const MEXICAN_TOWNS: PilotTown[] = [
 		pop: 290,
 		wikipedia: "Puerto_Vallarta",
 	},
+	// International Soccer Zen GM mod (Epic 7): cities for Mexico's real clubs
+	{
+		name: "Ciudad Obregón",
+		clubName: "Obregón",
+		pop: 300,
+		wikipedia: "Ciudad_Obregón",
+	},
+	{ name: "Los Mochis", pop: 275, wikipedia: "Los_Mochis" },
+	{ name: "Monclova", pop: 232, wikipedia: "Monclova" },
+	{ name: "Navojoa", pop: 165, wikipedia: "Navojoa" },
+	{ name: "Guasave", pop: 75, wikipedia: "Guasave" },
 ];
 
 export const ITALIAN_TOWNS: PilotTown[] = [
@@ -310,6 +321,12 @@ export const GERMAN_TOWNS: PilotTown[] = [
 	{ name: "Jena", pop: 110, wikipedia: "Jena" },
 	{ name: "Cottbus", pop: 98, wikipedia: "Cottbus" },
 	{ name: "Paderborn", pop: 150, wikipedia: "Paderborn" },
+	// International Soccer Zen GM mod (Epic 7): cities for real clubs (see
+	// competition/germanClubs.ts)
+	{ name: "Fürth", pop: 130, wikipedia: "Fürth" },
+	{ name: "Kaiserslautern", pop: 100, wikipedia: "Kaiserslautern" },
+	{ name: "Heidenheim", pop: 50, wikipedia: "Heidenheim_an_der_Brenz" },
+	{ name: "Sinsheim", pop: 35, wikipedia: "Sinsheim" },
 ];
 
 export const JAPANESE_TOWNS: PilotTown[] = [
@@ -365,6 +382,15 @@ export const JAPANESE_TOWNS: PilotTown[] = [
 	{ name: "Asahikawa", pop: 330, wikipedia: "Asahikawa" },
 	{ name: "Iwaki", pop: 330, wikipedia: "Iwaki,_Fukushima" },
 	{ name: "Imabari", pop: 150, wikipedia: "Imabari" },
+	// International Soccer Zen GM mod (Epic 7): cities for Japan's real clubs
+	{ name: "Nishinomiya", pop: 485, wikipedia: "Nishinomiya" },
+	{ name: "Kashiwa", pop: 435, wikipedia: "Kashiwa,_Chiba" },
+	{ name: "Machida", pop: 430, wikipedia: "Machida,_Tokyo" },
+	{ name: "Tokorozawa", pop: 344, wikipedia: "Tokorozawa,_Saitama" },
+	{ name: "Maebashi", pop: 335, wikipedia: "Maebashi" },
+	{ name: "Hiratsuka", pop: 258, wikipedia: "Hiratsuka" },
+	{ name: "Tosu", pop: 74, wikipedia: "Tosu,_Saga" },
+	{ name: "Kashima", pop: 67, wikipedia: "Kashima,_Ibaraki" },
 ];
 
 // Real clubs in or near those towns, which generated names must not copy. Best
