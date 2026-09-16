@@ -12,8 +12,12 @@ import {
 } from "./competitionStructure.ts";
 import { getDivisionTables } from "./divisionTables.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
-import planEndOfSeason, { type EndOfSeasonPlan } from "./planEndOfSeason.ts";
+import planEndOfSeason, {
+	buildEndOfSeasonPlan,
+	type EndOfSeasonPlan,
+} from "./planEndOfSeason.ts";
 import playPromotionPlayoffGame from "./playPromotionPlayoffGame.ts";
+import { getPromotionPlayoffWinners } from "./promotionPlayoffSchedule.ts";
 import teamLink from "./teamLink.ts";
 import {
 	getChampionPrize,
@@ -264,41 +268,53 @@ const doEndOfSeason = async (conditions: Conditions) => {
 
 	const season = g.get("season");
 	const tables = await getDivisionTables(season);
+	const playoffState = (g as unknown as Partial<GameAttributesLeague>)
+		.promotionPlayoffState;
+	let plan: EndOfSeasonPlan;
+	if (playoffState?.season === season) {
+		plan = buildEndOfSeasonPlan(
+			structure,
+			tables,
+			getPromotionPlayoffWinners(playoffState),
+		);
+	} else {
+		// Compatibility for a World saved after its regular season under the old
+		// batch-simulated promotion playoff flow.
+		const games: PromotionPlayoffGames = [];
+		plan = await planEndOfSeason(
+			structure,
+			tables,
+			async (homeTid, awayTid, { linkId, round }) => {
+				const { gid, winnerTid, homePts, awayPts } =
+					await playPromotionPlayoffGame(homeTid, awayTid, conditions);
+				games.push({
+					gid,
+					season,
+					linkId,
+					round,
+					homeTid,
+					awayTid,
+					homePts,
+					awayPts,
+					winnerTid,
+				});
+				return winnerTid;
+			},
+		);
 
-	const games: PromotionPlayoffGames = [];
-	const plan = await planEndOfSeason(
-		structure,
-		tables,
-		async (homeTid, awayTid, { linkId, round }) => {
-			const { gid, winnerTid, homePts, awayPts } =
-				await playPromotionPlayoffGame(homeTid, awayTid, conditions);
-			games.push({
-				gid,
-				season,
-				linkId,
-				round,
-				homeTid,
-				awayTid,
-				homePts,
-				awayPts,
-				winnerTid,
+		if (games.length > 0) {
+			reportPromotionPlayoffGames(structure, games, conditions);
+
+			const previous =
+				(g as unknown as Partial<GameAttributesLeague>)
+					.promotionPlayoffResults ?? [];
+			await league.setGameAttributes({
+				promotionPlayoffResults: [
+					...previous.filter((game) => game.season !== season),
+					...games,
+				],
 			});
-			return winnerTid;
-		},
-	);
-
-	if (games.length > 0) {
-		reportPromotionPlayoffGames(structure, games, conditions);
-
-		const previous =
-			(g as unknown as Partial<GameAttributesLeague>).promotionPlayoffResults ??
-			[];
-		await league.setGameAttributes({
-			promotionPlayoffResults: [
-				...previous.filter((game) => game.season !== season),
-				...games,
-			],
-		});
+		}
 	}
 
 	await steadyHype(season);

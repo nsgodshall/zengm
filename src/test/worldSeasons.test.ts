@@ -816,8 +816,8 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 					.filter((row) => tierByDivisionId.get(row.divisionId!) === tier)
 					.map((row) => row.revenues.nationalTv);
 
-			// Every club plays the same number of games, so each tier's clubs get
-			// the same TV money
+			// Every club plays the same number of regular-season games, so each
+			// tier's clubs get the same TV money.
 			const top = tvByTier(1);
 			const second = tvByTier(2);
 			assert(Math.max(...top) - Math.min(...top) < 1, `${season}`);
@@ -896,7 +896,10 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			assert.strictEqual(info.numClubsInCountry, 2 * CLUBS_PER_DIVISION);
 			assert(info.marketRank >= 1 && info.marketRank <= 2 * CLUBS_PER_DIVISION);
 			assert(info.stadiumCapacity > 0);
-			assert(info.transferFunds !== undefined && info.transferFunds >= 0);
+			assert(
+				info.transferFunds !== undefined && info.transferFunds >= 0,
+				`tid ${t.tid}: transfer funds ${info.transferFunds}`,
+			);
 
 			const pastInfo = (await competition.getClubInfo(
 				t.tid,
@@ -1061,6 +1064,11 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 				assert(boxScore, `${season} box score ${game.gid} not found`);
 				assert.strictEqual(boxScore.playoffs, true);
 				assert.strictEqual(boxScore.season, season);
+				assert.notStrictEqual(
+					boxScore.day,
+					undefined,
+					`${season} promotion playoff game was not played from the schedule`,
+				);
 				assert.deepStrictEqual(
 					boxScore.teams.map((t) => [t.tid, t.pts]),
 					[
@@ -1588,7 +1596,10 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		let lenderTid: number | undefined;
 		for (const t of aiTeams) {
 			const roster = await idb.cache.players.indexGetAll("playersByTid", t.tid);
-			if (roster.length >= 12) {
+			if (
+				roster.length >
+				Math.max(g.get("minRosterSize"), 2 * g.get("numPlayersOnCourt"))
+			) {
 				lenderTid = t.tid;
 				break;
 			}

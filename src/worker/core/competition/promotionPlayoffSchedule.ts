@@ -1,0 +1,243 @@
+import getWinner from "../../../common/getWinner.ts";
+import type {
+	Conditions,
+	GameAttributesLeague,
+	GameResults,
+} from "../../../common/types.ts";
+import { idb } from "../../db/index.ts";
+import { g, logEvent } from "../../util/index.ts";
+import { league } from "../index.ts";
+import setSchedule from "../season/setSchedule.ts";
+import { getDivisionTables } from "./divisionTables.ts";
+import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
+import {
+	getActiveMatchups,
+	getGameWinner,
+	getLinkProgress,
+	getLinkWinners,
+	recordGame,
+	type PromotionPlayoffLink,
+} from "./promotionPlayoffState.ts";
+import resolvePromotionRelegation from "./resolvePromotionRelegation.ts";
+import teamLink from "./teamLink.ts";
+
+export type PromotionPlayoffState = NonNullable<
+	GameAttributesLeague["promotionPlayoffState"]
+>;
+
+const getState = () =>
+	(g as unknown as Partial<GameAttributesLeague>).promotionPlayoffState;
+
+const saveState = async (state: PromotionPlayoffState) => {
+	await league.setGameAttributes({ promotionPlayoffState: state });
+};
+
+/** Build the current season's brackets from the final Division tables. */
+export const initializePromotionPlayoffs = async () => {
+	const season = g.get("season");
+	const existing = getState();
+	if (existing?.season === season) {
+		return existing;
+	}
+
+	const structure = getCompetitionStructure();
+	const tables = await getDivisionTables(season);
+	const results = resolvePromotionRelegation(
+		structure.promotionRelegationLinks,
+		tables,
+	);
+	const state: PromotionPlayoffState = {
+		season,
+		links: results
+			.filter((result) => result.numPromotionPlayoffSpots > 0)
+			.map((result) => ({
+				linkId: result.linkId,
+				entrants: result.promotionPlayoffParticipants,
+				numSpots: result.numPromotionPlayoffSpots,
+				games: [],
+			})),
+		scheduledGames: [],
+	};
+
+	const previousResults =
+		(g as unknown as Partial<GameAttributesLeague>).promotionPlayoffResults ??
+		[];
+	await league.setGameAttributes({
+		promotionPlayoffState: state,
+		promotionPlayoffResults: previousResults.filter(
+			(game) => game.season !== season,
+		),
+	});
+	return state;
+};
+
+export const getPromotionPlayoffEntrants = (state: PromotionPlayoffState) =>
+	new Set(state.links.flatMap((link) => link.entrants));
+
+/**
+ * Put every link's current round on the ordinary schedule. Returns true only
+ * when all links have produced their promotion winners.
+ */
+export const newSchedulePromotionPlayoffsDay = async () => {
+	const state = getState();
+	if (!state || state.season !== g.get("season")) {
+		throw new Error(
+			"Promotion playoff state is missing for the current season",
+		);
+	}
+
+	if (state.scheduledGames.length > 0) {
+		const scheduledGids = new Set(
+			(await idb.cache.schedule.getAll()).map((game) => game.gid),
+		);
+		if (state.scheduledGames.some((game) => scheduledGids.has(game.gid))) {
+			return false;
+		}
+		throw new Error(
+			"Promotion playoff state contains scheduled games that are neither on the schedule nor recorded as results",
+		);
+	}
+
+	const matchups = state.links.flatMap((link) => getActiveMatchups(link));
+	if (matchups.length === 0) {
+		return state.links.every((link) => getLinkProgress(link).done);
+	}
+
+	await setSchedule(
+		matchups.map((matchup) => [matchup.homeTid, matchup.awayTid]),
+	);
+	const schedule = await idb.cache.schedule.getAll();
+	state.scheduledGames = matchups.map((matchup) => {
+		const game = schedule.find(
+			(game) =>
+				game.homeTid === matchup.homeTid && game.awayTid === matchup.awayTid,
+		);
+		if (!game) {
+			throw new Error(
+				`Promotion playoff game ${matchup.homeTid}-${matchup.awayTid} was not added to the schedule`,
+			);
+		}
+		return { gid: game.gid, ...matchup };
+	});
+	await saveState(state);
+	return false;
+};
+
+const reportGame = (
+	link: PromotionPlayoffLink,
+	game: PromotionPlayoffLink["games"][number],
+	conditions: Conditions,
+) => {
+	const progress = getLinkProgress(link);
+	const homeWon = game.winnerTid === game.homeTid;
+	const loserTid = homeWon ? game.awayTid : game.homeTid;
+	const winnerPts = homeWon ? game.homePts : game.awayPts;
+	const loserPts = homeWon ? game.awayPts : game.homePts;
+	const roundName = progress.done
+		? "the final round"
+		: `round ${game.round + 1}`;
+	logEvent(
+		{
+			type: "playoffs",
+			text: `The ${teamLink(game.winnerTid)} beat the ${teamLink(
+				loserTid,
+			)} ${winnerPts}-${loserPts}${
+				winnerPts === loserPts ? ", going through as the higher seed," : ""
+			} in ${roundName} of their promotion playoff.`,
+			showNotification:
+				game.homeTid === g.get("userTid") || game.awayTid === g.get("userTid"),
+			hideInLiveGame: true,
+			tids: [game.winnerTid, loserTid],
+			score: 10,
+		},
+		conditions,
+	);
+};
+
+/** Record real scheduled game results in the persisted brackets. */
+export const recordPromotionPlayoffResults = async (
+	results: GameResults[],
+	conditions: Conditions,
+) => {
+	const state = getState();
+	if (!state || state.season !== g.get("season")) {
+		throw new Error(
+			"Promotion playoff state is missing for the current season",
+		);
+	}
+
+	const historical = [
+		...((g as unknown as Partial<GameAttributesLeague>)
+			.promotionPlayoffResults ?? []),
+	];
+	for (const result of results) {
+		const scheduled = state.scheduledGames.find(
+			(game) => game.gid === result.gid,
+		);
+		if (!scheduled) {
+			throw new Error(
+				`Game ${result.gid} is not a scheduled promotion playoff game`,
+			);
+		}
+		const linkIndex = state.links.findIndex(
+			(link) => link.linkId === scheduled.linkId,
+		);
+		const link = state.links[linkIndex];
+		if (!link) {
+			throw new Error(`Promotion playoff link ${scheduled.linkId} not found`);
+		}
+
+		const home = result.team.find(
+			(team: { id: number }) => team.id === scheduled.homeTid,
+		);
+		const away = result.team.find(
+			(team: { id: number }) => team.id === scheduled.awayTid,
+		);
+		if (!home || !away) {
+			throw new Error(
+				`Promotion playoff game ${result.gid} does not contain its scheduled clubs`,
+			);
+		}
+		const homePts = home.stat.pts as number;
+		const awayPts = away.stat.pts as number;
+		const winner = getWinner([home.stat, away.stat]);
+		const winnerTid =
+			winner === 0
+				? scheduled.homeTid
+				: winner === 1
+					? scheduled.awayTid
+					: getGameWinner({
+							entrants: link.entrants,
+							homeTid: scheduled.homeTid,
+							awayTid: scheduled.awayTid,
+							homePts,
+							awayPts,
+						});
+		const game = {
+			gid: result.gid,
+			round: scheduled.round,
+			homeTid: scheduled.homeTid,
+			awayTid: scheduled.awayTid,
+			homePts,
+			awayPts,
+			winnerTid,
+		};
+		const updated = recordGame(link, game);
+		state.links[linkIndex] = updated;
+		state.scheduledGames = state.scheduledGames.filter(
+			(other) => other.gid !== result.gid,
+		);
+		historical.push({ season: state.season, linkId: link.linkId, ...game });
+		reportGame(updated, game, conditions);
+	}
+
+	await league.setGameAttributes({
+		promotionPlayoffState: state,
+		promotionPlayoffResults: historical,
+	});
+};
+
+export const getPromotionPlayoffWinners = (state: PromotionPlayoffState) =>
+	Object.fromEntries(
+		state.links.map((link) => [link.linkId, getLinkWinners(link)]),
+	);

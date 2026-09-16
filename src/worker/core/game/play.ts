@@ -44,6 +44,9 @@ import {
 import { isSport } from "../../../common/sportFunctions.ts";
 import { last } from "../../../common/utils.ts";
 import { advStats } from "../../util/advStats.ts";
+import { isSingleDivision } from "../competition/competitionStructure.ts";
+import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
+import { recordPromotionPlayoffResults } from "../competition/promotionPlayoffSchedule.ts";
 
 /**
  * Play one or more days of games.
@@ -150,8 +153,12 @@ const play = async (
 		local.seasonLeaders = undefined;
 
 		if (g.get("phase") === PHASE.PLAYOFFS) {
-			// Update playoff series W/L
-			await updatePlayoffSeries(results, conditions);
+			if (isSingleDivision(getCompetitionStructure())) {
+				// Update playoff series W/L
+				await updatePlayoffSeries(results, conditions);
+			} else {
+				await recordPromotionPlayoffResults(results, conditions);
+			}
 		} else {
 			// Update clinchedPlayoffs, only if there are games left in the schedule. Otherwise, this would be inaccruate (not correctly accounting for tiebreakers) and redundant (going to be called again on phase change)
 			const schedule = await season.getSchedule();
@@ -595,8 +602,10 @@ const play = async (
 			// Will loop through schedule and simulate all games
 			if (schedule.length === 0 && g.get("phase") === PHASE.PLAYOFFS) {
 				// Sometimes the playoff schedule isn't made the day before, so make it now
-				// This works because there should always be games in the playoffs phase. The next phase will start before reaching this point when the playoffs are over.
-				await season.newSchedulePlayoffsDay();
+				const playoffsOver = await season.newSchedulePlayoffsDay();
+				if (playoffsOver) {
+					return cbNoGames(true);
+				}
 				schedule = await season.getSchedule(true);
 			}
 

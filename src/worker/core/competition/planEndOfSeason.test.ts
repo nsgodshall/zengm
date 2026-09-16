@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import type { CompetitionStructure } from "./competitionStructure.ts";
 import type { DivisionTableRow } from "./computeDivisionTable.ts";
-import planEndOfSeason from "./planEndOfSeason.ts";
+import planEndOfSeason, { buildEndOfSeasonPlan } from "./planEndOfSeason.ts";
 
 const makeTable = (tids: number[]): DivisionTableRow[] =>
 	tids.map((tid, i) => ({
@@ -113,4 +113,18 @@ test("every Division keeps its size", async () => {
 		).length;
 		expect(numIn).toBe(numOut);
 	}
+});
+
+test("builds the same moves from winners recorded by playable promotion rounds", () => {
+	const plan = buildEndOfSeasonPlan(structure, tables, { 2: [24] });
+
+	expect([...plan.playoffWinnerTids]).toEqual([24]);
+	expect(plan.moves).toContainEqual({
+		tid: 24,
+		fromDivisionId: 4,
+		toDivisionId: 3,
+	});
+	expect(plan.moves).not.toContainEqual(
+		expect.objectContaining({ tid: 22, toDivisionId: 3 }),
+	);
 });

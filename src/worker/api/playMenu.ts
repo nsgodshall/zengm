@@ -1,5 +1,9 @@
 import { PHASE } from "../../common/constants.ts";
-import type { Conditions, PlayoffSeries } from "../../common/types.ts";
+import type {
+	Conditions,
+	GameAttributesLeague,
+	PlayoffSeries,
+} from "../../common/types.ts";
 import { season, game, phase, freeAgents } from "../core/index.ts";
 import { idb } from "../db/index.ts";
 import {
@@ -13,6 +17,8 @@ import {
 } from "../util/index.ts";
 import { runDraft } from "./actions.ts";
 import { bySport, isSport } from "../../common/sportFunctions.ts";
+import { isSingleDivision } from "../core/competition/competitionStructure.ts";
+import { getCompetitionStructure } from "../core/competition/ensureCompetitionStructure.ts";
 
 const getNumDaysThisRound = (playoffSeries: PlayoffSeries) => {
 	let numDaysThisRound = 0;
@@ -70,6 +76,25 @@ const getNumDaysPlayIn = async () => {
 };
 
 const getNumDaysPlayoffs = async () => {
+	if (!isSingleDivision(getCompetitionStructure())) {
+		const state = (g as unknown as Partial<GameAttributesLeague>)
+			.promotionPlayoffState;
+		if (!state || state.season !== g.get("season")) {
+			throw new Error(
+				"Promotion playoff state is missing for the current season",
+			);
+		}
+
+		// Every remaining game is an upper bound on the days left because all
+		// games in a round share a schedule day. game.play stops when the bracket
+		// finishes, so this also works for links with different numbers of rounds.
+		return state.links.reduce(
+			(total, link) =>
+				total + link.entrants.length - link.numSpots - link.games.length,
+			0,
+		);
+	}
+
 	const playoffSeries = await idb.cache.playoffSeries.get(g.get("season"));
 	if (!playoffSeries) {
 		throw new Error("playoffSeries not found");
@@ -206,6 +231,11 @@ const playMenu = {
 	untilEndOfRound: async (param: unknown, conditions: Conditions) => {
 		if (g.get("phase") === PHASE.PLAYOFFS) {
 			await updateStatus("Playing...");
+			if (!isSingleDivision(getCompetitionStructure())) {
+				// Every promotion playoff round is one scheduled day.
+				game.play(1, conditions);
+				return;
+			}
 			const playoffSeries = await idb.cache.playoffSeries.get(g.get("season"));
 			if (!playoffSeries) {
 				throw new Error("playoffSeries not found");

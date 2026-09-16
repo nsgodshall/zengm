@@ -249,21 +249,28 @@ const writeTeamStats = async (results: GameResults) => {
 
 		let seasonLengthFactor;
 		if (g.get("phase") === PHASE.PLAYOFFS) {
-			let numGamesCurrent = 0;
-			for (const numGames of g.get("numGamesPlayoffSeries")) {
-				numGamesCurrent += Math.ceil((numGames * 3) / 4);
+			if (!isSingleDivision(getCompetitionStructure())) {
+				// International Soccer Zen GM mod (Epic 3): promotion playoff
+				// rounds use this phase without ZenGM playoff series. Avoid dividing
+				// by zero when scaling their ticket revenue.
+				seasonLengthFactor = 1;
+			} else {
+				let numGamesCurrent = 0;
+				for (const numGames of g.get("numGamesPlayoffSeries")) {
+					numGamesCurrent += Math.ceil((numGames * 3) / 4);
+				}
+				let numGamesDefault = 0;
+				// defaultGameAttributes.numGamesPlayoffSeries, but frozen in time because otherwise various coefficients below would need to be updated when it changes
+				for (const numGames of bySport({
+					baseball: [3, 5, 7, 7],
+					basketball: [7, 7, 7, 7],
+					football: [1, 1, 1, 1],
+					hockey: [7, 7, 7, 7],
+				})) {
+					numGamesDefault += Math.ceil((numGames * 3) / 4);
+				}
+				seasonLengthFactor = numGamesDefault / numGamesCurrent;
 			}
-			let numGamesDefault = 0;
-			// defaultGameAttributes.numGamesPlayoffSeries, but frozen in time because otherwise various coefficients below would need to be updated when it changes
-			for (const numGames of bySport({
-				baseball: [3, 5, 7, 7],
-				basketball: [7, 7, 7, 7],
-				football: [1, 1, 1, 1],
-				hockey: [7, 7, 7, 7],
-			})) {
-				numGamesDefault += Math.ceil((numGames * 3) / 4);
-			}
-			seasonLengthFactor = numGamesDefault / numGamesCurrent;
 		} else {
 			// defaultGameAttributes.numGames, but frozen in time because otherwise various coefficients below would need to be updated when it changes
 			seasonLengthFactor =

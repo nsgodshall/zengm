@@ -15,6 +15,31 @@ export type EndOfSeasonPlan = {
 	playoffWinnerTids: Set<number>;
 };
 
+export const buildEndOfSeasonPlan = (
+	structure: CompetitionStructure,
+	tables: Record<number, DivisionTableRow[]>,
+	playoffWinnersByLinkId: Record<number, number[]>,
+): EndOfSeasonPlan => {
+	const champions: EndOfSeasonPlan["champions"] = [];
+	for (const division of structure.competitionDivisions) {
+		const row = tables[division.divisionId]?.[0];
+		if (row) {
+			champions.push({ division, row });
+		}
+	}
+
+	const results = resolvePromotionRelegation(
+		structure.promotionRelegationLinks,
+		tables,
+	);
+
+	return {
+		champions,
+		moves: flattenPromotionRelegationMoves(results, playoffWinnersByLinkId),
+		playoffWinnerTids: new Set(Object.values(playoffWinnersByLinkId).flat()),
+	};
+};
+
 /**
  * Work out how a World's season ends from its final Division tables: each
  * Division's champion, the winners of any promotion playoffs (each game played
@@ -30,14 +55,6 @@ const planEndOfSeason = async (
 		game: { linkId: number; round: number },
 	) => Promise<number>,
 ): Promise<EndOfSeasonPlan> => {
-	const champions: EndOfSeasonPlan["champions"] = [];
-	for (const division of structure.competitionDivisions) {
-		const row = tables[division.divisionId]?.[0];
-		if (row) {
-			champions.push({ division, row });
-		}
-	}
-
 	const results = resolvePromotionRelegation(
 		structure.promotionRelegationLinks,
 		tables,
@@ -55,11 +72,7 @@ const planEndOfSeason = async (
 		}
 	}
 
-	return {
-		champions,
-		moves: flattenPromotionRelegationMoves(results, playoffWinnersByLinkId),
-		playoffWinnerTids: new Set(Object.values(playoffWinnersByLinkId).flat()),
-	};
+	return buildEndOfSeasonPlan(structure, tables, playoffWinnersByLinkId);
 };
 
 export default planEndOfSeason;

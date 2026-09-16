@@ -9,6 +9,10 @@ import type {
 import { PHASE } from "../../../common/constants.ts";
 import { isSingleDivision } from "../competition/competitionStructure.ts";
 import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
+import {
+	getPromotionPlayoffEntrants,
+	initializePromotionPlayoffs,
+} from "../competition/promotionPlayoffSchedule.ts";
 
 const newPhasePlayoffs = async (
 	conditions: Conditions,
@@ -19,47 +23,63 @@ const newPhasePlayoffs = async (
 	// In case this was somehow set already
 	local.playingUntilEndOfRound = false;
 
-	// Set playoff matchups
-	const { byConf, playIns, series, tidPlayIn, tidPlayoffs } =
-		await season.genPlayoffSeries();
+	const world = !isSingleDivision(getCompetitionStructure());
+	let tidPlayIn: number[] = [];
+	let tidPlayoffs: number[];
 
-	for (const type of ["playoffs", "play-in tournament"] as const) {
-		const tids = type === "playoffs" ? tidPlayoffs : tidPlayIn;
+	if (world) {
+		const state = await initializePromotionPlayoffs();
+		tidPlayoffs = [...getPromotionPlayoffEntrants(state)];
+	} else {
+		// Set playoff matchups
+		const {
+			byConf,
+			playIns,
+			series,
+			tidPlayIn: playIn,
+			tidPlayoffs: playoffs,
+		} = await season.genPlayoffSeries();
+		tidPlayIn = playIn;
+		tidPlayoffs = playoffs;
 
-		for (const tid of tids) {
-			logEvent(
-				{
-					type: "madePlayoffs",
-					text: `The <a href="${helpers.leagueUrl([
-						"roster",
-						`${g.get("teamInfoCache")[tid]?.abbrev}_${tid}`,
-						g.get("season"),
-					])}">${
-						g.get("teamInfoCache")[tid]?.name
-					}</a> made the <a href="${helpers.leagueUrl([
-						"playoffs",
-						g.get("season"),
-					])}">${type}</a>.`,
-					showNotification: tid === g.get("userTid"),
-					tids: [tid],
-					score: 0,
-				},
-				conditions,
-			);
+		for (const type of ["playoffs", "play-in tournament"] as const) {
+			const tids = type === "playoffs" ? tidPlayoffs : tidPlayIn;
+
+			for (const tid of tids) {
+				logEvent(
+					{
+						type: "madePlayoffs",
+						text: `The <a href="${helpers.leagueUrl([
+							"roster",
+							`${g.get("teamInfoCache")[tid]?.abbrev}_${tid}`,
+							g.get("season"),
+						])}">${
+							g.get("teamInfoCache")[tid]?.name
+						}</a> made the <a href="${helpers.leagueUrl([
+							"playoffs",
+							g.get("season"),
+						])}">${type}</a>.`,
+						showNotification: tid === g.get("userTid"),
+						tids: [tid],
+						score: 0,
+					},
+					conditions,
+				);
+			}
 		}
-	}
 
-	const playoffSeries: PlayoffSeries = {
-		byConf,
-		season: g.get("season"),
-		currentRound: 0,
-		series,
-	};
-	if (playIns) {
-		playoffSeries.currentRound = -1;
-		playoffSeries.playIns = playIns;
+		const playoffSeries: PlayoffSeries = {
+			byConf,
+			season: g.get("season"),
+			currentRound: 0,
+			series,
+		};
+		if (playIns) {
+			playoffSeries.currentRound = -1;
+			playoffSeries.playIns = playIns;
+		}
+		await idb.cache.playoffSeries.put(playoffSeries);
 	}
-	await idb.cache.playoffSeries.put(playoffSeries);
 
 	// Add row to team stats and team season attributes
 	const teamSeasons = await idb.cache.teamSeasons.indexGetAll(
@@ -73,14 +93,16 @@ const newPhasePlayoffs = async (
 		if (tidAll.has(teamSeason.tid)) {
 			await idb.cache.teamStats.add(team.genStatsRow(teamSeason.tid, true));
 
-			// Play-in teams have not made the playoffs yet, technically
-			if (tidPlayoffs.includes(teamSeason.tid)) {
-				teamSeason.playoffRoundsWon = 0;
-			}
+			if (!world) {
+				// Play-in teams have not made the playoffs yet, technically
+				if (tidPlayoffs.includes(teamSeason.tid)) {
+					teamSeason.playoffRoundsWon = 0;
+				}
 
-			// More hype for making the playoffs
-			teamSeason.hype += 0.05;
-		} else if (isSingleDivision(getCompetitionStructure())) {
+				// More hype for making the playoffs
+				teamSeason.hype += 0.05;
+			}
+		} else if (!world) {
 			// Less hype for missing the playoffs. International Soccer Zen GM mod
 			// (Epic 8): not in a World, which has no playoffs to make (see
 			// competition/endOfSeason.ts for its hype)
@@ -110,7 +132,9 @@ const newPhasePlayoffs = async (
 	await season.newSchedulePlayoffsDay();
 
 	// Update clinchedPlayoffs with final values
-	await team.updateClinchedPlayoffs(true, conditions);
+	if (!world) {
+		await team.updateClinchedPlayoffs(true, conditions);
+	}
 
 	await realRosters.checkDisableForceHistoricalRosters(
 		g.get("season"),
@@ -122,7 +146,7 @@ const newPhasePlayoffs = async (
 	if (!liveGameSim) {
 		redirect = {
 			url: helpers.leagueUrl(["playoffs"]),
-			text: "View playoff bracket",
+			text: world ? "View promotion playoffs" : "View playoff bracket",
 		};
 	}
 

@@ -6,6 +6,9 @@ import { season } from "../index.ts";
 import { isSport } from "../../../common/sportFunctions.ts";
 import { chunk, groupByUnique } from "../../../common/utils.ts";
 import { orderTeams } from "../../util/orderTeams.ts";
+import { isSingleDivision } from "../competition/competitionStructure.ts";
+import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
+import { newSchedulePromotionPlayoffsDay } from "../competition/promotionPlayoffSchedule.ts";
 
 // Play 2 home (true) then 2 away (false) and repeat, but ensure that the better team always gets the last game.
 const betterSeedHome = (numGamesPlayoffSeries: number, gameNum: number) => {
@@ -70,6 +73,10 @@ const getTeamsForOrderTeams = async () => {
  * @return {Promise.boolean} Resolves to true if the playoffs are over. Otherwise, false.
  */
 const newSchedulePlayoffsDay = async (): Promise<boolean> => {
+	if (!isSingleDivision(getCompetitionStructure())) {
+		return newSchedulePromotionPlayoffsDay();
+	}
+
 	const playoffSeries = await idb.cache.playoffSeries.get(g.get("season"));
 	if (!playoffSeries) {
 		throw new Error("No playoff series");

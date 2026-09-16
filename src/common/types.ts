@@ -702,6 +702,34 @@ export type GameAttributesLeague = {
 		// since promotion playoff box scores were saved
 		gid?: number;
 	}[];
+	// International Soccer Zen GM mod (Epic 3): the current season's resumable
+	// promotion playoffs. Games are put on the ordinary schedule one round at a
+	// time, and completed games are also copied to promotionPlayoffResults for
+	// historical display. Optional so old saves need no database migration.
+	promotionPlayoffState?: {
+		season: number;
+		links: {
+			linkId: number;
+			entrants: number[];
+			numSpots: number;
+			games: {
+				round: number;
+				homeTid: number;
+				awayTid: number;
+				homePts: number;
+				awayPts: number;
+				winnerTid: number;
+				gid: number;
+			}[];
+		}[];
+		scheduledGames: {
+			gid: number;
+			linkId: number;
+			round: number;
+			homeTid: number;
+			awayTid: number;
+		}[];
+	};
 	daysLeft: number;
 	defaultStadiumCapacity: number;
 	dh: "all" | "none" | number[];
