@@ -1,8 +1,35 @@
+import type { Team } from "../../../common/types.ts";
 import { idb } from "../../db/index.ts";
 import { g } from "../../util/index.ts";
 import { getClubHonours } from "./clubHonours.ts";
+import { describeClubStature } from "./clubStature.ts";
 import { isSingleDivision } from "./competitionStructure.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
+
+// A club's stature after its latest finished season, with this season's market
+// size
+const getCurrentStature = async (
+	t: Team,
+	structure: ReturnType<typeof getCompetitionStructure>,
+) => {
+	const teamSeason = await idb.cache.teamSeasons.indexGet(
+		"teamSeasonsByTidSeason",
+		[t.tid, g.get("season")],
+	);
+	if (!teamSeason) {
+		return;
+	}
+	return describeClubStature({
+		seed: t.worldStatureSeed,
+		history: t.worldHistory ?? [],
+		tier:
+			structure.competitionDivisions.find(
+				(division) => division.divisionId === t.divisionId,
+			)?.tier ?? 1,
+		pop: teamSeason.pop,
+		season: g.get("season"),
+	});
+};
 
 /**
  * International Soccer Zen GM mod (storytelling): a World club's honours and
@@ -27,9 +54,12 @@ export const getClubHonoursInfo = async (tid: number) => {
 	const teamInfoCache = g.get("teamInfoCache");
 	const honours = getClubHonours(t.worldHistory ?? []);
 	const recordSigning = t.worldRecordSigning;
+	const stature = await getCurrentStature(t, structure);
 
 	return {
 		...honours,
+		stature: stature?.stature,
+		statureLabel: stature?.label,
 		titles: honours.titles.map((row) => ({
 			...row,
 			divisionName: divisionName(row.divisionId),
@@ -81,10 +111,12 @@ export const getClubRecordsHonours = async (
 			lowerTitles: number;
 			promotions: number;
 			relegations: number;
+			stature: number | undefined;
 			bestFinish: { tier: number; position: number } | undefined;
 		}
 	>();
 	for (const t of await idb.cache.teams.getAll()) {
+		const stature = await getCurrentStature(t, structure);
 		const honours = getClubHonours(
 			(t.worldHistory ?? []).filter((entry) =>
 				includeSeason(t.tid, entry.season),
@@ -101,6 +133,7 @@ export const getClubRecordsHonours = async (
 				.reduce((sum, row) => sum + row.seasons.length, 0),
 			promotions: honours.promotions.length,
 			relegations: honours.relegations.length,
+			stature: stature?.stature,
 			bestFinish: honours.bestFinish
 				? {
 						tier: honours.bestFinish.tier,

@@ -102,6 +102,11 @@ export const WorldHonours = ({
 
 	return (
 		<div className="mb-2">
+			{honours.stature !== undefined ? (
+				<div>
+					Stature: {honours.stature} ({honours.statureLabel})
+				</div>
+			) : null}
 			Record: {record} ({helpers.roundWinp(totalWinp)})
 			{lines.map((line) => (
 				<div key={`${line.label} ${line.value}`}>

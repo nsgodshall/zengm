@@ -24,6 +24,11 @@ import {
 } from "../worker/core/competition/loans.ts";
 import { getTvShare } from "../worker/core/competition/worldRevenue.ts";
 import {
+	getLegacyTimeline,
+	getStartingLegacy,
+	getStature,
+} from "../worker/core/competition/clubStature.ts";
+import {
 	describePromotion,
 	describeRelegation,
 	describeTitle,
@@ -835,6 +840,7 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 							...(record.promotionPlayoff
 								? { promotionPlayoff: record.promotionPlayoff }
 								: {}),
+							stature: record.stature,
 						},
 						label,
 					);
@@ -862,6 +868,34 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 				t.worldHistory!.map((entry) => entry.season),
 				completedSeasons,
 			);
+		}
+	});
+
+	test("every club's stature builds from its starting tier, its finishes, and its market", async () => {
+		const teamSeasons: TeamSeason[] = await idb.league.getAll("teamSeasons");
+		for (const t of await idb.cache.teams.getAll()) {
+			const startingTier = t.worldHistory![0]!.tier;
+			assert.deepStrictEqual(t.worldStatureSeed, {
+				legacy: getStartingLegacy(startingTier),
+				season: STARTING_SEASON,
+			});
+			const timeline = getLegacyTimeline(t.worldStatureSeed!, t.worldHistory!);
+			for (const entry of t.worldHistory!) {
+				const pop = teamSeasons.find(
+					(row) => row.tid === t.tid && row.season === entry.season,
+				)!.pop;
+				assert.strictEqual(
+					entry.stature,
+					getStature({
+						legacy: timeline.find((row) => row.season === entry.season)!.legacy,
+						pop,
+					}),
+				);
+			}
+
+			const info = (await competition.getClubInfo(t.tid, g.get("season")))!;
+			assert(info.stature !== undefined && info.stature >= 0);
+			assert(info.statureLabel);
 		}
 	});
 

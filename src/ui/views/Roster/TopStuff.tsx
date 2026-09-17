@@ -299,6 +299,13 @@ const TopStuff = ({
 									· Market: {clubInfo.pop.toFixed(1)}M,{" "}
 									{helpers.ordinal(clubInfo.marketRank)} of{" "}
 									{clubInfo.numClubsInCountry} in {clubInfo.countryName}
+									{/* International Soccer Zen GM mod (storytelling) */}
+									{clubInfo.stature !== undefined ? (
+										<>
+											{" "}
+											· Stature: {clubInfo.stature} ({clubInfo.statureLabel})
+										</>
+									) : null}
 								</div>
 							) : null}
 							{worldDivision ? (

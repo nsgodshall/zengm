@@ -9,6 +9,11 @@ import {
 	getClubSeasonLeaders,
 	toWorldHistoryEntry,
 } from "./clubSeasonRecords.ts";
+import {
+	getDefaultStatureSeed,
+	getLegacyTimeline,
+	getStature,
+} from "./clubStature.ts";
 import { isSingleDivision } from "./competitionStructure.ts";
 import { getDivisionTables } from "./divisionTables.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
@@ -80,6 +85,32 @@ export const recordWorldSeason = async (season: number) => {
 		leadersByTid,
 	});
 
+	// Each club's stature after the season (see competition/clubStature.ts),
+	// saved with its history
+	const teams = await idb.cache.teams.getAll();
+	for (const t of teams) {
+		const record = records.get(t.tid);
+		if (!record) {
+			continue;
+		}
+		t.worldStatureSeed ??= getDefaultStatureSeed({
+			history: t.worldHistory ?? [],
+			tier: record.tier,
+			season,
+		});
+		const history = addWorldHistoryEntry(
+			t.worldHistory,
+			toWorldHistoryEntry(season, record),
+		);
+		const legacy = getLegacyTimeline(t.worldStatureSeed, history).find(
+			(row) => row.season === season,
+		)?.legacy;
+		const pop = teamSeasons.find((row) => row.tid === t.tid)?.pop;
+		if (legacy !== undefined && pop !== undefined) {
+			record.stature = getStature({ legacy, pop });
+		}
+	}
+
 	for (const teamSeason of cachedTeamSeasons) {
 		const record = records.get(teamSeason.tid);
 		if (record) {
@@ -88,7 +119,7 @@ export const recordWorldSeason = async (season: number) => {
 		}
 	}
 
-	for (const t of await idb.cache.teams.getAll()) {
+	for (const t of teams) {
 		const record = records.get(t.tid);
 		if (record) {
 			t.worldHistory = addWorldHistoryEntry(

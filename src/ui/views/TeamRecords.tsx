@@ -103,6 +103,12 @@ const TeamRecords = ({
 						desc: "Best Finish",
 						sortType: "number" as const,
 					},
+					{
+						title: "Stature",
+						desc: "How big the club is now, from 0 to 100, from its finishes over the years and its market size",
+						sortSequence: ["desc", "asc"] as const,
+						sortType: "number" as const,
+					},
 				]
 			: [
 					"PlayoffAppearances",
@@ -173,6 +179,7 @@ const TeamRecords = ({
 												t.world.bestFinish.position,
 										}
 									: undefined,
+								t.world?.stature,
 							]
 						: [
 								blankIfZero(t.playoffs),

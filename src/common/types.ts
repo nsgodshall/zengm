@@ -1855,6 +1855,9 @@ export type WorldSeasonRecord = {
 	topScorer?: { pid: number; name: string; value: number };
 	mostGames?: { pid: number; name: string; gp: number };
 	runs?: WorldSeasonRuns;
+	// How big the club was after this season, from 0 to 100 (see
+	// competition/clubStature.ts)
+	stature?: number;
 };
 
 // International Soccer Zen GM mod (storytelling): the biggest fee a club, a
@@ -1883,6 +1886,7 @@ export type WorldHistoryEntry = Pick<
 	| "champion"
 	| "moved"
 	| "promotionPlayoff"
+	| "stature"
 > & { season: number };
 
 export type Team = {
@@ -1902,6 +1906,10 @@ export type Team = {
 	// International Soccer Zen GM mod (storytelling): the biggest fee the club has
 	// paid in a World
 	worldRecordSigning?: WorldTransferRecord;
+	// International Soccer Zen GM mod (storytelling): the legacy a World club had
+	// going into a season, which its stature builds on from there (see
+	// competition/clubStature.ts)
+	worldStatureSeed?: { legacy: number; season: number };
 	tid: number;
 	cid: number;
 	did: number;

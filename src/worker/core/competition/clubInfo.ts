@@ -1,5 +1,6 @@
 import { idb } from "../../db/index.ts";
 import { g } from "../../util/index.ts";
+import { describeClubStature } from "./clubStature.ts";
 import { isSingleDivision } from "./competitionStructure.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
 import { getTransferFunds } from "./transferMarket.ts";
@@ -49,7 +50,27 @@ export const getClubInfo = async (tid: number, season: number) => {
 			getTransferFunds({ cash: teamSeason.cash, wageBudget }) / 1000;
 	}
 
+	// Storytelling: how big the club is going into the season (see
+	// competition/clubStature.ts)
+	const t = await idb.cache.teams.get(tid);
+	const stature = t
+		? describeClubStature({
+				seed: t.worldStatureSeed,
+				history: (t.worldHistory ?? []).filter(
+					(entry) => entry.season < season,
+				),
+				tier:
+					structure.competitionDivisions.find(
+						(division) => division.divisionId === teamSeason.divisionId,
+					)?.tier ?? 1,
+				pop: teamSeason.pop,
+				season,
+			})
+		: undefined;
+
 	return {
+		stature: stature?.stature,
+		statureLabel: stature?.label,
 		stadiumCapacity: teamSeason.stadiumCapacity,
 		pop: teamSeason.pop,
 		marketRank:

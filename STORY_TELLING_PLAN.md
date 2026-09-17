@@ -296,8 +296,8 @@ to Phase 4 with the in-season stories that need it. No gameplay change.
 
 ### Phase 2: club identity and honours
 
-**Status: honours and the history pages implemented; stature and real clubs'
-history (Phase 6d) still to do.**
+**Status: honours, the history pages, and stature implemented; founding years
+and nicknames wait for Phase 6d's real club data.**
 
 - **Honours** (`competition/clubHonours.ts`, pure, from a club's saved
   history): titles by tier, dynasties (3 top-tier titles within 5 seasons,
@@ -323,14 +323,25 @@ history (Phase 6d) still to do.**
 - **Tested:** unit tests for honours, dynasties, runs, and the roll of honour.
   The World season test checks the team history, League History, and Team
   Records views against every club's saved history.
-- **Stature** (still to do): a slow-moving number from 0 to 100 for how big a
-  club is, from titles, top finishes, and seasons in each tier with a half-life
-  of 10–15 seasons, plus market size. It's kept on the team with a copy in each
-  season's record, so its rise and fall can be charted. Real clubs start from
-  their real standing and generated clubs from their starting tier and market
-  size (Phase 6d). In this phase it only labels clubs "giant", "established",
-  "yo-yo", "rising", "minnow", or "sleeping giant" (high stature, low tier);
-  Phase 6b makes it affect hype, revenue, and players' choices.
+- **Stature** (`competition/clubStature.ts`, pure): a number from 0 to 100 for
+  how big a club is. Each season's finish adds legacy (10 for a top-tier title,
+  7 for second, 5 for the top four, 3 for the top half, 2 below; 1.5 or 1 in a
+  second tier, 0.75 or 0.5 below), and legacy fades by half every 12 seasons.
+  Legacy gives up to 70 points on a saturating curve, and market size up to 30
+  on a log scale from 0.5 to 15 million people. Always winning a top tier in a
+  big market settles near 90; a top-half top-tier club in a middling market
+  near 45; a second-tier club in a small market below 25. Every club starts
+  with the legacy of a club that has always been on its starting tier (40, 15,
+  or 5), saved as its seed (`worldStatureSeed`), and each season's stature is
+  saved with its history entry and record, so it can be charted. Labels:
+  "Yo-yo club" (3 promotions and 3 relegations in 10 seasons), "Sleeping giant"
+  (60 or more outside the top tier), "Rising" or "Fading" (10 points up or down
+  in 5 seasons), otherwise "Giant" (75), "Big club" (60), "Established" (45),
+  "Modest" (30), or "Minnow". It shows on the team page, the Honours box, and
+  Team Records. For now it only describes clubs; Phase 6d gives real clubs real
+  starting stature, and Phase 6b makes it affect hype, revenue, and players'
+  choices. In a 40-club test World after 3 seasons it ran from 14 (Almería) to
+  59 (Liverpool and Manchester United).
 - **Founding years and nicknames** (still to do): from Phase 6d's data, shown
   on the team page.
 

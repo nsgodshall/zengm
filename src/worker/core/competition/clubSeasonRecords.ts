@@ -337,6 +337,9 @@ export const toWorldHistoryEntry = (
 	if (record.promotionPlayoff) {
 		entry.promotionPlayoff = record.promotionPlayoff;
 	}
+	if (record.stature !== undefined) {
+		entry.stature = record.stature;
+	}
 	return entry;
 };
 
