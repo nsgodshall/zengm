@@ -471,8 +471,8 @@ What landed (`competition/worldStories.ts`, pure, and
 
 ### Phase 5: tell (presentation)
 
-**Status: the World Chronicle page, the World Season Preview, and club legends
-implemented; the rest still to do.**
+**Status: the World Chronicle page, the World Season Preview, club legends,
+and each Country's records implemented; the rest still to do.**
 
 What landed: the **Chronicle** (League → Chronicle, World only;
 `competition/worldChronicle.ts`, `ui/views/WorldChronicle.tsx`): pick a
@@ -495,6 +495,14 @@ page names its most-used players and top scorers (the same stat as its
 Division's Top Scorer award), its one-club players, and its academy graduates,
 each with games played and the seasons they played, from the players who have
 played for it.
+
+**Records** (League → Records, World only; `competition/worldRecords.ts`,
+pure): each Country, the user's first, with its records (most and fewest points
+in a season, most titles in a row, longest run in the top tier, longest winning
+and unbeaten runs, and biggest win with the score and opponent), its clubs with
+the most titles, and its all-time top-tier table (seasons, record, points, and
+titles). All of it comes from the season records saved on team seasons, and a
+run of one season doesn't count as a record.
 
 - **World Chronicle** (a World-only page): season by season, and Country by
   Country, the headline story, each Division's champion and who went up and

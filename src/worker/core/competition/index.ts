@@ -89,6 +89,7 @@ import {
 	recordWorldSeason,
 } from "./recordWorldSeason.ts";
 import { getClubLegends } from "./clubLegends.ts";
+import { getWorldRecordsInfo } from "./worldRecords.ts";
 import runPromotionPlayoff from "./promotionPlayoff.ts";
 import ensureCompetitionStructure, {
 	getCompetitionStructure,
@@ -133,6 +134,7 @@ export default {
 	getClubLegends,
 	getScorerValue,
 	getWorldRollOfHonour,
+	getWorldRecordsInfo,
 	getWorldChronicle,
 	getWorldStorylines,
 	fillWorldSeasonRecords,

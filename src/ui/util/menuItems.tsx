@@ -249,6 +249,15 @@ export const menuItems: (MenuItemLink | MenuItemHeader)[] = [
 			},
 			{
 				type: "link",
+				active: (pageID) => pageID === "worldRecords",
+				league: true,
+				commandPalette: true,
+				world: true,
+				path: ["world_records"],
+				text: "Records",
+			},
+			{
+				type: "link",
 				active: (pageID) => pageID === "powerRankings",
 				league: true,
 				commandPalette: true,

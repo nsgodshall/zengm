@@ -64,6 +64,7 @@ import moodComponents from "../worker/core/player/moodComponents.ts";
 import academyView from "../worker/views/academy.ts";
 import worldChronicleView from "../worker/views/worldChronicle.ts";
 import seasonPreviewView from "../worker/views/seasonPreview.ts";
+import worldRecordsView from "../worker/views/worldRecords.ts";
 import historyAllView from "../worker/views/historyAll.ts";
 import teamHistoryView from "../worker/views/teamHistory.ts";
 import teamRecordsView from "../worker/views/teamRecords.ts";
@@ -1031,6 +1032,37 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		}
 		// Three seasons of two small Countries tell at least one story
 		assert(numStories > 0);
+
+		// The Records page's all-time tables match the seasons played
+		const records = await worldRecordsView({}, ["firstRun"]);
+		assert(records && "countries" in records && records.countries);
+		for (const country of records.countries) {
+			const clubs = teams.filter((t) =>
+				t.worldHistory!.some(
+					(entry) =>
+						entry.tier === 1 &&
+						structure.competitionDivisions.find(
+							(division) => division.divisionId === entry.divisionId,
+						)!.countryId === country.countryId,
+				),
+			);
+			assert.strictEqual(country.allTimeTable.length, clubs.length);
+			for (const row of country.allTimeTable) {
+				const entries = teams
+					.find((t) => t.tid === row.tid)!
+					.worldHistory!.filter((entry) => entry.tier === 1);
+				assert.strictEqual(row.seasons, entries.length);
+				assert.strictEqual(
+					row.points,
+					entries.reduce((sum, entry) => sum + entry.points, 0),
+				);
+				assert.strictEqual(
+					row.titles,
+					entries.filter((entry) => entry.champion).length,
+				);
+			}
+			assert(country.records.some((record) => record.label.includes("points")));
+		}
 
 		// The Season Preview's storylines start with last season's champions
 		const preview = await seasonPreviewView(

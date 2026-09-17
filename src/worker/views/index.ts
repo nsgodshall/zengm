@@ -51,6 +51,7 @@ export { default as headToHead } from "./headToHead.ts";
 export { default as headToHeadAll } from "./headToHeadAll.ts";
 export { default as history } from "./history.ts";
 export { default as worldChronicle } from "./worldChronicle.ts";
+export { default as worldRecords } from "./worldRecords.ts";
 export { default as historyAll } from "./historyAll.ts";
 export { default as inbox } from "./inbox.ts";
 export { default as injuries } from "./injuries.ts";
