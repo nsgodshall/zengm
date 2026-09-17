@@ -1,7 +1,7 @@
 import { idb } from "../db/index.ts";
 import { g, helpers } from "../util/index.ts";
 import type { UpdateEvents, ViewInput } from "../../common/types.ts";
-import { team } from "../core/index.ts";
+import { competition, team } from "../core/index.ts";
 import { orderBy } from "../../common/utils.ts";
 import { PHASE } from "../../common/constants.ts";
 import { loadAbbrevs } from "./gameLog.ts";
@@ -184,6 +184,12 @@ const updateSeasonPreview = async (
 		).slice(0, NUM_TEAMS_TO_SHOW);
 
 		return {
+			// International Soccer Zen GM mod (storytelling): what to watch in each
+			// Country of a World
+			worldStorylines: await competition.getWorldStorylines(
+				season,
+				new Map(teamSeasons.map((t) => [t.tid, t.ovr])),
+			),
 			playersDeclining,
 			playersImproving,
 			playersNewTeam,

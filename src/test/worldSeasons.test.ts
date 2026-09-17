@@ -63,6 +63,7 @@ import { g, helpers, local, lock } from "../worker/util/index.ts";
 import moodComponents from "../worker/core/player/moodComponents.ts";
 import academyView from "../worker/views/academy.ts";
 import worldChronicleView from "../worker/views/worldChronicle.ts";
+import seasonPreviewView from "../worker/views/seasonPreview.ts";
 import historyAllView from "../worker/views/historyAll.ts";
 import teamHistoryView from "../worker/views/teamHistory.ts";
 import teamRecordsView from "../worker/views/teamRecords.ts";
@@ -1030,6 +1031,19 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		}
 		// Three seasons of two small Countries tell at least one story
 		assert(numStories > 0);
+
+		// The Season Preview's storylines start with last season's champions
+		const preview = await seasonPreviewView(
+			{ season: g.get("season") },
+			["firstRun"],
+			{},
+		);
+		assert(preview && "worldStorylines" in preview && preview.worldStorylines);
+		assert.strictEqual(preview.worldStorylines.length, 2);
+		for (const country of preview.worldStorylines) {
+			assert.strictEqual(country.storylines[0]!.kind, "defendingChampion");
+			assert(country.storylines.some((row) => row.kind === "favourites"));
+		}
 
 		// Stories were checked while the last season was played, and whatever was
 		// settled early during a season happened

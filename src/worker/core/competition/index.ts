@@ -82,7 +82,7 @@ import {
 	getClubRivalsInfo,
 } from "./clubHonoursInfo.ts";
 import { getWorldRollOfHonour } from "./worldLeagueHistory.ts";
-import { getWorldChronicle } from "./worldChronicle.ts";
+import { getWorldChronicle, getWorldStorylines } from "./worldChronicle.ts";
 import {
 	fillWorldSeasonRecords,
 	recordWorldSeason,
@@ -130,6 +130,7 @@ export default {
 	getClubRivalsInfo,
 	getWorldRollOfHonour,
 	getWorldChronicle,
+	getWorldStorylines,
 	fillWorldSeasonRecords,
 	recordWorldSeason,
 	getAcademySummary,

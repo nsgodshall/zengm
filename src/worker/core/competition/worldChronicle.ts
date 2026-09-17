@@ -1,6 +1,13 @@
 import { idb } from "../../db/index.ts";
 import { g } from "../../util/index.ts";
+import { describeClubStature } from "./clubStature.ts";
 import { isSingleDivision } from "./competitionStructure.ts";
+import {
+	getSeasonStorylines,
+	type StorylineClub,
+	writeStoryline,
+} from "./seasonStorylines.ts";
+import teamLink from "./teamLink.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
 
 /**
@@ -99,4 +106,91 @@ export const getWorldChronicle = async (season: number) => {
 			...countries.filter((country) => country.countryId !== userCountryId),
 		],
 	};
+};
+
+/**
+ * International Soccer Zen GM mod (storytelling, STORY_TELLING_PLAN.md Phase
+ * 5): each Country's storylines for a season's Season Preview (see
+ * competition/seasonStorylines.ts), the user's Country first, from clubs'
+ * Divisions that season, their saved histories and stature, and `ovrByTid`,
+ * their squads' strength going in. Undefined outside a World.
+ */
+export const getWorldStorylines = async (
+	season: number,
+	ovrByTid: Map<number, number>,
+) => {
+	const structure = getCompetitionStructure();
+	if (isSingleDivision(structure)) {
+		return;
+	}
+
+	const divisionsById = new Map(
+		structure.competitionDivisions.map((division) => [
+			division.divisionId,
+			division,
+		]),
+	);
+	const teamSeasons = await idb.getCopies.teamSeasons(
+		{ season },
+		"noCopyCache",
+	);
+	const userTid = g.get("userTid", season);
+	let userCountryId: number | undefined;
+	const clubs: StorylineClub[] = [];
+	for (const t of await idb.cache.teams.getAll()) {
+		const teamSeason = teamSeasons.find((row) => row.tid === t.tid);
+		const division =
+			teamSeason?.divisionId === undefined
+				? undefined
+				: divisionsById.get(teamSeason.divisionId);
+		if (t.disabled || !teamSeason || !division) {
+			continue;
+		}
+		if (t.tid === userTid) {
+			userCountryId = division.countryId;
+		}
+		const history = (t.worldHistory ?? []).filter(
+			(entry) => entry.season < season,
+		);
+		clubs.push({
+			tid: t.tid,
+			countryId: division.countryId,
+			town: t.location?.town,
+			divisionId: division.divisionId,
+			tier: division.tier,
+			stature:
+				history.at(-1)?.stature ??
+				describeClubStature({
+					seed: t.worldStatureSeed,
+					history,
+					tier: division.tier,
+					pop: teamSeason.pop,
+					season,
+				}).stature,
+			ovr: ovrByTid.get(t.tid) ?? 0,
+			history,
+		});
+	}
+
+	const countries = structure.countries.map((country) => ({
+		countryId: country.countryId,
+		name: country.name,
+		storylines: getSeasonStorylines({
+			season,
+			countryId: country.countryId,
+			divisions: structure.competitionDivisions,
+			clubs,
+		}).map((storyline) => ({
+			kind: storyline.kind,
+			text: writeStoryline(storyline, (tid) => `the ${teamLink(tid)}`).replace(
+				/^the /,
+				"The ",
+			),
+		})),
+	}));
+
+	return [
+		...countries.filter((country) => country.countryId === userCountryId),
+		...countries.filter((country) => country.countryId !== userCountryId),
+	];
 };

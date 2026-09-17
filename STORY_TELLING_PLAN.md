@@ -465,7 +465,8 @@ What landed (`competition/worldStories.ts`, pure, and
 
 ### Phase 5: tell (presentation)
 
-**Status: the World Chronicle page implemented; the rest still to do.**
+**Status: the World Chronicle page and the World Season Preview implemented;
+the rest still to do.**
 
 What landed: the **Chronicle** (League → Chronicle, World only;
 `competition/worldChronicle.ts`, `ui/views/WorldChronicle.tsx`): pick a
@@ -473,6 +474,15 @@ finished season, and each Country, the user's first, leads with its biggest
 story, lists the rest, and shows each Division's champion with points and who
 went up (with (P) for playoff winners) and down, from the saved histories. It
 links to that season's Season Summary and League Tables.
+
+The **Season Preview** in a World (`competition/seasonStorylines.ts`, pure)
+opens with what to watch in each Country, the user's first: the champions
+defending their title (and chasing the Country's record run), the strongest
+squads in the top tier, the clubs promoted into it and what their promotion
+means (straight back, back after years away, or there for the first time in a
+long while), big clubs stuck below the top tier (stature 60 or more), and the
+derbies in each Division, marking one that's back after a move. Its thresholds
+are in `SEASON_STORYLINE_SETTINGS`.
 
 - **World Chronicle** (a World-only page): season by season, and Country by
   Country, the headline story, each Division's champion and who went up and

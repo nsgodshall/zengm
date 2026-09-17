@@ -8,6 +8,8 @@ import { RatingWithChange } from "../components/RatingWithChange.tsx";
 import { RecordAndPlayoffs } from "../components/RecordAndPlayoffs.tsx";
 import { PlayerNameLabels } from "../components/PlayerNameLabels.tsx";
 import { useLocal } from "../util/local.ts";
+import { CountryFlag } from "../components/CountryFlag.tsx";
+import { SafeHtml } from "../components/SafeHtml.tsx";
 
 const PlayerList = ({
 	challengeNoRatings,
@@ -208,6 +210,7 @@ const SeasonPreview = ({
 	teamsDeclining,
 	teamsImproving,
 	teamsTop,
+	worldStorylines,
 }: View<"seasonPreview">) => {
 	useTitleBar({
 		title: "Season Preview",
@@ -224,6 +227,29 @@ const SeasonPreview = ({
 	return (
 		<>
 			<MoreLinks type="league" page="season_preview" />
+			{/* International Soccer Zen GM mod (storytelling) */}
+			{worldStorylines ? (
+				<div className="mb-4" style={{ maxWidth: 1400 }}>
+					<h2>Storylines</h2>
+					<div className="row">
+						{worldStorylines.map((country) => (
+							<div key={country.countryId} className="col-md-6 col-xl-4 mb-3">
+								<h3>
+									<CountryFlag className="me-2" country={country.name} />
+									{country.name}
+								</h3>
+								<ul className="mb-0">
+									{country.storylines.map((storyline, i) => (
+										<li key={i}>
+											<SafeHtml dirty={storyline.text} />
+										</li>
+									))}
+								</ul>
+							</div>
+						))}
+					</div>
+				</div>
+			) : null}
 			<div style={{ maxWidth: 1400 }}>
 				<div className="row">
 					<div className="col-sm-6 col-md-4 col-lg-3">
