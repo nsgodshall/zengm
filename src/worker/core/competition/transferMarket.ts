@@ -193,6 +193,7 @@ export const getWageBudget = ({
 	numTeams,
 	startingPayroll,
 	seasonsCompleted,
+	maxBudget,
 }: {
 	salaryCap: number;
 	revenue: number | undefined;
@@ -203,6 +204,8 @@ export const getWageBudget = ({
 	numTeams: number;
 	startingPayroll?: number;
 	seasonsCompleted?: number;
+	// The ceiling, for a club whose revenue would take it higher
+	maxBudget?: number;
 }) => {
 	if (revenue !== undefined) {
 		const cashAdjustment =
@@ -216,7 +219,7 @@ export const getWageBudget = ({
 				: 0;
 		return Math.round(
 			Math.min(
-				MAX_WAGE_BUDGET_CAP_MULTIPLE * salaryCap,
+				maxBudget ?? MAX_CONTRACT_CAP_MULTIPLE * salaryCap,
 				Math.max(
 					minWageBudget,
 					revenue - runningCosts + cashAdjustment,
@@ -258,7 +261,7 @@ const getMarketSizeWageBudget = ({
 
 // Wage budgets are at most this multiple of the salary cap (see getWageBudget),
 // so it's also the most any club can pay in wages
-export const MAX_WAGE_BUDGET_CAP_MULTIPLE = 2;
+export const MAX_CONTRACT_CAP_MULTIPLE = 2;
 
 /**
  * Whether a club can sign a player to a contract of `amount` without breaking

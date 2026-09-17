@@ -4,11 +4,9 @@ import { g, helpers } from "../../util/index.ts";
 import { team } from "../index.ts";
 import { isSingleDivision } from "./competitionStructure.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
+import { getWageBudget, MAX_CONTRACT_CAP_MULTIPLE } from "./transferMarket.ts";
 import {
-	getWageBudget,
-	MAX_WAGE_BUDGET_CAP_MULTIPLE,
-} from "./transferMarket.ts";
-import {
+	WORLD_REVENUE_SETTINGS,
 	getCapitalInvestment,
 	getProjectedRevenue,
 	getReinvestedBudgetLevel,
@@ -97,6 +95,10 @@ export const getWageBudgets = async () => {
 				numTeams: teams.length,
 				startingPayroll: t.startingPayroll,
 				seasonsCompleted,
+				// Storytelling (Phase 6a): high enough that a club's revenue, not the
+				// ceiling, decides what it can pay
+				maxBudget:
+					WORLD_REVENUE_SETTINGS.maxWageBudgetCapMultiple * g.get("salaryCap"),
 			}),
 		);
 	}
@@ -163,5 +165,5 @@ export const getMaxContract = () => {
 	if (isSingleDivision(getCompetitionStructure())) {
 		return g.get("maxContract");
 	}
-	return MAX_WAGE_BUDGET_CAP_MULTIPLE * g.get("salaryCap");
+	return MAX_CONTRACT_CAP_MULTIPLE * g.get("salaryCap");
 };

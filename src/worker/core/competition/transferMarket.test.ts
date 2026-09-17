@@ -174,6 +174,15 @@ describe("getWageBudget", () => {
 			getWageBudget({ ...afterASeason, revenue: 100000, cash: -300000 }),
 		).toBe(20000);
 		expect(getWageBudget({ ...afterASeason, revenue: 1000000 })).toBe(200000);
+
+		// A club whose revenue would take it past the ceiling stops there
+		expect(
+			getWageBudget({
+				...afterASeason,
+				revenue: 1000000,
+				maxBudget: 400000,
+			}),
+		).toBe(400000);
 	});
 
 	test("a starting payroll gets room before the first season and a declining floor after it", () => {
