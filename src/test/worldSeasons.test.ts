@@ -65,6 +65,7 @@ import academyView from "../worker/views/academy.ts";
 import worldChronicleView from "../worker/views/worldChronicle.ts";
 import seasonPreviewView from "../worker/views/seasonPreview.ts";
 import worldRecordsView from "../worker/views/worldRecords.ts";
+import leagueDashboardView from "../worker/views/leagueDashboard.ts";
 import historyAllView from "../worker/views/historyAll.ts";
 import teamHistoryView from "../worker/views/teamHistory.ts";
 import teamRecordsView from "../worker/views/teamRecords.ts";
@@ -1032,6 +1033,25 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		}
 		// Three seasons of two small Countries tell at least one story
 		assert(numStories > 0);
+
+		// The dashboard's Around the World shows other Countries' stories
+		const dashboard = await leagueDashboardView({}, ["firstRun"]);
+		assert(dashboard && "worldStories" in dashboard && dashboard.worldStories);
+		const userCountryId = structure.competitionDivisions.find(
+			(division) =>
+				division.divisionId ===
+				teams.find((t) => t.tid === g.get("userTid"))!.divisionId,
+		)!.countryId;
+		for (const story of dashboard.worldStories) {
+			const event = (
+				await idb.getCopies.events(
+					{ season: completedSeasons.at(-1)! },
+					"noCopyCache",
+				)
+			).find((event) => event.eid === story.eid);
+			assert(event && "story" in event && event.story);
+			assert.notStrictEqual(event.story.countryId, userCountryId);
+		}
 
 		// The Records page's all-time tables match the seasons played
 		const records = await worldRecordsView({}, ["firstRun"]);

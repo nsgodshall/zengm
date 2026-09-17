@@ -644,16 +644,53 @@ const updateNewsFeed = async (inputs: unknown, updateEvents: UpdateEvents) => {
 		const events = await processEvents(eventsAll, {
 			limit: NUM_EVENTS,
 		});
+		const eventsAll2 = await idb.getCopies.events({
+			season: g.get("season") - 1,
+		});
+		eventsAll2.reverse();
 		if (events.length < NUM_EVENTS) {
-			const eventsAll2 = await idb.getCopies.events({
-				season: g.get("season") - 1,
-			});
-			eventsAll2.reverse();
 			const events2 = await processEvents(eventsAll2, {
 				limit: NUM_EVENTS - events.length,
 			});
 			events.push(...events2);
 		}
+
+		// International Soccer Zen GM mod (storytelling): the biggest recent
+		// stories from the World's other Countries, which are only a digest in the
+		// news. This season's first, then last season's. The user's own Country's
+		// stories are in the headlines below.
+		const worldStructure = competition.getCompetitionStructure();
+		const userDivisionId = (await idb.cache.teams.get(g.get("userTid")))
+			?.divisionId;
+		const userCountryId = worldStructure.competitionDivisions.find(
+			(division) => division.divisionId === userDivisionId,
+		)?.countryId;
+		const worldStories = competition.isSingleDivision(worldStructure)
+			? undefined
+			: [...eventsAll, ...eventsAll2]
+					.flatMap((event) =>
+						event.type === "story" &&
+						"story" in event &&
+						event.story &&
+						event.story.countryId !== userCountryId
+							? [
+									{
+										eid: event.eid,
+										season: event.season,
+										text: event.text ?? "",
+										significance: event.story.significance,
+									},
+								]
+							: [],
+					)
+					.sort(
+						(a, b) =>
+							b.season - a.season ||
+							b.significance - a.significance ||
+							b.eid - a.eid,
+					)
+					.slice(0, 5)
+					.map(({ eid, text }) => ({ eid, text }));
 
 		const teams = (
 			await idb.getCopies.teamsPlus(
@@ -675,6 +712,7 @@ const updateNewsFeed = async (inputs: unknown, updateEvents: UpdateEvents) => {
 
 		return {
 			events,
+			worldStories,
 			teams,
 		};
 	}

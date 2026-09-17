@@ -7,6 +7,7 @@ import StartingLineup from "./StartingLineup.tsx";
 import TeamStats from "./TeamStats.tsx";
 import type { View } from "../../../common/types.ts";
 import Headlines from "./Headlines.tsx";
+import { WorldStories } from "./WorldStories.tsx";
 import { useLocal } from "../../util/local.ts";
 import { BoardObjective } from "../../components/BoardObjective.tsx";
 
@@ -15,6 +16,7 @@ const LeagueDashboard = ({
 	cash,
 	confOrAllTeams,
 	events,
+	worldStories,
 	leagueLeaders,
 	lost,
 	maxPlayoffSeed,
@@ -237,6 +239,8 @@ const LeagueDashboard = ({
 					/>
 				</div>
 				<div className="col-xl-5 col-lg-4 mb-3">
+					{/* International Soccer Zen GM mod (storytelling) */}
+					{worldStories ? <WorldStories stories={worldStories} /> : null}
 					<Headlines
 						events={events}
 						season={season}
