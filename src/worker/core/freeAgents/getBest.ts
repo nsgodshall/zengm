@@ -28,6 +28,8 @@ const getBest = <T extends PlayerWithoutKey>(
 	// A World lower-tier club also limits one new contract by the role the
 	// player would have in its squad. Undefined keeps the normal ZenGM rules.
 	getContractLimit?: (p: T) => number,
+	// A World club can also reject a deal that blocks its future squad plan.
+	canSignContract?: (p: T) => boolean,
 ): T | void => {
 	const maxRosterSize = g.get("maxRosterSize");
 	const minContract = g.get("minContract");
@@ -119,6 +121,7 @@ const getBest = <T extends PlayerWithoutKey>(
 	for (const p of playersSorted) {
 		const contractLimit = getContractLimit?.(p);
 		const salaryCapCheck =
+			(canSignContract === undefined || canSignContract(p)) &&
 			(contractLimit === undefined || p.contract.amount <= contractLimit) &&
 			(payroll === undefined ||
 				skipSalaryCapCheck ||

@@ -17,6 +17,10 @@ import {
 	getWageBudgetAfterMinimumRosterReserve,
 } from "../competition/clubSquadPlan.ts";
 import { buildWorldClubStrategyForRoster } from "../competition/buildClubSummerPlanForRoster.ts";
+import {
+	canAddContractToWorldClubStrategy,
+	getWorldPlayingTimePromise,
+} from "../competition/clubStrategy.ts";
 
 /**
  * AI teams sign free agents.
@@ -101,6 +105,9 @@ const autoSign = async () => {
 			t.divisionId !== undefined &&
 			(tierByDivisionId.get(t.divisionId) ?? 1) > 1;
 		let playersForTeam = playersSorted;
+		let strategyPlan:
+			| ReturnType<typeof buildWorldClubStrategyForRoster>
+			| undefined;
 		if (wageBudget !== undefined) {
 			const teamSeason = await idb.cache.teamSeasons.indexGet(
 				"teamSeasonsBySeasonTid",
@@ -115,7 +122,7 @@ const autoSign = async () => {
 					teamSeason.divisionId === undefined
 						? undefined
 						: tierByDivisionId.get(teamSeason.divisionId);
-				const strategyPlan = buildWorldClubStrategyForRoster({
+				strategyPlan = buildWorldClubStrategyForRoster({
 					players: playersOnRoster,
 					wageBudget,
 					tier,
@@ -141,8 +148,8 @@ const autoSign = async () => {
 				);
 			}
 		}
-		const squadPlan =
-			isLowerTier && wageBudget !== undefined
+		const movementSquadPlan =
+			wageBudget !== undefined
 				? buildClubSquadPlan({
 						rosterValues: playersOnRoster.map(
 							(rosterPlayer) => rosterPlayer.valueNoPot,
@@ -154,6 +161,7 @@ const autoSign = async () => {
 						rotationSize: 2 * g.get("numPlayersOnCourt"),
 					})
 				: undefined;
+		const squadPlan = isLowerTier ? movementSquadPlan : undefined;
 		const p = getBest(
 			playersOnRoster,
 			playersForTeam,
@@ -173,12 +181,36 @@ const autoSign = async () => {
 							playerValue: candidate.valueNoPot,
 						}).contractLimit
 				: undefined,
+			strategyPlan && wageBudget !== undefined
+				? (candidate) =>
+						canAddContractToWorldClubStrategy({
+							plan: strategyPlan,
+							amount: candidate.contract.amount,
+							exp: candidate.contract.exp,
+							wageBudget,
+							minContract: g.get("minContract"),
+							minimumRosterSize: g.get("minRosterSize"),
+						})
+				: undefined,
 		);
 		if (p) {
 			// Remove from list of free agents
 			playersSorted = playersSorted.filter((p2) => p2 !== p);
 
 			await player.sign(p, t.tid, p.contract, g.get("phase"));
+			if (strategyPlan && movementSquadPlan) {
+				const { role } = evaluatePlayerForClubSquadPlan({
+					plan: movementSquadPlan,
+					playerValue: p.valueNoPot,
+				});
+				p.playingTimePromise = getWorldPlayingTimePromise({
+					strategy: strategyPlan.strategy,
+					role,
+					age: g.get("season") - p.born.year,
+					season: g.get("season"),
+					phase: g.get("phase"),
+				});
+			}
 			await idb.cache.players.put(p);
 			await team.rosterAutoSort(t.tid);
 		}

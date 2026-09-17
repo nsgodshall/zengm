@@ -13,11 +13,16 @@ import buildClubSummerPlanForRoster, {
 	buildWorldClubStrategyForRoster,
 } from "./buildClubSummerPlanForRoster.ts";
 import {
+	evaluatePlayerForClubSquadPlan,
 	getClubRecruitmentFocus,
 	getClubSquadRecruitmentNeed,
 	getPlannedPlayerAction,
 	getRecruitmentCandidateScore,
 } from "./clubSquadPlan.ts";
+import {
+	canAddContractToWorldClubStrategy,
+	getWorldPlayingTimePromise,
+} from "./clubStrategy.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
 import { loansBetweenAiClubs } from "./loanMoves.ts";
 import {
@@ -280,6 +285,18 @@ const attempt = async (
 	if (!canAiAffordFee({ cash: buyerSeason.cash, fee })) {
 		return;
 	}
+	if (
+		!canAddContractToWorldClubStrategy({
+			plan: strategyPlan,
+			amount: p.contract.amount,
+			exp: p.contract.exp,
+			wageBudget,
+			minContract: g.get("minContract"),
+			minimumRosterSize: g.get("minRosterSize"),
+		})
+	) {
+		return;
+	}
 
 	const payroll = await team.getPayroll(buyerTid);
 	if (payroll + p.contract.amount > wageBudget) {
@@ -309,6 +326,17 @@ const attempt = async (
 	if (sellerValueChange < SELLER_MAX_VALUE_LOSS) {
 		return;
 	}
+	const { role } = evaluatePlayerForClubSquadPlan({
+		plan: buyerPlan.squadPlan,
+		playerValue: p.valueNoPot,
+	});
+	p.playingTimePromise = getWorldPlayingTimePromise({
+		strategy: strategyPlan.strategy,
+		role,
+		age: currentSeason - p.born.year,
+		season: currentSeason,
+		phase: g.get("phase"),
+	});
 
 	await processTransfer({
 		p,

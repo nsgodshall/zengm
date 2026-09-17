@@ -23,6 +23,8 @@ import {
 	canAddContractAfterMinimumRosterReserve,
 	evaluatePlayerForClubSquadPlan,
 } from "../competition/clubSquadPlan.ts";
+import { buildWorldClubStrategyForRoster } from "../competition/buildClubSummerPlanForRoster.ts";
+import { canAddContractToWorldClubStrategy } from "../competition/clubStrategy.ts";
 
 export const FREE_AGENCY_DAYS = 30;
 
@@ -138,14 +140,47 @@ const newPhaseResignPlayers = async (
 			division.tier,
 		]),
 	);
+	const teams = await idb.cache.teams.getAll();
 	const tierByTid = new Map(
-		(await idb.cache.teams.getAll()).map((t) => [
+		teams.map((t) => [
 			t.tid,
 			t.divisionId === undefined
 				? 1
 				: (tierByDivisionId.get(t.divisionId) ?? 1),
 		]),
 	);
+	const strategyPlansByTid = new Map<
+		number,
+		ReturnType<typeof buildWorldClubStrategyForRoster>
+	>();
+	if (wageBudgets) {
+		for (const t of teams) {
+			const wageBudget = wageBudgets.get(t.tid);
+			const teamSeason = await idb.cache.teamSeasons.indexGet(
+				"teamSeasonsBySeasonTid",
+				[g.get("season"), t.tid],
+			);
+			if (wageBudget === undefined || !teamSeason) {
+				continue;
+			}
+			const previousTier =
+				teamSeason.divisionId === undefined
+					? undefined
+					: tierByDivisionId.get(teamSeason.divisionId);
+			strategyPlansByTid.set(
+				t.tid,
+				buildWorldClubStrategyForRoster({
+					players: players.filter((p) => p.tid === t.tid),
+					wageBudget,
+					tier: tierByTid.get(t.tid) ?? 1,
+					previousTier,
+					teamStrategy: t.strategy,
+					boardObjectiveKind: teamSeason.boardObjective?.kind,
+					cash: teamSeason.cash,
+				}),
+			);
+		}
+	}
 	const summerPlansByTid = new Map(
 		[...tierByTid]
 			.filter(([, tier]) => tier > 1)
@@ -330,6 +365,7 @@ const newPhaseResignPlayers = async (
 				reSignPlayer = false;
 			}
 			const summerPlan = summerPlansByTid.get(p.tid);
+			const strategyPlan = strategyPlansByTid.get(p.tid);
 			const nextSeasonRosterSize = nextSeasonRosterSizesByTid.get(p.tid);
 			if (
 				payroll !== undefined &&
@@ -342,6 +378,20 @@ const newPhaseResignPlayers = async (
 					minContract: summerPlan.squadPlan.minContract,
 					minimumRosterSize: summerPlan.squadPlan.minimumRosterSize,
 					rosterSize: nextSeasonRosterSize,
+				})
+			) {
+				reSignPlayer = false;
+			}
+			if (
+				strategyPlan &&
+				wageBudget !== undefined &&
+				!canAddContractToWorldClubStrategy({
+					plan: strategyPlan,
+					amount: contract.amount,
+					exp: contract.exp,
+					wageBudget,
+					minContract: g.get("minContract"),
+					minimumRosterSize: g.get("minRosterSize"),
 				})
 			) {
 				reSignPlayer = false;

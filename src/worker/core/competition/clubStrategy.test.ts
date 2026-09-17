@@ -1,5 +1,11 @@
 import { describe, expect, test } from "vitest";
-import { buildWorldClubStrategy } from "./clubStrategy.ts";
+import {
+	buildWorldClubStrategy,
+	canAddContractToWorldClubStrategy,
+	getWorldPlayingTimePromise,
+	getWorldPlayingTimePromiseModifier,
+} from "./clubStrategy.ts";
+import { PHASE } from "../../../common/constants.ts";
 
 const player = (age: number, amount: number, exp: number) => ({
 	age,
@@ -77,5 +83,76 @@ describe("buildWorldClubStrategy", () => {
 			{ season: 2031, rosterSize: 2, payroll: 70_000, payrollRoom: 30_000 },
 			{ season: 2032, rosterSize: 1, payroll: 40_000, payrollRoom: 60_000 },
 		]);
+	});
+
+	test("future deals reserve a complete squad and bound competitive overage", () => {
+		const promotionPush = build({ boardObjectiveKind: "promotion" });
+		expect(
+			canAddContractToWorldClubStrategy({
+				plan: promotionPush,
+				amount: 60_000,
+				exp: 2032,
+				wageBudget: 100_000,
+				minContract: 1_000,
+				minimumRosterSize: 14,
+			}),
+		).toBe(true);
+		expect(
+			canAddContractToWorldClubStrategy({
+				plan: promotionPush,
+				amount: 65_000,
+				exp: 2032,
+				wageBudget: 100_000,
+				minContract: 1_000,
+				minimumRosterSize: 14,
+			}),
+		).toBe(false);
+
+		const pressured = build({
+			boardObjectiveKind: "promotion",
+			cash: -150_000,
+		});
+		expect(
+			canAddContractToWorldClubStrategy({
+				plan: pressured,
+				amount: 60_000,
+				exp: 2032,
+				wageBudget: 100_000,
+				minContract: 1_000,
+				minimumRosterSize: 14,
+			}),
+		).toBe(false);
+		expect(
+			canAddContractToWorldClubStrategy({
+				plan: pressured,
+				amount: 2_000,
+				exp: 2032,
+				wageBudget: 10_000,
+				minContract: 1_000,
+				minimumRosterSize: 14,
+			}),
+		).toBe(true);
+	});
+
+	test("competitive signings receive a one-season role promise", () => {
+		const promise = getWorldPlayingTimePromise({
+			strategy: "survival",
+			role: "starter",
+			age: 28,
+			season: 2030,
+			phase: PHASE.FREE_AGENCY,
+		});
+		expect(promise).toEqual({ role: "starter", season: 2031 });
+		expect(getWorldPlayingTimePromiseModifier(promise, 2031)).toBe(1.05);
+		expect(getWorldPlayingTimePromiseModifier(promise, 2032)).toBe(1);
+		expect(
+			getWorldPlayingTimePromise({
+				strategy: "balanced",
+				role: "starter",
+				age: 25,
+				season: 2030,
+				phase: PHASE.REGULAR_SEASON,
+			}),
+		).toBeUndefined();
 	});
 });

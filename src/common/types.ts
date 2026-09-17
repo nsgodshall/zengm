@@ -1354,6 +1354,12 @@ export type PlayerWithoutKey<PlayerRatings = MinimalPlayerRatings> = {
 	// relegated at the end of, when he walked away as a free agent (see
 	// competition/relegationClauses.ts)
 	relegationClause?: number;
+	// A World club's promised first-season role after recruiting this player.
+	// AI lineups honor it with a small playing-time preference until `season`.
+	playingTimePromise?: {
+		role: "key" | "starter" | "rotation";
+		season: number;
+	};
 	awards: PlayerAward[];
 	born: {
 		year: number;

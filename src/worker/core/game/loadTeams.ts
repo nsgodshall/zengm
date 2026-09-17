@@ -10,6 +10,7 @@ import {
 import playThroughInjuriesFactor from "../../../common/playThroughInjuriesFactor.ts";
 import { bySport, isSport } from "../../../common/sportFunctions.ts";
 import { last } from "../../../common/utils.ts";
+import { getWorldPlayingTimePromiseModifier } from "../competition/clubStrategy.ts";
 
 const MAX_NUM_PLAYERS_PACE = 7;
 
@@ -232,7 +233,10 @@ export const processTeam = async (
 
 		// Reset ptModifier for AI teams. This should not be necessary since it should always be 1, but let's be safe.
 		if (!g.get("userTids").includes(t.id) || g.get("spectator")) {
-			p2.ptModifier = 1;
+			p2.ptModifier = getWorldPlayingTimePromiseModifier(
+				p.playingTimePromise,
+				g.get("season"),
+			);
 		}
 		const seasonStats: Record<string, number> = {};
 

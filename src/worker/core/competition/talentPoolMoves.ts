@@ -38,6 +38,10 @@ import {
 	getClubRecruitmentFocus,
 	getRecruitmentCandidateScore,
 } from "./clubSquadPlan.ts";
+import {
+	canAddContractToWorldClubStrategy,
+	getWorldPlayingTimePromise,
+} from "./clubStrategy.ts";
 
 // International Soccer Zen GM mod (Epic 4): moving players in and out of the
 // international talent pool (see competition/talentPool.ts). Pool players are
@@ -221,11 +225,15 @@ const signFromTalentPool = async ({
 	tid,
 	fee,
 	teamSeason,
+	contract,
+	playingTimePromise,
 }: {
 	p: Player;
 	tid: number;
 	fee: number;
 	teamSeason: TeamSeason;
+	contract?: Player["contract"];
+	playingTimePromise?: Player["playingTimePromise"];
 }) => {
 	const season = g.get("season");
 	const phase = g.get("phase");
@@ -235,7 +243,8 @@ const signFromTalentPool = async ({
 
 	p.tid = tid;
 	delete p.talentPool;
-	player.setContract(p, player.genContract(p, false), true);
+	player.setContract(p, contract ?? player.genContract(p, false), true);
+	p.playingTimePromise = playingTimePromise;
 	p.ptModifier = 1;
 	// Like a newly signed player, so he isn't sold on again straight away
 	p.gamesUntilTradable = Math.round(0.17 * g.get("numGames"));
@@ -386,16 +395,23 @@ export const aiTalentPoolSignings = async (
 			continue;
 		}
 
-		const wage = getTalentPoolWage(p);
-		const squadPlan = tier > 1 ? movementSquadPlan : undefined;
-		const roleLimit = squadPlan
-			? evaluatePlayerForClubSquadPlan({
-					plan: squadPlan,
-					playerValue: p.valueNoPot,
-				}).contractLimit
-			: Infinity;
+		const contract = player.genContract(p, false);
+		const wage = contract.amount;
+		const playerEvaluation = evaluatePlayerForClubSquadPlan({
+			plan: movementSquadPlan,
+			playerValue: p.valueNoPot,
+		});
+		const roleLimit = tier > 1 ? playerEvaluation.contractLimit : Infinity;
 		if (
 			wage > roleLimit ||
+			!canAddContractToWorldClubStrategy({
+				plan: strategyPlan,
+				amount: contract.amount,
+				exp: contract.exp,
+				wageBudget,
+				minContract: g.get("minContract"),
+				minimumRosterSize: g.get("minRosterSize"),
+			}) ||
 			!canAddContractAfterMinimumRosterReserve({
 				payroll: await team.getPayroll(tid),
 				amount: wage,
@@ -413,7 +429,20 @@ export const aiTalentPoolSignings = async (
 			continue;
 		}
 
-		await signFromTalentPool({ p, tid, fee, teamSeason });
+		await signFromTalentPool({
+			p,
+			tid,
+			fee,
+			teamSeason,
+			contract,
+			playingTimePromise: getWorldPlayingTimePromise({
+				strategy: strategyPlan.strategy,
+				role: playerEvaluation.role,
+				age: season - p.born.year,
+				season,
+				phase: g.get("phase"),
+			}),
+		});
 		numSigned += 1;
 	}
 
