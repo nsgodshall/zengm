@@ -25,6 +25,7 @@ import {
 	isSingleDivision,
 } from "./competitionStructure.ts";
 import { fillWorldSeasonRecords } from "./recordWorldSeason.ts";
+import { fillWorldTransferRecords } from "./recordTransfer.ts";
 
 /**
  * The current league's competition structure. Once a league is loaded this is
@@ -243,8 +244,11 @@ const ensureCompetitionStructure = async () => {
 	}
 
 	// International Soccer Zen GM mod (storytelling): a World made before season
-	// records gets its finished seasons recorded once
-	await fillWorldSeasonRecords();
+	// records and record fees gets them once
+	if (!isSingleDivision(structure)) {
+		await fillWorldSeasonRecords();
+		await fillWorldTransferRecords();
+	}
 };
 
 export default ensureCompetitionStructure;

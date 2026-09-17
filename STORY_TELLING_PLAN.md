@@ -328,20 +328,40 @@ to Phase 4 with the in-season stories that need it. No gameplay change.
 
 ### Phase 3: context in the news
 
-**Status: not started.** The cheapest big improvement, and the first use of
-the saved records.
+**Status: titles, promotion, relegation, and transfers implemented.** The
+cheapest big improvement, and the first use of the saved records.
 
-- Give existing news items their history, from pure `describe…` functions over
-  the records: champions ("their first title", "back-to-back", "a record fifth
-  in a row", "ends a 23-season wait"), promotion ("for the first time in club
-  history", "back after 12 seasons", "a second promotion in a row"), relegation
-  ("the first relegation in club history", "ending 31 seasons in the top
-  flight", "a year after winning the title"), and transfers ("a club record
-  fee", "a new World record", "from their rivals").
-- Raise the event score for rarer versions, so they show on the dashboard and
-  in the big news filter.
-- **Tested:** unit tests for each description; the World test checks a
-  promotion's text against the club's record.
+- **Titles, promotion, and relegation** (`competition/storyContext.ts`, pure):
+  a Division champion's news says when it's a title in a row ("They're
+  champions for the second season in a row", "It's a record fifth title in a
+  row", or equalling the Country's record run on that tier), when the club was
+  only promoted last season, when titles come close together ("It's their third
+  title in 5 seasons"), or when it ends a long wait ("their first title since
+  2031", "their first title in 12 seasons"). Promotion news says when a club
+  bounces straight back, is back after several seasons away, reaches a Division
+  for the first time in a long while, or goes up again in a row. Relegation news
+  says when the club were champions within 3 seasons, go straight back down,
+  go down again in a row, end a long stay on the tier, or suffer a first
+  relegation in a long while. Only the World's own history counts (decided:
+  real trophies don't), so "first" wording needs at least 10 seasons of history
+  (`STORY_CONTEXT_SETTINGS`).
+- **Transfers** (`competition/transferRecords.ts`, pure): a fee that breaks the
+  World's, the buying club's Country's, or the buying club's own record says so
+  (only the biggest is mentioned; a club's first fee isn't called a record), and
+  so does a player returning to the club he started at (his academy club, or
+  his first club). The World's and each Country's record fees are a game
+  attribute (`worldTransferRecords`) and each club's record signing is on the
+  club (`worldRecordSigning`); an older World finds them from its players'
+  transfers once when it loads (`worldTransferRecordsFilled`).
+- **Scores:** rarer stories add 5–15 to the news item's score, so they show on
+  the dashboard and in the big news filter.
+- **Tested:** unit tests for every description and record rule. The World
+  season test checks that each champion's, promoted club's, and relegated
+  club's news carries the sentences its history calls for (and that some
+  appear within 3 seasons), that record fees match the biggest fees paid, and
+  that an older World finds the same records when it loads.
+- **Still to do:** fees between rivals ("from their rivals") wait for Phase 4's
+  rivalries.
 
 ### Phase 4: recognize (the story engine)
 

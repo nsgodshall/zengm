@@ -26,6 +26,16 @@ import {
 } from "./worldRevenue.ts";
 import { releaseRelegationClausePlayers } from "./relegationClauses.ts";
 import { recordWorldSeason } from "./recordWorldSeason.ts";
+import {
+	describePromotion,
+	describeRelegation,
+	describeTitle,
+	getLongestTitleRun,
+} from "./storyContext.ts";
+
+// Storytelling: context sentences go after a news item's first sentence
+const withContext = (sentences: string[]) =>
+	sentences.map((sentence) => ` ${sentence}`).join("");
 
 /**
  * A top-tier champion is its Country's champion, marked the same way as a
@@ -38,8 +48,33 @@ const crownChampions = async (
 	champions: EndOfSeasonPlan["champions"],
 	conditions: Conditions,
 ) => {
+	// Storytelling: every club's history before this season, for what each title
+	// means (see competition/storyContext.ts)
+	const teams = await idb.cache.teams.getAll();
+	const countryIdByDivisionId = new Map(
+		structure.competitionDivisions.map((division) => [
+			division.divisionId,
+			division.countryId,
+		]),
+	);
+
 	for (const { division, row } of champions) {
 		const isTopTier = division.tier === 1;
+		const context = describeTitle({
+			history: teams.find((t) => t.tid === row.tid)?.worldHistory ?? [],
+			season: g.get("season"),
+			tier: division.tier,
+			countryRecordRun: getLongestTitleRun(
+				teams
+					.filter(
+						(t) =>
+							t.divisionId !== undefined &&
+							countryIdByDivisionId.get(t.divisionId) === division.countryId,
+					)
+					.map((t) => t.worldHistory ?? []),
+				division.tier,
+			),
+		});
 
 		// Epic 8: every Division champion wins prize money (see
 		// competition/worldRevenue.ts)
@@ -69,14 +104,14 @@ const crownChampions = async (
 				type: "playoffs",
 				text: `The ${teamLink(row.tid)} finished top of ${division.name} with ${
 					row.points
-				} points${isTopTier ? ` and are ${country?.name} champions!` : "."} They win ${helpers.formatCurrency(
+				} points${isTopTier ? ` and are ${country?.name} champions!` : "."}${withContext(context.sentences)} They win ${helpers.formatCurrency(
 					prize / 1000,
 					"M",
 				)} in prize money.`,
 				showNotification: row.tid === g.get("userTid"),
 				hideInLiveGame: true,
 				tids: [row.tid],
-				score: isTopTier ? 20 : 10,
+				score: (isTopTier ? 20 : 10) + context.scoreBonus,
 			},
 			conditions,
 		);
@@ -165,6 +200,23 @@ const applyMoves = async (
 		} else {
 			text = `The ${teamLink(move.tid)} were promoted from ${from.name} to ${to.name}!`;
 		}
+
+		// Storytelling: what the move means in the club's history (it's saved
+		// after the moves, so the history is still last season's)
+		const context = promoted
+			? describePromotion({
+					history: t.worldHistory ?? [],
+					season: g.get("season"),
+					toTier: to.tier,
+					toName: to.name,
+				})
+			: describeRelegation({
+					history: t.worldHistory ?? [],
+					season: g.get("season"),
+					fromTier: from.tier,
+					fromName: from.name,
+				});
+		text += withContext(context.sentences);
 		if (prize > 0) {
 			text += ` They get ${helpers.formatCurrency(prize / 1000, "M")} in prize money.`;
 		}
@@ -189,7 +241,7 @@ const applyMoves = async (
 				showNotification: move.tid === g.get("userTid"),
 				hideInLiveGame: true,
 				tids: [move.tid],
-				score: 20,
+				score: 20 + context.scoreBonus,
 			},
 			conditions,
 		);

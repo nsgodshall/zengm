@@ -24,6 +24,12 @@ import {
 } from "../worker/core/competition/loans.ts";
 import { getTvShare } from "../worker/core/competition/worldRevenue.ts";
 import {
+	describePromotion,
+	describeRelegation,
+	describeTitle,
+	getLongestTitleRun,
+} from "../worker/core/competition/storyContext.ts";
+import {
 	getWorldAwards,
 	getWorldAwardsBeforeSoccerStyle,
 	YOUNG_PLAYER_MAX_AGE,
@@ -390,6 +396,94 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		}
 	});
 
+	test("title, promotion, and relegation news says what it means in each club's history", async () => {
+		const events: EventBBGM[] = await idb.league.getAll("events");
+		const teams = await idb.cache.teams.getAll();
+		const divisionsById = new Map(
+			structure.competitionDivisions.map((division) => [
+				division.divisionId,
+				division,
+			]),
+		);
+
+		let numWithContext = 0;
+		for (const season of completedSeasons) {
+			for (const t of teams) {
+				const entry = t.worldHistory!.find((entry) => entry.season === season)!;
+				const division = divisionsById.get(entry.divisionId)!;
+				const clubEvents = events.filter(
+					(event) => event.season === season && event.tids?.[0] === t.tid,
+				);
+
+				const expected = [];
+				if (entry.champion) {
+					const countryHistories = teams
+						.filter(
+							(other) =>
+								divisionsById.get(other.divisionId!)!.countryId ===
+								division.countryId,
+						)
+						.map((other) =>
+							other.worldHistory!.filter((e) => e.season < season),
+						);
+					expected.push({
+						type: "playoffs",
+						text: "finished top of",
+						context: describeTitle({
+							history: t.worldHistory!,
+							season,
+							tier: entry.tier,
+							countryRecordRun: getLongestTitleRun(
+								countryHistories,
+								entry.tier,
+							),
+						}),
+					});
+				}
+				if (entry.moved) {
+					const other = structure.competitionDivisions.find(
+						(d) =>
+							d.countryId === division.countryId &&
+							d.tier === division.tier + (entry.moved === "promoted" ? -1 : 1),
+					)!;
+					expected.push({
+						type: entry.moved === "promoted" ? "promotion" : "relegation",
+						text: "",
+						context:
+							entry.moved === "promoted"
+								? describePromotion({
+										history: t.worldHistory!,
+										season,
+										toTier: other.tier,
+										toName: other.name,
+									})
+								: describeRelegation({
+										history: t.worldHistory!,
+										season,
+										fromTier: division.tier,
+										fromName: division.name,
+									}),
+					});
+				}
+
+				for (const { type, text, context } of expected) {
+					const event = clubEvents.find(
+						(event) => event.type === type && event.text!.includes(text),
+					);
+					assert(event, `${season} ${t.tid} ${type}`);
+					for (const sentence of context.sentences) {
+						assert(event.text!.includes(sentence), event.text);
+					}
+					numWithContext += context.sentences.length;
+				}
+			}
+		}
+
+		// Three seasons are enough for clubs to repeat as champions or go straight
+		// back up or down
+		assert(numWithContext > 0);
+	});
+
 	test("AI clubs buy players for fees, only while a transfer window can be open", async () => {
 		const players: Player[] = await idb.league.getAll("players");
 		const transfers = players.flatMap((p) =>
@@ -441,6 +535,61 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			events.filter((event) => event.type === "transfer").length,
 			transfers.length + talentPoolSignings.length,
 		);
+	});
+
+	test("record fees are kept for the World, each Country, and each club, and an older World finds them when it loads", async () => {
+		const players: Player[] = await idb.league.getAll("players");
+		const teams = await idb.cache.teams.getAll();
+		const countryIdByTid = new Map(
+			teams.map((t) => [
+				t.tid,
+				structure.competitionDivisions.find(
+					(division) => division.divisionId === t.divisionId,
+				)!.countryId,
+			]),
+		);
+		const fees = players.flatMap((p) =>
+			(p.transactions ?? []).flatMap((transaction) =>
+				transaction.type === "transfer" && transaction.fee > 0
+					? [{ fee: transaction.fee, buyerTid: transaction.tid }]
+					: [],
+			),
+		);
+		assert(fees.length > 0);
+		const maxFee = (rows: typeof fees) =>
+			rows.length === 0 ? undefined : Math.max(...rows.map((row) => row.fee));
+
+		const check = async () => {
+			const records = g.get("worldTransferRecords")!;
+			assert.strictEqual(records.world?.fee, maxFee(fees));
+			for (const country of structure.countries) {
+				assert.strictEqual(
+					records.byCountryId[country.countryId]?.fee,
+					maxFee(
+						fees.filter(
+							(row) => countryIdByTid.get(row.buyerTid) === country.countryId,
+						),
+					),
+				);
+			}
+			for (const t of await idb.cache.teams.getAll()) {
+				assert.strictEqual(
+					t.worldRecordSigning?.fee,
+					maxFee(fees.filter((row) => row.buyerTid === t.tid)),
+				);
+			}
+		};
+		await check();
+
+		for (const t of await idb.cache.teams.getAll()) {
+			delete t.worldRecordSigning;
+			await idb.cache.teams.put(t);
+		}
+		g.setWithoutSavingToDB("worldTransferRecords", undefined);
+		g.setWithoutSavingToDB("worldTransferRecordsFilled", undefined);
+		await competition.ensureCompetitionStructure();
+		assert.strictEqual(g.get("worldTransferRecordsFilled"), true);
+		await check();
 	});
 
 	test("a player page's transfer info knows whose player he is and what he'd cost", async () => {

@@ -690,6 +690,14 @@ export type GameAttributesLeague = {
 	// season records has had its finished seasons recorded (see
 	// competition/recordWorldSeason.ts)
 	worldSeasonRecordsFilled?: true;
+	// International Soccer Zen GM mod (storytelling): the World's and each
+	// Country's record transfer fees, and whether a World made before they were
+	// kept has had them found from its transfers
+	worldTransferRecords?: {
+		world?: WorldTransferRecord;
+		byCountryId: Record<number, WorldTransferRecord>;
+	};
+	worldTransferRecordsFilled?: true;
 	// International Soccer Zen GM mod (Epic 4): the transfer window whose talent
 	// pool has arrived, so it only arrives once (see competition/talentPoolMoves.ts)
 	talentPoolKey?: string;
@@ -1849,6 +1857,18 @@ export type WorldSeasonRecord = {
 	runs?: WorldSeasonRuns;
 };
 
+// International Soccer Zen GM mod (storytelling): the biggest fee a club, a
+// Country's clubs, or anyone in a World has paid (see
+// competition/transferRecords.ts)
+export type WorldTransferRecord = {
+	fee: number;
+	pid: number;
+	name: string;
+	buyerTid: number;
+	sellerTid: number;
+	season: number;
+};
+
 // International Soccer Zen GM mod (storytelling): the short version of a
 // WorldSeasonRecord kept on the club itself, so its roll of honour survives
 // deleting old team history
@@ -1879,6 +1899,9 @@ export type Team = {
 	// International Soccer Zen GM mod (storytelling): every finished season in a
 	// World, oldest first (see competition/clubSeasonRecords.ts)
 	worldHistory?: WorldHistoryEntry[];
+	// International Soccer Zen GM mod (storytelling): the biggest fee the club has
+	// paid in a World
+	worldRecordSigning?: WorldTransferRecord;
 	tid: number;
 	cid: number;
 	did: number;
