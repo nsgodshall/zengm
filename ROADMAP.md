@@ -360,7 +360,24 @@ Two 20-season runs of the usual 112-club World (UK, Spain, USA), one on the code
 
 Stature's first effects more than doubled how often a Country's big clubs stay in the top four, and produced the first real dynasty (Athletic Club, 5 titles in 6 seasons), but titles are still spread far wider than real leagues and giants still fall too often.
 
-**What was blocking it:** every top-tier club sat at the old wage budget ceiling of twice the salary cap (average budgets 294–299 of a 300 ceiling) while cash piled up unspent (average $400–830M a club). Revenue differences couldn't reach the pitch, so no club could outspend the rest. Top-tier clubs earn about $520–585M a season against $130–145M of running costs, so their budgets only start to differ above about 3 times the cap. The ceiling is now a separate setting from the maximum contract (which stays at twice the cap, since it also scales ZenGM's contract formula), and runs at 4 and 6 times the cap are measuring how much concentration that buys.
+**What was blocking it:** every top-tier club sat at the old wage budget ceiling of twice the salary cap (average budgets 294–299 of a 300 ceiling) while cash piled up unspent (average $400–830M a club). Revenue differences couldn't reach the pitch, so no club could outspend the rest. The ceiling is now a separate setting from the maximum contract (which stays at twice the cap, since it also scales ZenGM's contract formula).
+
+**Raising the ceiling** (two more 20-season runs of the same World, with stature's effects on):
+
+| Measure (all Countries)                     | Ceiling 2× | 4×  | **6× (chosen)** | Target                           |
+| ------------------------------------------- | ---------- | --- | --------------- | -------------------------------- |
+| Distinct top-tier champions per 10 seasons  | 6.8        | 5.5 | **4.1**         | 2–5                              |
+| Most titles by one club per 10 seasons      | 3.1        | 3.7 | **4.4**         | 4–7                              |
+| Longest title run                           | 3          | 6   | **5**           | 5+ somewhere                     |
+| Seasons with 2+ big clubs in the top four   | 42%        | 51% | **76%**         | most                             |
+| Titles won by a big club                    | 38%        | 42% | **67%**         | most                             |
+| Big clubs relegated                         | 14         | 2   | **2**           | ~1 per Country per 20–40 seasons |
+| Promoted to a top tier, straight back down  | 33%        | 51% | **53%**         | 30–47%                           |
+| Relegated from a top tier, straight back up | 26%        | 24% | **23%**         | 27–40%                           |
+
+Decided: the ceiling is 6 times the salary cap, where it rarely binds, so what a club can pay follows its revenue instead of being levelled. That produced real dynasties (Manchester United 6 titles in a row, the New York Yankees 8 in 10 seasons, Real Madrid and Athletic Club 4 each) while giants stopped falling.
+
+**Still to fix:** the lower tiers pay for it. Second-tier average team rating fell to 10–34 (it was 26–44) and third-tier to 14, promoted clubs go straight back down 53% of the time, and relegated clubs come straight back only 23%. Top-tier clubs earn about 3 times a second-tier club's revenue, which is less extreme than real football, so the cause is the top tier absorbing the player pool rather than the money. A run with much bigger lower-tier TV money is measuring whether that brings promotion survival back into range without undoing the concentration.
 
 ## Suggested build order
 

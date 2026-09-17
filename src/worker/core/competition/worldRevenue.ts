@@ -30,10 +30,11 @@ export const WORLD_REVENUE_SETTINGS = {
 	hypeRegression: 0.25,
 
 	// International Soccer Zen GM mod (storytelling, Phase 6a): the most a club's
-	// wage budget can be, as a multiple of the salary cap. A low ceiling pins
-	// every top-tier club to the same budget, so no club can outspend the rest
-	// and titles spread far wider than in real leagues (see STORY_TELLING_PLAN.md).
-	maxWageBudgetCapMultiple: 4,
+	// wage budget can be, as a multiple of the salary cap. It's a safety valve,
+	// not a leveler: at 6 it rarely binds, so what a club can pay follows its
+	// revenue. At 2 every top-tier club sat at the ceiling and titles spread far
+	// wider than in real leagues; 20-season runs at 4 and 6 are in ROADMAP.md.
+	maxWageBudgetCapMultiple: 6,
 
 	// Decided: a club with more cash than a season's revenue reinvests it,
 	// raising its coaching, facilities, and health budgets above its market
