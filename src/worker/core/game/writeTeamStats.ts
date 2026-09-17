@@ -16,6 +16,7 @@ import { isSingleDivision } from "../competition/competitionStructure.ts";
 import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
 import { getTvShare } from "../competition/worldRevenue.ts";
 import { updateWorldSeasonRuns } from "../competition/clubSeasonRecords.ts";
+import { getStatureCommercialMultiplier } from "../competition/statureEffects.ts";
 
 const writeTeamStats = async (results: GameResults) => {
 	const allStarGame = results.team[0].id === -1 && results.team[1].id === -2;
@@ -288,6 +289,15 @@ const writeTeamStats = async (results: GameResults) => {
 		nationalTvRevenue *= fudgeFactor * seasonLengthFactor;
 		localTvRevenue *= fudgeFactor * seasonLengthFactor;
 		ticketRevenue *= fudgeFactor * seasonLengthFactor;
+
+		// International Soccer Zen GM mod (storytelling, Phase 6b): a bigger club
+		// sells more shirts and sponsorships (see competition/statureEffects.ts)
+		if (t?.worldStature !== undefined) {
+			const statureMultiplier = getStatureCommercialMultiplier(t.worldStature);
+			merchRevenue *= statureMultiplier;
+			sponsorRevenue *= statureMultiplier;
+		}
+
 		const revenue =
 			merchRevenue +
 			sponsorRevenue +

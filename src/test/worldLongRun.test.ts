@@ -11,6 +11,7 @@ import { competition, league, team } from "../worker/core/index.ts";
 import { getWageBudgets } from "../worker/core/competition/wageBudgets.ts";
 import { WORLD_REVENUE_SETTINGS } from "../worker/core/competition/worldRevenue.ts";
 import { RELEGATION_CLAUSE_SETTINGS } from "../worker/core/competition/relegationClauses.ts";
+import { STATURE_EFFECT_SETTINGS } from "../worker/core/competition/statureEffects.ts";
 import createStreamFromLeagueObject from "../worker/core/league/create/createStreamFromLeagueObject.ts";
 import {
 	formatStoryYield,
@@ -57,6 +58,15 @@ if (env.WORLD_LONG_RUN_CLAUSES) {
 	Object.assign(
 		RELEGATION_CLAUSE_SETTINGS,
 		JSON.parse(env.WORLD_LONG_RUN_CLAUSES),
+	);
+}
+
+// WORLD_LONG_RUN_STATURE does the same for STATURE_EFFECT_SETTINGS (what a
+// club's stature does, see competition/statureEffects.ts)
+if (env.WORLD_LONG_RUN_STATURE) {
+	Object.assign(
+		STATURE_EFFECT_SETTINGS,
+		JSON.parse(env.WORLD_LONG_RUN_STATURE),
 	);
 }
 
@@ -950,6 +960,7 @@ describe.runIf(NUM_SEASONS > 0)("a realistic World over many seasons", () => {
 				errors: errors.map(String),
 				revenueSettings: WORLD_REVENUE_SETTINGS,
 				clauseSettings: RELEGATION_CLAUSE_SETTINGS,
+				statureEffectSettings: STATURE_EFFECT_SETTINGS,
 			});
 			await writeReport("summary.md", formatSummary(snapshots, analysis));
 

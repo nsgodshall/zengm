@@ -55,6 +55,7 @@ import { RELEGATION_CLAUSE_SETTINGS } from "../worker/core/competition/relegatio
 import createStreamFromLeagueObject from "../worker/core/league/create/createStreamFromLeagueObject.ts";
 import { idb } from "../worker/db/index.ts";
 import { g, helpers, local, lock } from "../worker/util/index.ts";
+import moodComponents from "../worker/core/player/moodComponents.ts";
 import academyView from "../worker/views/academy.ts";
 import historyAllView from "../worker/views/historyAll.ts";
 import teamHistoryView from "../worker/views/teamHistory.ts";
@@ -905,7 +906,32 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			const info = (await competition.getClubInfo(t.tid, g.get("season")))!;
 			assert(info.stature !== undefined && info.stature >= 0);
 			assert(info.statureLabel);
+
+			// The club keeps its latest stature, which affects play
+			assert.strictEqual(t.worldStature, t.worldHistory!.at(-1)!.stature);
 		}
+
+		// Players' mood toward a club counts its stature
+		const [p] = await idb.cache.players.indexGetAll("playersByTid", [
+			0,
+			Infinity,
+		]);
+		const components = await moodComponents(p!, p!.tid);
+		assert(
+			components.custom?.some((row) => row.text === "Club stature"),
+			JSON.stringify(components),
+		);
+
+		// A World made before stature affected play gets it when it loads
+		const t = (await idb.cache.teams.getAll())[0]!;
+		const stature = t.worldStature;
+		delete t.worldStature;
+		await idb.cache.teams.put(t);
+		await competition.ensureCompetitionStructure();
+		assert.strictEqual(
+			(await idb.cache.teams.get(t.tid))!.worldStature,
+			stature,
+		);
 	});
 
 	test("a World made before season records gets them when it loads, and its league history reads them", async () => {

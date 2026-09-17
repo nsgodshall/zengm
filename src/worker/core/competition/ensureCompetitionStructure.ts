@@ -26,7 +26,7 @@ import {
 } from "./competitionStructure.ts";
 import { fillWorldSeasonRecords } from "./recordWorldSeason.ts";
 import { fillWorldTransferRecords } from "./recordTransfer.ts";
-import { fillRealClubHistory } from "./newWorld.ts";
+import { ensureClubStature, fillRealClubHistory } from "./newWorld.ts";
 
 /**
  * The current league's competition structure. Once a league is loaded this is
@@ -250,6 +250,7 @@ const ensureCompetitionStructure = async () => {
 		await fillWorldSeasonRecords();
 		await fillWorldTransferRecords();
 		await fillRealClubHistory();
+		await ensureClubStature();
 	}
 };
 

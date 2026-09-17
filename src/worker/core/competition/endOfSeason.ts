@@ -26,6 +26,7 @@ import {
 } from "./worldRevenue.ts";
 import { releaseRelegationClausePlayers } from "./relegationClauses.ts";
 import { recordWorldSeason } from "./recordWorldSeason.ts";
+import { getRestingHype } from "./statureEffects.ts";
 import {
 	describePromotion,
 	describeRelegation,
@@ -128,11 +129,21 @@ export const PROMOTION_HYPE = 0.05;
  * tiers' hype sags season after season.
  */
 const steadyHype = async (season: number) => {
+	// Storytelling (Phase 6b): a bigger club's hype rests higher
+	const teams = await idb.cache.teams.getAll();
 	for (const teamSeason of await idb.cache.teamSeasons.indexGetAll(
 		"teamSeasonsBySeasonTid",
 		[[season], [season, "Z"]],
 	)) {
-		teamSeason.hype = helpers.bound(regressHype(teamSeason.hype), 0, 1);
+		const stature = teams.find((t) => t.tid === teamSeason.tid)?.worldStature;
+		teamSeason.hype = helpers.bound(
+			regressHype(
+				teamSeason.hype,
+				stature === undefined ? undefined : getRestingHype(stature),
+			),
+			0,
+			1,
+		);
 		await idb.cache.teamSeasons.put(teamSeason);
 	}
 };

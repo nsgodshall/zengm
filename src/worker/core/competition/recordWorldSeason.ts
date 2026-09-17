@@ -108,6 +108,13 @@ export const recordWorldSeason = async (season: number) => {
 		const pop = teamSeasons.find((row) => row.tid === t.tid)?.pop;
 		if (legacy !== undefined && pop !== undefined) {
 			record.stature = getStature({ legacy, pop });
+			// Only the latest season sets a club's stature now
+			if (
+				t.worldHistory === undefined ||
+				t.worldHistory.every((entry) => entry.season <= season)
+			) {
+				t.worldStature = record.stature;
+			}
 		}
 	}
 

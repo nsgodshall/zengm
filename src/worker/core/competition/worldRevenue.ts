@@ -103,9 +103,13 @@ export const getPromotionPrize = ({
  */
 export const AVERAGE_HYPE = 0.5;
 
-/** A club's hype after a summer's pull back to average (see hypeRegression) */
-export const regressHype = (hype: number) =>
-	hype + WORLD_REVENUE_SETTINGS.hypeRegression * (AVERAGE_HYPE - hype);
+/**
+ * A club's hype after a summer's pull back toward its resting point (see
+ * hypeRegression): average, or one set by its stature (see
+ * competition/statureEffects.ts)
+ */
+export const regressHype = (hype: number, restingHype = AVERAGE_HYPE) =>
+	hype + WORLD_REVENUE_SETTINGS.hypeRegression * (restingHype - hype);
 
 /**
  * The level a club's coaching, facilities, or health budget goes to in the

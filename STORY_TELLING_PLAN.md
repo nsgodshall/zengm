@@ -479,32 +479,43 @@ club, and an even spread of titles was counted as a success.
 
 #### 6b. Stature in play
 
-- **Hype:** the summer pull (`regressHype`) goes toward a resting point set by
-  stature (first guess 0.3 for the smallest clubs to 0.75 for the biggest)
-  instead of 0.5, so a giant keeps its crowds through a bad season and a small
-  club's excitement after a good one fades.
-- **Revenue:** merchandise and sponsorship scale with stature (a big club sells
-  shirts around the world), on top of market size and the commercial
-  infrastructure now in progress, within bounds (first guess 0.75× to 1.75×).
-  Attendance already follows hype. Wage budgets follow revenue, so bigger clubs
-  can pay more without a separate rule.
+**Status: hype, revenue, free agency, and player mood implemented, with first
+guesses waiting for a long run; transfers and the talent pool still to do.**
+
+- **Saved stature:** each club keeps its stature after its latest finished
+  season (`worldStature`), set when a World is made and when each season is
+  recorded, and filled in when an older World loads. The effects read it
+  (`competition/statureEffects.ts`, settings in `STATURE_EFFECT_SETTINGS`, which
+  the long run can override with `WORLD_LONG_RUN_STATURE`). Every effect is
+  neutral at stature 45, about a World's average.
+- **Hype:** the summer pull (`regressHype`) goes toward a resting point from 0.3
+  (stature 0) to 0.75 (stature 100) instead of 0.5, so a giant keeps its crowds
+  through a bad season and a small club's excitement after a good one fades.
+- **Revenue:** merchandise and sponsorship change 1.5% for each point of
+  stature from 45, between 0.6× and 1.8× (a stature 95 club earns 1.75×),
+  applied after the season-length scaling and separately from the commercial
+  infrastructure multiplier the finance ledger work adds. Attendance already
+  follows hype, and wage budgets follow revenue, so bigger clubs can pay more
+  without a separate rule.
 - **Players want to join big clubs:**
-  - A club stature component in World players' mood, next to market size, hype,
-    facilities, and team performance. That covers the user's negotiations and
-    re-signings, which already use mood.
-  - Free agency and the local wage market (`localWageMarket.ts`, `autoSign`):
-    when several clubs want a player, he chooses by wage and role weighted by
-    each club's stature, so a giant can sign him for less and a small club has
-    to pay more.
-  - Transfers: a player won't drop far down in stature without a clear step up
-    in wages or role, and a star at a club far smaller than he is can push for
-    a move, which lowers his club's asking price (a "wants to leave" story).
-    The Transfer Market shows the player's answer as well as the club's.
-  - International talent-pool players prefer bigger clubs the same way.
-- **Brakes on runaway dynasties:** stature decays, each effect is capped, the
-  squad planner's roles mean a player still wants minutes (stars don't all
-  stack at one club), squads age, and 6c's takeovers fund challengers. The long
-  run tunes the caps toward 6a.
+  - **Free agency** (`autoSign`): each day, clubs act in a random order where a
+    stature 100 club is 3 times as likely as a stature 0 club to go first, so
+    bigger clubs tend to get first pick, and free agents ask 0.4% less for each
+    point of stature above 45 and more below it (between 0.8× and 1.15×, never
+    under the minimum contract).
+  - **Mood:** a "Club stature" component, from −2 to +2 (1 for every 25 points
+    from 45), counts in every World player's mood toward a club, which affects
+    the user's negotiations and re-signings.
+  - Still to do: transfers (a player won't drop far down in stature without a
+    clear step up, and a star at a much smaller club can push for a move) and
+    international talent-pool players preferring bigger clubs. Both touch files
+    the finance ledger work is changing, so they wait for it to land.
+- **Brakes on runaway dynasties:** stature fades, each effect is capped, the
+  squad planner's roles mean a player still wants minutes, squads age, and 6c's
+  takeovers fund challengers. The long run tunes the caps toward 6a.
+- **Tested:** unit tests for every effect and the signing order. The World
+  season test checks that clubs keep their latest stature, that players' mood
+  counts it, and that an older World fills it in when it loads.
 
 #### 6c. Owners, takeovers, and administration
 

@@ -1916,6 +1916,10 @@ export type Team = {
 	// International Soccer Zen GM mod (storytelling): a real club's founding year
 	// and nickname (see competition/realClubHistory.ts)
 	worldIdentity?: { founded?: number; nickname?: string };
+	// International Soccer Zen GM mod (storytelling): the club's stature after its
+	// latest finished season, which affects its hype, revenue, and signings (see
+	// competition/statureEffects.ts)
+	worldStature?: number;
 	tid: number;
 	cid: number;
 	did: number;

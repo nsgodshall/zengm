@@ -8,6 +8,7 @@ import { getNegotiationPids } from "../../views/negotiationList.ts";
 import { getNumPlayersTradedAwayNormalized } from "./getNumPlayersTradedAwayNormalized.ts";
 import { isSport } from "../../../common/sportFunctions.ts";
 import { defaultGameAttributes } from "../../../common/defaultGameAttributes.ts";
+import { getStatureMoodComponent } from "../competition/statureEffects.ts";
 
 const getMinFractionDiff = async (pid: number, tid: number) => {
 	if (!isSport("basketball")) {
@@ -127,6 +128,17 @@ const moodComponents = async (
 				});
 			}
 		}
+	}
+
+	// International Soccer Zen GM mod (storytelling, Phase 6b): in a World,
+	// players would rather play for a bigger club (see
+	// competition/statureEffects.ts)
+	if (t.worldStature !== undefined) {
+		components.custom ??= [];
+		components.custom.push({
+			amount: getStatureMoodComponent(t.worldStature),
+			text: "Club stature",
+		});
 	}
 
 	{

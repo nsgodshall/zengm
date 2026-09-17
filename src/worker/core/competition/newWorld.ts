@@ -2,7 +2,12 @@ import type { GameAttributesLeague } from "../../../common/types.ts";
 import { idb } from "../../db/index.ts";
 import { g } from "../../util/index.ts";
 import { ensureAcademies } from "./academies.ts";
-import { getLegacyForStature, getStartingLegacy } from "./clubStature.ts";
+import {
+	describeClubStature,
+	getLegacyForStature,
+	getStartingLegacy,
+	getStature,
+} from "./clubStature.ts";
 import {
 	applyRealClubIdentity,
 	getRealClubHistory,
@@ -37,6 +42,10 @@ const seedClubStature = async () => {
 				: getStartingLegacy(tier),
 			season,
 		};
+		t.worldStature = getStature({
+			legacy: t.worldStatureSeed.legacy,
+			pop: teamSeason.pop,
+		});
 		if (real) {
 			applyRealClubIdentity(t, real);
 		}
@@ -106,4 +115,40 @@ export const fillRealClubHistory = async () => {
 		value: true,
 	});
 	g.setWithoutSavingToDB("worldRealClubHistoryFilled", true);
+};
+
+/**
+ * International Soccer Zen GM mod (storytelling): a World club without a saved
+ * stature (from a World made before stature affected play) gets one from its
+ * history when the World loads
+ */
+export const ensureClubStature = async () => {
+	const structure = getCompetitionStructure();
+	if (isSingleDivision(structure)) {
+		return;
+	}
+
+	for (const t of await idb.cache.teams.getAll()) {
+		if (t.worldStature !== undefined || t.disabled) {
+			continue;
+		}
+		const teamSeason = await idb.cache.teamSeasons.indexGet(
+			"teamSeasonsByTidSeason",
+			[t.tid, g.get("season")],
+		);
+		const tier = structure.competitionDivisions.find(
+			(division) => division.divisionId === t.divisionId,
+		)?.tier;
+		if (!teamSeason || tier === undefined) {
+			continue;
+		}
+		t.worldStature = describeClubStature({
+			seed: t.worldStatureSeed,
+			history: t.worldHistory ?? [],
+			tier,
+			pop: teamSeason.pop,
+			season: g.get("season"),
+		}).stature;
+		await idb.cache.teams.put(t);
+	}
 };

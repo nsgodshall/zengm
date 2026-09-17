@@ -2,13 +2,18 @@ import { PLAYER } from "../../../common/constants.ts";
 import { player, team } from "../index.ts";
 import getBest from "./getBest.ts";
 import { idb } from "../../db/index.ts";
-import { g, local } from "../../util/index.ts";
+import { g, helpers, local } from "../../util/index.ts";
 import { orderBy } from "../../../common/utils.ts";
 import { isSport } from "../../../common/sportFunctions.ts";
 import { shuffle } from "../../../common/random.ts";
 import { isSingleDivision } from "../competition/competitionStructure.ts";
 import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
 import { getWageBudgets } from "../competition/wageBudgets.ts";
+import {
+	getStatureWageFactor,
+	orderByStatureWeightedRandom,
+	STATURE_EFFECT_SETTINGS,
+} from "../competition/statureEffects.ts";
 import {
 	buildClubSquadPlan,
 	evaluatePlayerForClubSquadPlan,
@@ -70,9 +75,19 @@ const autoSign = async () => {
 	const countryIdByPlayerCountry = getWorldCountryIdByPlayerCountry(
 		structure.countries,
 	);
+	// International Soccer Zen GM mod (storytelling, Phase 6b): in a World,
+	// players would rather join bigger clubs, so bigger clubs tend to get first
+	// pick (see competition/statureEffects.ts)
 	shuffle(teams);
+	const orderedTeams =
+		wageBudgets === undefined
+			? teams
+			: orderByStatureWeightedRandom(
+					teams,
+					(t) => t.worldStature ?? STATURE_EFFECT_SETTINGS.neutralStature,
+				);
 
-	for (const t of teams) {
+	for (const t of orderedTeams) {
 		// Skip the user's team
 		if (
 			g.get("userTids").includes(t.tid) &&
@@ -184,6 +199,26 @@ const autoSign = async () => {
 					})
 				: undefined;
 		const squadPlan = isLowerTier ? movementSquadPlan : undefined;
+
+		// Storytelling (Phase 6b): players take less to join a bigger club and ask
+		// more of a smaller one. Asking wages are set for this club while it
+		// decides, and put back for everyone it doesn't sign.
+		const wageFactor =
+			wageBudget !== undefined && t.worldStature !== undefined
+				? getStatureWageFactor(t.worldStature)
+				: 1;
+		const askingWages = new Map(
+			playersForTeam.map((candidate) => [candidate, candidate.contract.amount]),
+		);
+		if (wageFactor !== 1) {
+			for (const candidate of playersForTeam) {
+				candidate.contract.amount = Math.max(
+					g.get("minContract"),
+					helpers.roundContract(candidate.contract.amount * wageFactor),
+				);
+			}
+		}
+
 		const p = getBest(
 			playersOnRoster,
 			playersForTeam,
@@ -215,6 +250,14 @@ const autoSign = async () => {
 						})
 				: undefined,
 		);
+		if (wageFactor !== 1) {
+			for (const [candidate, amount] of askingWages) {
+				if (candidate !== p) {
+					candidate.contract.amount = amount;
+				}
+			}
+		}
+
 		if (p) {
 			// Remove from list of free agents
 			playersSorted = playersSorted.filter((p2) => p2 !== p);
