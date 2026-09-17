@@ -243,6 +243,18 @@ describe("shared player-movement decisions", () => {
 			}),
 		).toBe("current");
 		expect(
+			getClubRecruitmentFocus({
+				teamStrategy: "contending",
+				clubStrategy: "balanced",
+			}),
+		).toBe("balanced");
+		expect(
+			getClubRecruitmentFocus({
+				teamStrategy: "contending",
+				clubStrategy: "rebuild",
+			}),
+		).toBe("potential");
+		expect(
 			getRecruitmentCandidateScore({
 				focus: "potential",
 				value: 70,
@@ -256,6 +268,13 @@ describe("shared player-movement decisions", () => {
 				valueNoPot: 50,
 			}),
 		).toBe(50);
+		expect(
+			getRecruitmentCandidateScore({
+				focus: "balanced",
+				value: 70,
+				valueNoPot: 50,
+			}),
+		).toBe(60);
 	});
 });
 

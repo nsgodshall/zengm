@@ -9,13 +9,16 @@ import { getTeammateJerseyNumbers } from "../player/genJerseyNumber.ts";
 import { ValueChangeCalculator } from "../team/ValueChangeCalculator.ts";
 import isUntradable from "../trade/isUntradable.ts";
 import { academyTransfersBetweenAiClubs } from "./academyTransfers.ts";
-import buildClubSummerPlanForRoster from "./buildClubSummerPlanForRoster.ts";
+import buildClubSummerPlanForRoster, {
+	buildWorldClubStrategyForRoster,
+} from "./buildClubSummerPlanForRoster.ts";
 import {
 	getClubRecruitmentFocus,
 	getClubSquadRecruitmentNeed,
 	getPlannedPlayerAction,
 	getRecruitmentCandidateScore,
 } from "./clubSquadPlan.ts";
+import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
 import { loansBetweenAiClubs } from "./loanMoves.ts";
 import {
 	aiTalentPoolSignings,
@@ -176,9 +179,33 @@ const attempt = async (
 	if (!buyer || !buyerSeason) {
 		return;
 	}
+	const tierByDivisionId = new Map(
+		getCompetitionStructure().competitionDivisions.map((division) => [
+			division.divisionId,
+			division.tier,
+		]),
+	);
+	const currentTier =
+		buyer.divisionId === undefined
+			? 1
+			: (tierByDivisionId.get(buyer.divisionId) ?? 1);
+	const previousTier =
+		buyerSeason.divisionId === undefined
+			? undefined
+			: tierByDivisionId.get(buyerSeason.divisionId);
+	const strategyPlan = buildWorldClubStrategyForRoster({
+		players: buyerRoster,
+		wageBudget: buyerWageBudget,
+		tier: currentTier,
+		previousTier,
+		teamStrategy: buyer.strategy,
+		boardObjectiveKind: buyerSeason.boardObjective?.kind,
+		cash: buyerSeason.cash,
+	});
 	const recruitmentFocus = getClubRecruitmentFocus({
 		teamStrategy: buyer.strategy,
 		boardObjectiveKind: buyerSeason.boardObjective?.kind,
+		clubStrategy: strategyPlan.strategy,
 	});
 
 	const candidates: Player[] = [];

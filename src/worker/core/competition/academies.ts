@@ -7,11 +7,13 @@ import { finances, player, team } from "../index.ts";
 import { getTeammateJerseyNumbers } from "../player/genJerseyNumber.ts";
 import { getNumPlayersTradedAwayNormalizedAll } from "../player/getNumPlayersTradedAwayNormalized.ts";
 import { dropPlayers } from "../team/checkRosterSizes.ts";
+import { buildWorldClubStrategyForRoster } from "./buildClubSummerPlanForRoster.ts";
 import { isSingleDivision } from "./competitionStructure.ts";
 import { getClubRecruitmentFocus } from "./clubSquadPlan.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
 import { makePlayersMostlyLocal } from "./localPlayers.ts";
 import teamLink from "./teamLink.ts";
+import { getWageBudgets } from "./wageBudgets.ts";
 import {
 	academyPlayerDevelops,
 	allocateAcademyProspects,
@@ -407,6 +409,13 @@ const doAcademySummer = async () => {
 	const teamsByTid = new Map(
 		(await idb.cache.teams.getAll()).map((t) => [t.tid, t]),
 	);
+	const wageBudgets = await getWageBudgets();
+	const tierByDivisionId = new Map(
+		getCompetitionStructure().competitionDivisions.map((division) => [
+			division.divisionId,
+			division.tier,
+		]),
+	);
 	const academyPlayersByTid = Map.groupBy(
 		await getAcademyPlayers(),
 		(p) => p.academyTid!,
@@ -450,6 +459,28 @@ const doAcademySummer = async () => {
 			"teamSeasonsBySeasonTid",
 			[season, tid],
 		);
+		const roster = await idb.cache.players.indexGetAll("playersByTid", tid);
+		const wageBudget = wageBudgets.get(tid);
+		const currentTier =
+			t?.divisionId === undefined
+				? 1
+				: (tierByDivisionId.get(t.divisionId) ?? 1);
+		const previousTier =
+			teamSeason?.divisionId === undefined
+				? undefined
+				: tierByDivisionId.get(teamSeason.divisionId);
+		const strategyPlan =
+			t && teamSeason && wageBudget !== undefined
+				? buildWorldClubStrategyForRoster({
+						players: roster,
+						wageBudget,
+						tier: currentTier,
+						previousTier,
+						teamStrategy: t.strategy,
+						boardObjectiveKind: teamSeason.boardObjective?.kind,
+						cash: teamSeason.cash,
+					})
+				: undefined;
 		const plan = planAcademyPromotions({
 			prospects: academyPlayers.map((p) => ({
 				pid: p.pid,
@@ -457,12 +488,10 @@ const doAcademySummer = async () => {
 				valueNoPot: p.valueNoPot,
 				graduating: p.draft.year <= season,
 			})),
-			roster: (await idb.cache.players.indexGetAll("playersByTid", tid)).map(
-				(p) => ({
-					value: p.value,
-					valueNoPot: p.valueNoPot,
-				}),
-			),
+			roster: roster.map((p) => ({
+				value: p.value,
+				valueNoPot: p.valueNoPot,
+			})),
 			minRosterSize: g.get("minRosterSize"),
 			maxRosterSize,
 			// Twice the players on court, a basketball rotation
@@ -472,6 +501,7 @@ const doAcademySummer = async () => {
 					? getClubRecruitmentFocus({
 							teamStrategy: t.strategy,
 							boardObjectiveKind: teamSeason.boardObjective?.kind,
+							clubStrategy: strategyPlan?.strategy,
 						})
 					: "potential",
 		});

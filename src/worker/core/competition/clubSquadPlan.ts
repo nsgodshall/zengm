@@ -1,4 +1,5 @@
 import type { TeamSeason } from "../../../common/types.ts";
+import type { WorldClubStrategy } from "./clubStrategy.ts";
 
 export type WorldSquadRole = "key" | "starter" | "rotation" | "depth";
 
@@ -87,7 +88,7 @@ export type ClubSquadNeed = {
 };
 
 export type ClubSquadRecruitmentNeed = ClubSquadNeed["kind"];
-export type ClubRecruitmentFocus = "current" | "potential";
+export type ClubRecruitmentFocus = "current" | "balanced" | "potential";
 
 export type ClubSummerPlan = {
 	squadPlan: ClubSquadPlan;
@@ -326,10 +327,21 @@ export const getPlannedPlayerAction = (plan: ClubSummerPlan, pid: number) =>
 export const getClubRecruitmentFocus = ({
 	teamStrategy,
 	boardObjectiveKind,
+	clubStrategy,
 }: {
 	teamStrategy: "contending" | "rebuilding";
 	boardObjectiveKind?: NonNullable<TeamSeason["boardObjective"]>["kind"];
+	clubStrategy?: WorldClubStrategy;
 }): ClubRecruitmentFocus => {
+	if (clubStrategy === "rebuild") {
+		return "potential";
+	}
+	if (clubStrategy === "balanced") {
+		return "balanced";
+	}
+	if (clubStrategy !== undefined) {
+		return "current";
+	}
 	if (
 		boardObjectiveKind === "title" ||
 		boardObjectiveKind === "promotion" ||
@@ -349,7 +361,12 @@ export const getRecruitmentCandidateScore = ({
 	focus: ClubRecruitmentFocus;
 	value: number;
 	valueNoPot: number;
-}) => (focus === "potential" ? value : valueNoPot);
+}) =>
+	focus === "potential"
+		? value
+		: focus === "current"
+			? valueNoPot
+			: (value + valueNoPot) / 2;
 
 /**
  * The club's ordered summer work and its intended action for every player.

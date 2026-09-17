@@ -12,8 +12,11 @@ import { getWageBudgets } from "../competition/wageBudgets.ts";
 import {
 	buildClubSquadPlan,
 	evaluatePlayerForClubSquadPlan,
+	getClubRecruitmentFocus,
+	getRecruitmentCandidateScore,
 	getWageBudgetAfterMinimumRosterReserve,
 } from "../competition/clubSquadPlan.ts";
+import { buildWorldClubStrategyForRoster } from "../competition/buildClubSummerPlanForRoster.ts";
 
 /**
  * AI teams sign free agents.
@@ -97,6 +100,47 @@ const autoSign = async () => {
 		const isLowerTier =
 			t.divisionId !== undefined &&
 			(tierByDivisionId.get(t.divisionId) ?? 1) > 1;
+		let playersForTeam = playersSorted;
+		if (wageBudget !== undefined) {
+			const teamSeason = await idb.cache.teamSeasons.indexGet(
+				"teamSeasonsBySeasonTid",
+				[g.get("season"), t.tid],
+			);
+			if (teamSeason) {
+				const tier =
+					t.divisionId === undefined
+						? 1
+						: (tierByDivisionId.get(t.divisionId) ?? 1);
+				const previousTier =
+					teamSeason.divisionId === undefined
+						? undefined
+						: tierByDivisionId.get(teamSeason.divisionId);
+				const strategyPlan = buildWorldClubStrategyForRoster({
+					players: playersOnRoster,
+					wageBudget,
+					tier,
+					previousTier,
+					teamStrategy: t.strategy,
+					boardObjectiveKind: teamSeason.boardObjective?.kind,
+					cash: teamSeason.cash,
+				});
+				const focus = getClubRecruitmentFocus({
+					teamStrategy: t.strategy,
+					boardObjectiveKind: teamSeason.boardObjective?.kind,
+					clubStrategy: strategyPlan.strategy,
+				});
+				playersForTeam = orderBy(
+					playersSorted,
+					(candidate) =>
+						getRecruitmentCandidateScore({
+							focus,
+							value: candidate.value,
+							valueNoPot: candidate.valueNoPot,
+						}),
+					"desc",
+				);
+			}
+		}
 		const squadPlan =
 			isLowerTier && wageBudget !== undefined
 				? buildClubSquadPlan({
@@ -112,7 +156,7 @@ const autoSign = async () => {
 				: undefined;
 		const p = getBest(
 			playersOnRoster,
-			playersSorted,
+			playersForTeam,
 			payroll,
 			squadPlan
 				? getWageBudgetAfterMinimumRosterReserve({

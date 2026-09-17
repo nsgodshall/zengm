@@ -12,6 +12,7 @@ import { recomputeLocalUITeamOvrs } from "../../util/recomputeLocalUITeamOvrs.ts
 import { finances, league, player, team } from "../index.ts";
 import { getTeammateJerseyNumbers } from "../player/genJerseyNumber.ts";
 import { getCurrentTransferWindow } from "./aiTransfers.ts";
+import { buildWorldClubStrategyForRoster } from "./buildClubSummerPlanForRoster.ts";
 import { isSingleDivision } from "./competitionStructure.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
 import { aiWouldBorrow } from "./loans.ts";
@@ -327,9 +328,32 @@ export const aiTalentPoolSignings = async (
 		if (!t || !teamSeason) {
 			continue;
 		}
+		const roster = await idb.cache.players.indexGetAll("playersByTid", tid);
+		const wageBudget = wageBudgets.get(tid);
+		if (wageBudget === undefined) {
+			continue;
+		}
+		const tier =
+			t.divisionId === undefined
+				? 1
+				: (tierByDivisionId.get(t.divisionId) ?? 1);
+		const previousTier =
+			teamSeason.divisionId === undefined
+				? undefined
+				: tierByDivisionId.get(teamSeason.divisionId);
+		const strategyPlan = buildWorldClubStrategyForRoster({
+			players: roster,
+			wageBudget,
+			tier,
+			previousTier,
+			teamStrategy: t.strategy,
+			boardObjectiveKind: teamSeason.boardObjective?.kind,
+			cash: teamSeason.cash,
+		});
 		const recruitmentFocus = getClubRecruitmentFocus({
 			teamStrategy: t.strategy,
 			boardObjectiveKind: teamSeason.boardObjective?.kind,
+			clubStrategy: strategyPlan.strategy,
 		});
 		const p = choice(
 			pool.filter((p) => p.talentPool !== undefined),
@@ -344,11 +368,6 @@ export const aiTalentPoolSignings = async (
 			continue;
 		}
 
-		const roster = await idb.cache.players.indexGetAll("playersByTid", tid);
-		const wageBudget = wageBudgets.get(tid);
-		if (wageBudget === undefined) {
-			continue;
-		}
 		const movementSquadPlan = buildClubSquadPlan({
 			wageBudget,
 			minContract: g.get("minContract"),
@@ -368,10 +387,6 @@ export const aiTalentPoolSignings = async (
 		}
 
 		const wage = getTalentPoolWage(p);
-		const tier =
-			t?.divisionId === undefined
-				? 1
-				: (tierByDivisionId.get(t.divisionId) ?? 1);
 		const squadPlan = tier > 1 ? movementSquadPlan : undefined;
 		const roleLimit = squadPlan
 			? evaluatePlayerForClubSquadPlan({

@@ -76,7 +76,15 @@ without adding persistent fields.
 
 ### Phase 4: multi-season strategy
 
-**Status: next.**
+**Status: in progress.** Clubs now rebuild a pure strategy snapshot from their
+tier, just-finished tier, board objective, existing team strategy, squad age,
+cash, wage budget, and contracts. It identifies recent promotion or relegation,
+classifies the club as title challenge, promotion push, survival, balanced, or
+rebuild, and projects committed roster and payroll through the next two
+summers. Free agency, transfers, academies, and talent-pool recruitment use the
+result to favor current ability, potential, or a blend. The next slice will use
+the outlook in renewal and offer thresholds and add controlled debt and
+playing-time promises.
 
 - Derive strategy from tier, board objective, squad age, finances, and recent
   promotion or relegation: title challenge, promotion push, survival,
