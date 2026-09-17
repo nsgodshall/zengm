@@ -10,6 +10,16 @@ import { choice, randInt, shuffle, uniform } from "../../../common/random.ts";
 import { isSingleDivision } from "../competition/competitionStructure.ts";
 import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
 import { getMaxContract, getWageBudgets } from "../competition/wageBudgets.ts";
+import {
+	buildClubSquadPlan,
+	getClubRecruitmentFocus,
+} from "../competition/clubSquadPlan.ts";
+import {
+	getWorldCountryIdByPlayerCountry,
+	getWorldWageMarketBidLimit,
+	getWorldWageMarketInterest,
+	type WorldWageMarketClub,
+} from "../competition/localWageMarket.ts";
 
 const TEMP = 0.35;
 const LEARNING_RATE = 0.5;
@@ -207,6 +217,57 @@ const normalizeContractDemands = async ({
 		? undefined
 		: await getWageBudgets();
 
+	// A World's auction is local to clubs that would actually make the signing.
+	// Keep new-league generation on the upstream path because those contracts
+	// describe already-assembled starting squads rather than an open market.
+	const worldMarketClubs = new Map<number, WorldWageMarketClub>();
+	const countryIdByPlayerCountry = getWorldCountryIdByPlayerCountry(
+		getCompetitionStructure().countries,
+	);
+	if (wageBudgets !== undefined && type !== "newLeague") {
+		const divisionById = new Map(
+			getCompetitionStructure().competitionDivisions.map((division) => [
+				division.divisionId,
+				division,
+			]),
+		);
+		const rosterByTid = new Map<number, Player[]>();
+		for (const p of playersAll) {
+			if (p.tid < 0) {
+				continue;
+			}
+			if (type !== "freeAgentsOnly" && p.contract.exp <= season) {
+				continue;
+			}
+			rosterByTid.set(p.tid, [...(rosterByTid.get(p.tid) ?? []), p]);
+		}
+
+		for (const t of teams) {
+			const division =
+				t.divisionId === undefined ? undefined : divisionById.get(t.divisionId);
+			const wageBudget = wageBudgets.get(t.tid);
+			if (!division || wageBudget === undefined) {
+				continue;
+			}
+			const roster = rosterByTid.get(t.tid) ?? [];
+			worldMarketClubs.set(t.tid, {
+				tid: t.tid,
+				countryId: division.countryId,
+				tier: division.tier,
+				capSpace: wageBudget - t.payroll,
+				plan: buildClubSquadPlan({
+					rosterValues: roster.map((p) => p.valueNoPot),
+					wageBudget,
+					minContract,
+					minimumRosterSize: g.get("minRosterSize"),
+					maxRosterSize: g.get("maxRosterSize"),
+					rotationSize: 2 * g.get("numPlayersOnCourt"),
+				}),
+				focus: getClubRecruitmentFocus({ teamStrategy: t.strategy }),
+			});
+		}
+	}
+
 	//console.time("foo");
 	const updatedPIDs = new Set<number>();
 	const randTeams = [...teams];
@@ -229,23 +290,65 @@ const normalizeContractDemands = async ({
 				}
 			}
 
+			const worldMarketClub = worldMarketClubs.get(t.tid);
+			const interests = new Map<
+				number,
+				NonNullable<ReturnType<typeof getWorldWageMarketInterest>>
+			>();
 			const availablePlayers = new Set(
-				playerInfosCurrent.filter(
-					(p) =>
-						p.contractAmount <= capSpace &&
-						(bids.get(p.pid) ?? 0) < NUM_BIDS_BEFORE_REMOVED,
-				),
+				playerInfosCurrent.filter((info) => {
+					if (
+						info.contractAmount > capSpace ||
+						(bids.get(info.pid) ?? 0) >= NUM_BIDS_BEFORE_REMOVED
+					) {
+						return false;
+					}
+					if (!worldMarketClub) {
+						return true;
+					}
+					const interest = getWorldWageMarketInterest({
+						club: { ...worldMarketClub, capSpace },
+						player: {
+							age: season - info.p.born.year,
+							contractAmount: info.contractAmount,
+							homeCountryId: countryIdByPlayerCountry.get(
+								info.p.born.loc.toLocaleLowerCase(),
+							),
+							value: info.p.value,
+							valueNoPot: info.p.valueNoPot,
+						},
+					});
+					if (!interest) {
+						return false;
+					}
+					interests.set(info.pid, interest);
+					return true;
+				}),
 			);
-			while (capSpace > minContract && availablePlayers.size > 0) {
+			const bidLimit = worldMarketClub
+				? getWorldWageMarketBidLimit(worldMarketClub.plan)
+				: Infinity;
+			let bidsMade = 0;
+			while (
+				capSpace > minContract &&
+				availablePlayers.size > 0 &&
+				bidsMade < bidLimit
+			) {
 				const availablePlayersArray = Array.from(availablePlayers);
 				const probs = stableSoftmax(
-					availablePlayersArray.map((p) => p.value * TEMP),
+					availablePlayersArray.map((p) => {
+						const score = interests.get(p.pid)?.recruitmentScore;
+						return score === undefined
+							? p.value * TEMP
+							: (score < 0 ? -1 : 1) * score ** 2 * TEMP;
+					}),
 					PARAM,
 				);
 				const p = choice(availablePlayersArray, probs);
 				availablePlayers.delete(p);
 
 				bids.set(p.pid, (bids.get(p.pid) ?? 0) + 1);
+				bidsMade += 1;
 				capSpace -= p.contractAmount;
 				if (capSpace > minContract) {
 					for (const p of availablePlayers) {

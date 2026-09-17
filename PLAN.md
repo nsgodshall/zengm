@@ -110,6 +110,17 @@ that AI lineups honor with a small preference.
 
 ## 2. Local player and wage markets
 
+**Status: implemented.** World wage normalization now builds demand from the
+same squad plans used by actual signings. A club enters a player's market only
+when it has a vacancy or a genuine upgrade, can afford the contract and the
+role-specific ceiling, and can offer the playing-time status implied by the
+asking wage. Each interest keeps its Country, tier, role, age group, and squad
+need; current bid counts then raise or lower the demand. Rebuilding and
+competitive clubs rank potential and current ability differently, and close
+decisions favor local players without preventing international recruitment.
+The upstream single-Division market and starting-squad contract generation are
+unchanged.
+
 - Form demand from the clubs that can realistically sign a player, grouped by
   country, tier, role, age, and current interest.
 - Let demands fall when the relevant market passes on a player.

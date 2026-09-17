@@ -13,7 +13,6 @@ import {
 	buildClubSquadPlan,
 	evaluatePlayerForClubSquadPlan,
 	getClubRecruitmentFocus,
-	getRecruitmentCandidateScore,
 	getWageBudgetAfterMinimumRosterReserve,
 } from "../competition/clubSquadPlan.ts";
 import { buildWorldClubStrategyForRoster } from "../competition/buildClubSummerPlanForRoster.ts";
@@ -21,6 +20,10 @@ import {
 	canAddContractToWorldClubStrategy,
 	getWorldPlayingTimePromise,
 } from "../competition/clubStrategy.ts";
+import {
+	getWorldCountryIdByPlayerCountry,
+	getWorldWageMarketRecruitmentScore,
+} from "../competition/localWageMarket.ts";
 
 /**
  * AI teams sign free agents.
@@ -51,11 +54,21 @@ const autoSign = async () => {
 
 	// Randomly order teams
 	const teams = await idb.cache.teams.getAll();
+	const structure = getCompetitionStructure();
 	const tierByDivisionId = new Map(
-		getCompetitionStructure().competitionDivisions.map((division) => [
+		structure.competitionDivisions.map((division) => [
 			division.divisionId,
 			division.tier,
 		]),
+	);
+	const countryIdByDivisionId = new Map(
+		structure.competitionDivisions.map((division) => [
+			division.divisionId,
+			division.countryId,
+		]),
+	);
+	const countryIdByPlayerCountry = getWorldCountryIdByPlayerCountry(
+		structure.countries,
 	);
 	shuffle(teams);
 
@@ -136,13 +149,22 @@ const autoSign = async () => {
 					boardObjectiveKind: teamSeason.boardObjective?.kind,
 					clubStrategy: strategyPlan.strategy,
 				});
+				const clubCountryId =
+					t.divisionId === undefined
+						? undefined
+						: countryIdByDivisionId.get(t.divisionId);
 				playersForTeam = orderBy(
 					playersSorted,
 					(candidate) =>
-						getRecruitmentCandidateScore({
+						getWorldWageMarketRecruitmentScore({
 							focus,
 							value: candidate.value,
 							valueNoPot: candidate.valueNoPot,
+							local:
+								clubCountryId !== undefined &&
+								countryIdByPlayerCountry.get(
+									candidate.born.loc.toLocaleLowerCase(),
+								) === clubCountryId,
 						}),
 					"desc",
 				);
