@@ -12,6 +12,10 @@ import { getWageBudgets } from "../worker/core/competition/wageBudgets.ts";
 import { WORLD_REVENUE_SETTINGS } from "../worker/core/competition/worldRevenue.ts";
 import { RELEGATION_CLAUSE_SETTINGS } from "../worker/core/competition/relegationClauses.ts";
 import createStreamFromLeagueObject from "../worker/core/league/create/createStreamFromLeagueObject.ts";
+import {
+	formatStoryYield,
+	getStoryYieldReport,
+} from "./worldLongRunStories.ts";
 import { idb } from "../worker/db/index.ts";
 import { g, helpers, local, lock } from "../worker/util/index.ts";
 import {
@@ -948,6 +952,12 @@ describe.runIf(NUM_SEASONS > 0)("a realistic World over many seasons", () => {
 				clauseSettings: RELEGATION_CLAUSE_SETTINGS,
 			});
 			await writeReport("summary.md", formatSummary(snapshots, analysis));
+
+			// Storytelling: the stories the World's history produced
+			// (STORY_TELLING_PLAN.md, Phase 0)
+			const stories = await getStoryYieldReport();
+			await writeReport("stories.json", stories);
+			await writeReport("stories.md", formatStoryYield(stories.storyYield));
 			await logProgress("report written");
 		},
 		6 * 60 * 60 * 1000,

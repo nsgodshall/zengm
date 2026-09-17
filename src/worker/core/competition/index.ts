@@ -76,6 +76,10 @@ import {
 	getWageBudget,
 } from "./transferMarket.ts";
 import planEndOfSeason from "./planEndOfSeason.ts";
+import {
+	fillWorldSeasonRecords,
+	recordWorldSeason,
+} from "./recordWorldSeason.ts";
 import runPromotionPlayoff from "./promotionPlayoff.ts";
 import ensureCompetitionStructure, {
 	getCompetitionStructure,
@@ -114,6 +118,8 @@ export default {
 	getWorldNewLeagueInfo,
 	getClubDivisionInfo,
 	getLeagueHistory,
+	fillWorldSeasonRecords,
+	recordWorldSeason,
 	getAcademySummary,
 	getClubInfo,
 	ensureBoardObjectives,

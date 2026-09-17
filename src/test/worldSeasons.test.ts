@@ -595,6 +595,161 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		}
 	});
 
+	test("every club's finished seasons are recorded on its team seasons and in its history", async () => {
+		const teamSeasons: TeamSeason[] = await idb.league.getAll("teamSeasons");
+		const teams = await idb.cache.teams.getAll();
+		const tierByDivisionId = new Map(
+			structure.competitionDivisions.map((division) => [
+				division.divisionId,
+				division.tier,
+			]),
+		);
+
+		for (const season of completedSeasons) {
+			const tables = await competition.getDivisionTables(season);
+			const after = await getDivisionIdByTid(season + 1);
+			const summary = (await competition.getWorldSeasonSummary(season))!;
+			const championTids = new Set(
+				summary.flatMap((country) =>
+					country.divisions.map((division) => division.champion!.tid),
+				),
+			);
+
+			for (const [divisionId, table] of Object.entries(tables)) {
+				for (const [i, row] of table.entries()) {
+					const teamSeason = teamSeasons.find(
+						(ts) => ts.season === season && ts.tid === row.tid,
+					)!;
+					const record = teamSeason.worldSeason!;
+					const label = `${season} tid ${row.tid}`;
+					assert(record, label);
+					assert.strictEqual(record.divisionId, Number(divisionId), label);
+					assert.strictEqual(record.position, i + 1, label);
+					assert.strictEqual(record.points, row.points, label);
+					assert.strictEqual(
+						record.champion,
+						championTids.has(row.tid) || undefined,
+					);
+
+					const tier = tierByDivisionId.get(record.divisionId)!;
+					const nextTier = tierByDivisionId.get(after.get(row.tid)!)!;
+					assert.strictEqual(
+						record.moved,
+						nextTier < tier
+							? "promoted"
+							: nextTier > tier
+								? "relegated"
+								: undefined,
+						label,
+					);
+					assert.strictEqual(
+						record.pyramidPosition,
+						(tier - 1) * CLUBS_PER_DIVISION + i + 1,
+						label,
+					);
+					assert(record.boardObjective, label);
+					assert.strictEqual(
+						record.boardObjective.met,
+						i + 1 <= record.boardObjective.targetPosition,
+					);
+
+					// Runs and leaders come from the games actually played
+					const runs = record.runs!;
+					assert(runs, label);
+					assert(runs.longestWinning <= row.won, label);
+					assert(runs.longestLosing <= row.lost, label);
+					assert(runs.longestUnbeaten >= runs.longestWinning, label);
+					assert(runs.longestWinless >= runs.longestLosing, label);
+					assert.strictEqual(runs.biggestWin !== undefined, row.won > 0, label);
+					assert(record.mostGames && record.mostGames.gp <= NUM_GAMES, label);
+					assert(record.topScorer && record.topScorer.value > 0, label);
+
+					const t = teams.find((t) => t.tid === row.tid)!;
+					const entry = t.worldHistory!.find(
+						(entry) => entry.season === season,
+					);
+					assert.deepStrictEqual(
+						entry,
+						{
+							season,
+							divisionId: record.divisionId,
+							tier: record.tier,
+							position: record.position,
+							numClubs: record.numClubs,
+							pyramidPosition: record.pyramidPosition,
+							points: record.points,
+							...(record.champion ? { champion: true } : {}),
+							...(record.moved ? { moved: record.moved } : {}),
+							...(record.promotionPlayoff
+								? { promotionPlayoff: record.promotionPlayoff }
+								: {}),
+						},
+						label,
+					);
+				}
+			}
+
+			// Southland's promotion playoff has one winner and some losers
+			const playoffRecords = teamSeasons
+				.filter(
+					(ts) => ts.season === season && ts.worldSeason?.promotionPlayoff,
+				)
+				.map((ts) => ts.worldSeason!);
+			assert.strictEqual(
+				playoffRecords.filter((record) => record.promotionPlayoff === "won")
+					.length,
+				1,
+			);
+			assert(
+				playoffRecords.some((record) => record.promotionPlayoff === "lost"),
+			);
+		}
+
+		for (const t of teams) {
+			assert.deepStrictEqual(
+				t.worldHistory!.map((entry) => entry.season),
+				completedSeasons,
+			);
+		}
+	});
+
+	test("a World made before season records gets them when it loads, and its league history reads them", async () => {
+		const before = (await idb.cache.teams.getAll()).map((t) => ({
+			tid: t.tid,
+			worldHistory: t.worldHistory,
+		}));
+		for (const t of await idb.cache.teams.getAll()) {
+			delete t.worldHistory;
+			await idb.cache.teams.put(t);
+		}
+		g.setWithoutSavingToDB("worldSeasonRecordsFilled", undefined);
+
+		await competition.ensureCompetitionStructure();
+
+		assert.strictEqual(g.get("worldSeasonRecordsFilled"), true);
+		for (const { tid, worldHistory } of before) {
+			assert.deepStrictEqual(
+				(await idb.cache.teams.get(tid))!.worldHistory,
+				worldHistory,
+			);
+		}
+
+		// League history comes from the club's saved history once it has it
+		const t = (await idb.cache.teams.getAll())[0]!;
+		const original = t.worldHistory!;
+		t.worldHistory = original.map((entry) =>
+			entry.season === STARTING_SEASON
+				? { ...entry, position: 99, pyramidPosition: 99 }
+				: entry,
+		);
+		await idb.cache.teams.put(t);
+		const leagueHistory = (await competition.getLeagueHistory(t.tid))!;
+		assert.strictEqual(leagueHistory.seasons[0]!.position, 99);
+		assert.strictEqual(leagueHistory.seasons[0]!.pyramidPosition, 99);
+		t.worldHistory = original;
+		await idb.cache.teams.put(t);
+	});
+
 	test("each Division has its own MVP, top scorer, young player, and All-Division team, and there are no other awards, even in a World made before that was decided", async () => {
 		assert.deepStrictEqual(g.get("awards"), getWorldAwards());
 

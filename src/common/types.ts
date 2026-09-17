@@ -686,6 +686,10 @@ export type GameAttributesLeague = {
 	// International Soccer Zen GM mod (Epic 8): set once an older World has
 	// adopted the 14-player minimum roster, unless the user had customized it
 	worldMinimumRosterSet?: true;
+	// International Soccer Zen GM mod (storytelling): set once a World made before
+	// season records has had its finished seasons recorded (see
+	// competition/recordWorldSeason.ts)
+	worldSeasonRecordsFilled?: true;
 	// International Soccer Zen GM mod (Epic 4): the transfer window whose talent
 	// pool has arrived, so it only arrives once (see competition/talentPoolMoves.ts)
 	talentPoolKey?: string;
@@ -1784,6 +1788,83 @@ export type SortType =
 	| "string"
 	| "pos";
 
+// International Soccer Zen GM mod (storytelling): a World club's biggest win or
+// loss of a season
+export type WorldSeasonMargin = {
+	margin: number;
+	pts: number;
+	oppPts: number;
+	opponentTid: number;
+	gid: number;
+};
+
+// International Soccer Zen GM mod (storytelling): a World club's runs of results
+// in a regular season, as they stand and the longest so far, and its biggest win
+// and loss (see competition/clubSeasonRecords.ts)
+export type WorldSeasonRuns = {
+	winning: number;
+	unbeaten: number;
+	losing: number;
+	winless: number;
+	longestWinning: number;
+	longestUnbeaten: number;
+	longestLosing: number;
+	longestWinless: number;
+	biggestWin?: WorldSeasonMargin;
+	biggestLoss?: WorldSeasonMargin;
+};
+
+// International Soccer Zen GM mod (storytelling): how a World club's finished
+// season went, saved when the season ends so its history doesn't have to be
+// worked out again from tables (see competition/clubSeasonRecords.ts)
+export type WorldSeasonRecord = {
+	divisionId: number;
+	countryId: number;
+	tier: number;
+	position: number;
+	numClubs: number;
+	// Its place in its Country's whole pyramid, 1 at the top of the top tier
+	pyramidPosition: number;
+	points: number;
+	won: number;
+	lost: number;
+	tied: number;
+	pointDiff: number;
+	scored: number;
+	champion?: true;
+	// Where it went for next season
+	moved?: "promoted" | "relegated";
+	// How it did in a promotion playoff it played in
+	promotionPlayoff?: "won" | "lost";
+	// Its squad's rank in its Division at its first game, 1 the strongest
+	squadRank?: number;
+	boardObjective?: {
+		kind: NonNullable<TeamSeasonWithoutKey["boardObjective"]>["kind"];
+		targetPosition: number;
+		met: boolean;
+	};
+	// Names are kept, since players can be deleted later
+	topScorer?: { pid: number; name: string; value: number };
+	mostGames?: { pid: number; name: string; gp: number };
+	runs?: WorldSeasonRuns;
+};
+
+// International Soccer Zen GM mod (storytelling): the short version of a
+// WorldSeasonRecord kept on the club itself, so its roll of honour survives
+// deleting old team history
+export type WorldHistoryEntry = Pick<
+	WorldSeasonRecord,
+	| "divisionId"
+	| "tier"
+	| "position"
+	| "numClubs"
+	| "pyramidPosition"
+	| "points"
+	| "champion"
+	| "moved"
+	| "promotionPlayoff"
+> & { season: number };
+
 export type Team = {
 	// International Soccer Zen GM mod (Epic 4): the club's payroll when its World
 	// was created, which its wage budget covers until its first season is over
@@ -1795,6 +1876,9 @@ export type Team = {
 		country: string;
 		wikipedia: string;
 	};
+	// International Soccer Zen GM mod (storytelling): every finished season in a
+	// World, oldest first (see competition/clubSeasonRecords.ts)
+	worldHistory?: WorldHistoryEntry[];
 	tid: number;
 	cid: number;
 	did: number;
@@ -2074,6 +2158,10 @@ export type TeamSeasonWithoutKey = {
 			| "avoidRelegation";
 		targetPosition: number;
 	};
+	// International Soccer Zen GM mod (storytelling): this regular season's runs
+	// of results so far, and the season's record once it's over
+	worldRuns?: WorldSeasonRuns;
+	worldSeason?: WorldSeasonRecord;
 	region: string;
 	name: string;
 	abbrev: string;

@@ -96,8 +96,13 @@ export const getClubDivisionInfo = async (tid: number, season: number) => {
 /**
  * International Soccer Zen GM mod (Epic 6): a club's place in its Country's
  * pyramid in every season it has played a game, for the league history chart on
- * its history page, and the places each tier covers (from the club's latest
- * season). Undefined outside a World.
+ * its history page, and the places each tier covers (from its Country's current
+ * Divisions). Undefined outside a World.
+ *
+ * Finished seasons come from the club's saved history (see
+ * competition/recordWorldSeason.ts), so they don't need their tables worked out
+ * again and survive deleting old team history. A season without a saved entry,
+ * like the one being played, comes from its tables.
  */
 export const getLeagueHistory = async (tid: number) => {
 	const structure = getCompetitionStructure();
@@ -105,6 +110,16 @@ export const getLeagueHistory = async (tid: number) => {
 		return;
 	}
 
+	const t = await idb.cache.teams.get(tid);
+	const recordedBySeason = new Map(
+		(t?.worldHistory ?? []).map((entry) => [entry.season, entry]),
+	);
+	const divisionsById = new Map(
+		structure.competitionDivisions.map((division) => [
+			division.divisionId,
+			division,
+		]),
+	);
 	const teamSeasons = await idb.getCopies.teamSeasons({ tid }, "noCopyCache");
 	const currentSeason = g.get("season");
 	const currentSeasonOver = g.get("phase") > PHASE.PLAYOFFS;
@@ -119,47 +134,74 @@ export const getLeagueHistory = async (tid: number) => {
 		pyramidPosition: number;
 		inProgress: boolean;
 	}[] = [];
-	let latest:
-		| { clubsByTier: Map<number, number>; countryId: number }
-		| undefined;
-	for (const teamSeason of teamSeasons.sort((a, b) => a.season - b.season)) {
-		if (teamSeason.divisionId === undefined) {
+	let latestCountryId: number | undefined;
+	const seasonNumbers = new Set([
+		...recordedBySeason.keys(),
+		...teamSeasons
+			.filter((teamSeason) => teamSeason.divisionId !== undefined)
+			.map((teamSeason) => teamSeason.season),
+	]);
+	for (const season of [...seasonNumbers].sort((a, b) => a - b)) {
+		const entry = recordedBySeason.get(season);
+		if (entry) {
+			const division = divisionsById.get(entry.divisionId);
+			latestCountryId = division?.countryId ?? latestCountryId;
+			seasons.push({
+				season,
+				divisionId: entry.divisionId,
+				divisionName: division?.name ?? "",
+				tier: entry.tier,
+				position: entry.position,
+				numClubs: entry.numClubs,
+				pyramidPosition: entry.pyramidPosition,
+				inProgress: false,
+			});
 			continue;
 		}
 
-		const info = getSeasonInfo(
-			structure,
-			await getDivisionTables(teamSeason.season),
-			tid,
-		);
+		const info = getSeasonInfo(structure, await getDivisionTables(season), tid);
 		if (!info || info.played === 0) {
 			continue;
 		}
 
-		latest = { clubsByTier: info.clubsByTier, countryId: info.countryId };
+		latestCountryId = info.countryId;
 		seasons.push({
-			season: teamSeason.season,
+			season,
 			divisionId: info.divisionId,
 			divisionName: info.divisionName,
 			tier: info.tier,
 			position: info.position,
 			numClubs: info.numClubs,
 			pyramidPosition: info.pyramidPosition,
-			inProgress: teamSeason.season === currentSeason && !currentSeasonOver,
+			inProgress: season === currentSeason && !currentSeasonOver,
 		});
 	}
 
-	const bands = latest
-		? getTierBands(latest.clubsByTier).map((band) => ({
-				...band,
-				name:
-					structure.competitionDivisions.find(
-						(division) =>
-							division.countryId === latest.countryId &&
-							division.tier === band.tier,
-					)?.name ?? `Tier ${band.tier}`,
-			}))
-		: [];
+	let bands: { tier: number; first: number; last: number; name: string }[] = [];
+	if (latestCountryId !== undefined) {
+		const countryId = latestCountryId;
+		const clubsByTier = new Map<number, number>();
+		for (const other of await idb.cache.teams.getAll()) {
+			const division =
+				other.disabled || other.divisionId === undefined
+					? undefined
+					: divisionsById.get(other.divisionId);
+			if (division?.countryId === countryId) {
+				clubsByTier.set(
+					division.tier,
+					(clubsByTier.get(division.tier) ?? 0) + 1,
+				);
+			}
+		}
+		bands = getTierBands(clubsByTier).map((band) => ({
+			...band,
+			name:
+				structure.competitionDivisions.find(
+					(division) =>
+						division.countryId === countryId && division.tier === band.tier,
+				)?.name ?? `Tier ${band.tier}`,
+		}));
+	}
 
 	return {
 		seasons,

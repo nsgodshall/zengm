@@ -24,6 +24,7 @@ import {
 	getWorldSeasonLength,
 	isSingleDivision,
 } from "./competitionStructure.ts";
+import { fillWorldSeasonRecords } from "./recordWorldSeason.ts";
 
 /**
  * The current league's competition structure. Once a league is loaded this is
@@ -240,6 +241,10 @@ const ensureCompetitionStructure = async () => {
 		});
 		g.setWithoutSavingToDB("worldContentFilled", true);
 	}
+
+	// International Soccer Zen GM mod (storytelling): a World made before season
+	// records gets its finished seasons recorded once
+	await fillWorldSeasonRecords();
 };
 
 export default ensureCompetitionStructure;

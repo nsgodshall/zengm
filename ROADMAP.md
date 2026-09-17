@@ -337,6 +337,12 @@ Still open:
 - Multi-currency economics across countries (MVP should assume one unified in-game currency to avoid FX complexity; real relative purchasing power differences between countries is a later nice-to-have).
 - Because the competition engine (Epics 1–3) is kept sport-agnostic, a later "many countries + promotion/relegation" mod of one of ZenGM's other sports (football, hockey, baseball) should be able to reuse it directly and only need its own Epic 4/5-equivalent (whatever team-building model fits that sport), not a second rewrite of the data model or scheduler.
 
+### Storytelling — the World as a storytelling engine
+
+**Status: Phase 1 (season records) done, Phase 0 (story yield) reporting done and its baseline being run.** The plan, its decisions, and each phase's status are in `STORY_TELLING_PLAN.md`.
+
+Decided with the user (2026-09-17): the World should be a storytelling engine. Top tiers should look like real leagues, with a dominant few clubs challenged once in a while; club stature affects revenue, hype, and which clubs players join; owners bring takeovers, owners pulling out, and administration with points deductions, for the user's club too, but never liquidation; real clubs start with their real stature, founding year, and nickname, but no pre-World trophies; golden generations are a rare event; no managers yet; cups and continental competition come after the story engine; the user's Country gets full news and the rest a digest; stories are written from templates, with a language model planned later.
+
 ## Suggested build order
 
 1. Epic 0 (scaffolding) → Epic 1 (data model) — nothing else can start until Country/Division/promotion-relegation types exist.

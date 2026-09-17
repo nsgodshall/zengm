@@ -25,6 +25,7 @@ import {
 	regressHype,
 } from "./worldRevenue.ts";
 import { releaseRelegationClausePlayers } from "./relegationClauses.ts";
+import { recordWorldSeason } from "./recordWorldSeason.ts";
 
 /**
  * A top-tier champion is its Country's champion, marked the same way as a
@@ -320,6 +321,9 @@ const doEndOfSeason = async (conditions: Conditions) => {
 	await steadyHype(season);
 	await crownChampions(structure, plan.champions, conditions);
 	await applyMoves(structure, plan, conditions);
+
+	// Storytelling: save how every club's season went, now that clubs have moved
+	await recordWorldSeason(season);
 
 	return true;
 };

@@ -15,6 +15,7 @@ import { bySport, isSport } from "../../../common/sportFunctions.ts";
 import { isSingleDivision } from "../competition/competitionStructure.ts";
 import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
 import { getTvShare } from "../competition/worldRevenue.ts";
+import { updateWorldSeasonRuns } from "../competition/clubSeasonRecords.ts";
 
 const writeTeamStats = async (results: GameResults) => {
 	const allStarGame = results.team[0].id === -1 && results.team[1].id === -2;
@@ -470,6 +471,22 @@ const writeTeamStats = async (results: GameResults) => {
 
 			teamSeason.lastTen.unshift(-1);
 			teamSeason.streak = 0;
+		}
+
+		// International Soccer Zen GM mod (storytelling): a World club's runs and
+		// biggest margins, for its season record
+		if (
+			g.get("phase") !== PHASE.PLAYOFFS &&
+			(won || lost || ties) &&
+			!isSingleDivision(getCompetitionStructure())
+		) {
+			teamSeason.worldRuns = updateWorldSeasonRuns(teamSeason.worldRuns, {
+				result: won ? "won" : lost ? "lost" : "tied",
+				pts: results.team[t1].stat.pts,
+				oppPts: results.team[t2].stat.pts,
+				opponentTid: results.team[t2].id,
+				gid: results.gid,
+			});
 		}
 
 		if (teamSeason.ovrStart === undefined) {
