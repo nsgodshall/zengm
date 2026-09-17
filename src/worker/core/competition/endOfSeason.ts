@@ -26,6 +26,7 @@ import {
 } from "./worldRevenue.ts";
 import { releaseRelegationClausePlayers } from "./relegationClauses.ts";
 import { recordWorldSeason } from "./recordWorldSeason.ts";
+import { recordWorldStories } from "./recordWorldStories.ts";
 import { getRestingHype } from "./statureEffects.ts";
 import {
 	describePromotion,
@@ -385,8 +386,10 @@ const doEndOfSeason = async (conditions: Conditions) => {
 	await crownChampions(structure, plan.champions, conditions);
 	await applyMoves(structure, plan, conditions);
 
-	// Storytelling: save how every club's season went, now that clubs have moved
+	// Storytelling: save how every club's season went, now that clubs have moved,
+	// and the stories the season told
 	await recordWorldSeason(season);
+	await recordWorldStories(season);
 
 	return true;
 };

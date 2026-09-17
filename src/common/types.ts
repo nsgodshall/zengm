@@ -326,6 +326,16 @@ export type EventBBGMWithoutKey =
 			// < 20: somewhat important
 			// >= 20: very important
 			score?: number;
+
+			// International Soccer Zen GM mod (storytelling): the facts a "story"
+			// event was written from (see competition/worldStories.ts)
+			story?: {
+				kind: string;
+				countryId: number;
+				divisionId?: number;
+				significance: number;
+				facts: Record<string, number | string>;
+			};
 	  }
 	| {
 			type: "sisyphus";
@@ -701,6 +711,9 @@ export type GameAttributesLeague = {
 	// International Soccer Zen GM mod (storytelling): set once a World made before
 	// real clubs' history was added has been given it
 	worldRealClubHistoryFilled?: true;
+	// International Soccer Zen GM mod (storytelling): set once a World made before
+	// season stories has had its finished seasons' stories found
+	worldStoriesFilled?: true;
 	// International Soccer Zen GM mod (Epic 4): the transfer window whose talent
 	// pool has arrived, so it only arrives once (see competition/talentPoolMoves.ts)
 	talentPoolKey?: string;
@@ -1062,6 +1075,9 @@ export type LogEventType =
 	| "teamRename"
 	| "trade"
 	| "transfer"
+	// International Soccer Zen GM mod (storytelling): a story from a World's
+	// season (see competition/worldStories.ts)
+	| "story"
 	| "academy"
 	| "loan"
 	| "tragedy"

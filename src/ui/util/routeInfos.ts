@@ -31,6 +31,9 @@ export const routeInfos = {
 	"/l/:lid/league_finances/:season": "leagueFinances",
 	"/l/:lid/history": "history",
 	"/l/:lid/history/:season": "history",
+	// International Soccer Zen GM mod (storytelling)
+	"/l/:lid/world_chronicle": "worldChronicle",
+	"/l/:lid/world_chronicle/:season": "worldChronicle",
 	"/l/:lid/hall_of_fame": "hallOfFame",
 	"/l/:lid/manage_confs": "manageConfs",
 	"/l/:lid/manage_teams": "manageTeams",

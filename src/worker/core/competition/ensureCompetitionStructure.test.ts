@@ -87,6 +87,7 @@ test("in a multi-Division World, only fills in what's missing, using each row's 
 	g.setWithoutSavingToDB("worldSeasonRecordsFilled", true);
 	g.setWithoutSavingToDB("worldTransferRecordsFilled", true);
 	g.setWithoutSavingToDB("worldRealClubHistoryFilled", true);
+	g.setWithoutSavingToDB("worldStoriesFilled", true);
 
 	await resetCache({
 		teams: [

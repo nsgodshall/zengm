@@ -24,12 +24,14 @@ import {
 } from "../worker/core/competition/loans.ts";
 import { getTvShare } from "../worker/core/competition/worldRevenue.ts";
 import {
+	describeClubStature,
 	getLegacyForStature,
 	getLegacyTimeline,
 	getStartingLegacy,
 	getStature,
 } from "../worker/core/competition/clubStature.ts";
 import { getRealClubHistory } from "../worker/core/competition/realClubHistory.ts";
+import { detectCountryStories } from "../worker/core/competition/worldStories.ts";
 import {
 	describePromotion,
 	describeRelegation,
@@ -57,6 +59,7 @@ import { idb } from "../worker/db/index.ts";
 import { g, helpers, local, lock } from "../worker/util/index.ts";
 import moodComponents from "../worker/core/player/moodComponents.ts";
 import academyView from "../worker/views/academy.ts";
+import worldChronicleView from "../worker/views/worldChronicle.ts";
 import historyAllView from "../worker/views/historyAll.ts";
 import teamHistoryView from "../worker/views/teamHistory.ts";
 import teamRecordsView from "../worker/views/teamRecords.ts";
@@ -932,6 +935,103 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			(await idb.cache.teams.get(t.tid))!.worldStature,
 			stature,
 		);
+	});
+
+	test("each season's stories are found from the clubs' histories, and the Chronicle shows them with the results", async () => {
+		const teams = await idb.cache.teams.getAll();
+		const teamSeasons: TeamSeason[] = await idb.league.getAll("teamSeasons");
+		const countryIdByDivisionId = new Map(
+			structure.competitionDivisions.map((division) => [
+				division.divisionId,
+				division.countryId,
+			]),
+		);
+		const storyEvents = async (season: number) =>
+			(await idb.getCopies.events({ season }, "noCopyCache")).filter(
+				(event) => event.type === "story",
+			);
+
+		let numStories = 0;
+		for (const season of completedSeasons) {
+			const clubs = teams.map((t) => {
+				const history = t.worldHistory!;
+				const before = history.filter((row) => row.season < season);
+				const teamSeason = teamSeasons.find(
+					(row) => row.tid === t.tid && row.season === season,
+				)!;
+				return {
+					tid: t.tid,
+					countryId: countryIdByDivisionId.get(
+						history.find((row) => row.season === season)!.divisionId,
+					)!,
+					history,
+					statureBefore:
+						before.at(-1)?.stature ??
+						describeClubStature({
+							seed: t.worldStatureSeed,
+							history: before,
+							tier: history[0]!.tier,
+							pop: teamSeason.pop,
+							season,
+						}).stature,
+					runs: teamSeason.worldSeason?.runs,
+				};
+			});
+			const expected = structure.countries.flatMap((country) =>
+				detectCountryStories({
+					season,
+					countryId: country.countryId,
+					divisions: structure.competitionDivisions,
+					clubs,
+				}),
+			);
+			const events = await storyEvents(season);
+			assert.deepStrictEqual(
+				events
+					.map((event) => ("story" in event ? event.story?.kind : ""))
+					.sort(),
+				expected.map((story) => story.kind).sort(),
+				`${season}`,
+			);
+			numStories += events.length;
+
+			const chronicle = await worldChronicleView({ season }, ["firstRun"], {});
+			assert(chronicle && "countries" in chronicle);
+			assert.strictEqual(chronicle.hasSeason, true);
+			for (const country of chronicle.countries) {
+				for (const division of country.divisions) {
+					const champion = teams.find((t) =>
+						t.worldHistory!.some(
+							(row) =>
+								row.season === season &&
+								row.divisionId === division.divisionId &&
+								row.champion,
+						),
+					);
+					assert.strictEqual(division.champion?.tid, champion?.tid);
+				}
+				assert.strictEqual(
+					country.stories.length,
+					expected.filter((story) => story.countryId === country.countryId)
+						.length,
+				);
+			}
+		}
+		// Three seasons of two small Countries tell at least one story
+		assert(numStories > 0);
+
+		// A World made before stories finds them when it loads
+		const season = completedSeasons[0]!;
+		const before = (await storyEvents(season)).length;
+		for (const event of await storyEvents(season)) {
+			await idb.cache.events.delete(event.eid);
+		}
+		await idb.cache.flush();
+		assert.strictEqual((await storyEvents(season)).length, 0);
+		g.setWithoutSavingToDB("worldStoriesFilled", undefined);
+		await competition.ensureCompetitionStructure();
+		assert.strictEqual((await storyEvents(season)).length, before);
+		assert.strictEqual(g.get("worldStoriesFilled"), true);
 	});
 
 	test("a World made before season records gets them when it loads, and its league history reads them", async () => {

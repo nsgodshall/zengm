@@ -384,7 +384,37 @@ cheapest big improvement, and the first use of the saved records.
 
 ### Phase 4: recognize (the story engine)
 
-**Status: not started.**
+**Status: season-end stories implemented; in-season stories, rivalries, and
+player stories still to do.**
+
+What landed (`competition/worldStories.ts`, pure, and
+`competition/recordWorldStories.ts`):
+
+- **Season-end detectors**, run for each Country after the season's records
+  are saved: a title defended in a row, promoted champions, a close title race
+  (won by 3 points or fewer, or on tiebreakers), a dynasty beginning (a third
+  top-tier title in 5 seasons), the end of an era (two seasons without a title
+  after a dynasty), a challenger's title (a champion outside the top tier's 3
+  biggest clubs by stature going into the season), fallen giants (a stature 70+
+  club relegated from the top tier), a climb (promoted to the top tier from 2
+  or more tiers below within 5 seasons), a yo-yo club (the season it reaches 3
+  promotions and 3 relegations in 10 seasons), record and fewest top-tier
+  points (with at least 5 earlier seasons), and unbeaten and winless seasons
+  (from the season's runs). Thresholds are in `WORLD_STORY_SETTINGS`.
+- **Saved** as news items of a new `story` type with the structured facts they
+  were written from (`story` on the event: kind, Country, Division,
+  significance, and facts), so wording can change or a language model can
+  write from them later. A new Stories category filters them on the News page.
+- **News volume** (decided): a story's news score is half its significance in
+  the user's Country and a quarter elsewhere, so other Countries' stories only
+  reach the big news when they're big. The user gets a notification for a story
+  about their own club.
+- **Older Worlds** find the stories of every recorded season once when they
+  load (`worldStoriesFilled`). A season that already has stories isn't done
+  again.
+- **Tested:** unit tests for every detector and its wording. The World season
+  test checks that each season's saved stories are exactly what the detectors
+  find from the saved histories, and that an older World finds them again.
 
 - **Detectors** (`competition/stories/`): pure functions from a World history
   (club season records, structure, awards, transfer records, rivalry scores) to
@@ -412,7 +442,14 @@ cheapest big improvement, and the first use of the saved records.
 
 ### Phase 5: tell (presentation)
 
-**Status: not started.**
+**Status: the World Chronicle page implemented; the rest still to do.**
+
+What landed: the **Chronicle** (League → Chronicle, World only;
+`competition/worldChronicle.ts`, `ui/views/WorldChronicle.tsx`): pick a
+finished season, and each Country, the user's first, leads with its biggest
+story, lists the rest, and shows each Division's champion with points and who
+went up (with (P) for playoff winners) and down, from the saved histories. It
+links to that season's Season Summary and League Tables.
 
 - **World Chronicle** (a World-only page): season by season, and Country by
   Country, the headline story, each Division's champion and who went up and

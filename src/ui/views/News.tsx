@@ -27,6 +27,8 @@ const News = ({
 		rare: true,
 		transaction: true,
 		team: true,
+		// International Soccer Zen GM mod (storytelling)
+		story: true,
 	});
 
 	useTitleBar({

@@ -369,6 +369,10 @@ const history = (params: Params) => {
 	};
 };
 
+// International Soccer Zen GM mod (storytelling): like the Season Summary, the
+// last finished season by default
+const worldChronicle = (params: Params) => history(params);
+
 const injuries = (params: Params) => {
 	let season: number | "current";
 
@@ -1130,6 +1134,7 @@ export default {
 	headToHead,
 	headToHeadAll,
 	history,
+	worldChronicle,
 	injuries,
 	leaders,
 	leadersProgressive: leadersYears,

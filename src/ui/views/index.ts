@@ -54,6 +54,7 @@ export { default as HallOfFame } from "./HallOfFame.tsx";
 export { default as HeadToHead } from "./HeadToHead.tsx";
 export { default as HeadToHeadAll } from "./HeadToHeadAll.tsx";
 export { default as History } from "./History.tsx";
+export { default as WorldChronicle } from "./WorldChronicle.tsx";
 export { default as HistoryAll } from "./HistoryAll.tsx";
 export { default as ImportPlayers } from "./ImportPlayers.tsx";
 export { default as ImportPlayersReal } from "./ImportPlayersReal.tsx";

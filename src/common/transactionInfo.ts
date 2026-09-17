@@ -37,6 +37,11 @@ export const categories = {
 		text: "Teams",
 		className: "bg-light",
 	},
+	// International Soccer Zen GM mod (storytelling)
+	story: {
+		text: "Stories",
+		className: "bg-primary",
+	},
 };
 
 export const types: Partial<
@@ -48,6 +53,11 @@ export const types: Partial<
 		}
 	>
 > = {
+	// International Soccer Zen GM mod (storytelling)
+	story: {
+		text: "Story",
+		category: "story",
+	},
 	injured: {
 		text: "Injury",
 		category: "injury",

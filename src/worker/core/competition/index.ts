@@ -81,6 +81,7 @@ import {
 	getClubRecordsHonours,
 } from "./clubHonoursInfo.ts";
 import { getWorldRollOfHonour } from "./worldLeagueHistory.ts";
+import { getWorldChronicle } from "./worldChronicle.ts";
 import {
 	fillWorldSeasonRecords,
 	recordWorldSeason,
@@ -126,6 +127,7 @@ export default {
 	getClubHonoursInfo,
 	getClubRecordsHonours,
 	getWorldRollOfHonour,
+	getWorldChronicle,
 	fillWorldSeasonRecords,
 	recordWorldSeason,
 	getAcademySummary,

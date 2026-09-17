@@ -237,6 +237,16 @@ export const menuItems: (MenuItemLink | MenuItemHeader)[] = [
 				path: ["history_all"],
 				text: "History",
 			},
+			// International Soccer Zen GM mod (storytelling)
+			{
+				type: "link",
+				active: (pageID) => pageID === "worldChronicle",
+				league: true,
+				commandPalette: true,
+				world: true,
+				path: ["world_chronicle"],
+				text: "Chronicle",
+			},
 			{
 				type: "link",
 				active: (pageID) => pageID === "powerRankings",
