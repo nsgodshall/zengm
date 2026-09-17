@@ -173,7 +173,19 @@ const Row = ({
 			<td>{row.scored}</td>
 			<td>{row.conceded}</td>
 			<td>{diff(row.pointDiff)}</td>
-			<td className="fw-bold">{row.points}</td>
+			<td className="fw-bold">
+				{row.points}
+				{/* International Soccer Zen GM mod (storytelling): points taken off a
+				club in administration */}
+				{row.pointsDeduction ? (
+					<span
+						className="text-danger ms-1"
+						title={`${row.pointsDeduction} points deducted`}
+					>
+						(-{row.pointsDeduction})
+					</span>
+				) : null}
+			</td>
 			<td>
 				<Form form={row.form} />
 			</td>

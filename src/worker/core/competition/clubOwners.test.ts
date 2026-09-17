@@ -1,6 +1,8 @@
 import { describe, expect, test } from "vitest";
 import {
 	CLUB_OWNER_SETTINGS,
+	getAdministrationDeduction,
+	isInAdministration,
 	getNextOwner,
 	getOwnerDebtLimit,
 	getOwnerFunding,
@@ -124,5 +126,38 @@ describe("getNextOwner", () => {
 				revenue,
 			}),
 		).toBe(300000);
+	});
+});
+
+describe("administration", () => {
+	const revenue = 400000;
+
+	test("a club goes into administration when its debt passes what its owner covers", () => {
+		const local = {
+			kind: "local" as const,
+			since: 2030,
+			fundingPerSeason: 0,
+			seasonsLeft: 0,
+		};
+		expect(isInAdministration({ cash: -399000, revenue, owner: local })).toBe(
+			false,
+		);
+		expect(isInAdministration({ cash: -401000, revenue, owner: local })).toBe(
+			true,
+		);
+		// A benefactor covers three times as much
+		expect(
+			isInAdministration({
+				cash: -401000,
+				revenue,
+				owner: { ...local, kind: "benefactor" },
+			}),
+		).toBe(false);
+	});
+
+	test("the points deducted are about a tenth of a season", () => {
+		expect(getAdministrationDeduction({ numGames: 38, winPoints: 3 })).toBe(11);
+		expect(getAdministrationDeduction({ numGames: 10, winPoints: 3 })).toBe(3);
+		expect(getAdministrationDeduction({ numGames: 2, winPoints: 1 })).toBe(1);
 	});
 });

@@ -37,6 +37,9 @@ export const CLUB_OWNER_SETTINGS = {
 	// revenue, and for how many seasons
 	fundingRevenueShare: [0.3, 0.8] as const,
 	fundingSeasons: [3, 8] as const,
+	// The points a club in administration loses next season, as a fraction of
+	// everything a season is worth
+	administrationDeductionShare: 0.1,
 	// How much debt each kind of owner will cover, as a multiple of revenue,
 	// before a club goes into administration
 	debtLimitByKind: {
@@ -46,6 +49,38 @@ export const CLUB_OWNER_SETTINGS = {
 		fanOwned: 0.75,
 	} satisfies Record<ClubOwnerKind, number>,
 };
+
+/**
+ * A club goes into administration when its debt passes what its owner will
+ * cover
+ */
+export const isInAdministration = ({
+	cash,
+	revenue,
+	owner,
+}: {
+	cash: number;
+	revenue: number;
+	owner: ClubOwner | undefined;
+}) => cash < -getOwnerDebtLimit({ owner, revenue });
+
+/**
+ * The points a club in administration is docked next season: about a tenth of
+ * everything a season is worth, like the deductions real leagues hand out
+ */
+export const getAdministrationDeduction = ({
+	numGames,
+	winPoints,
+}: {
+	numGames: number;
+	winPoints: number;
+}) =>
+	Math.max(
+		1,
+		Math.round(
+			CLUB_OWNER_SETTINGS.administrationDeductionShare * numGames * winPoints,
+		),
+	);
 
 export const OWNER_KIND_LABELS: Record<ClubOwnerKind, string> = {
 	local: "Local owner",

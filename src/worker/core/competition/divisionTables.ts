@@ -86,6 +86,15 @@ const makeGetHeadToHead =
 export const getDivisionTables = async (season: number) => {
 	const structure = getCompetitionStructure();
 
+	// Storytelling (Phase 6c): points taken off a club in administration
+	const deductionsByTid = new Map(
+		(await idb.cache.teams.getAll()).map((t) => [
+			t.tid,
+			(t.worldPointsDeductions ?? []).find((row) => row.season === season)
+				?.points,
+		]),
+	);
+
 	const teams = await idb.getCopies.teamsPlus(
 		{
 			attrs: ["tid"],
@@ -117,6 +126,7 @@ export const getDivisionTables = async (season: number) => {
 			tied: t.seasonAttrs.tied,
 			pointDiff: t.stats.pts - t.stats.oppPts,
 			scored: t.stats.pts,
+			pointsDeduction: deductionsByTid.get(t.tid),
 		})),
 		makeGetHeadToHead(headToHead),
 	);

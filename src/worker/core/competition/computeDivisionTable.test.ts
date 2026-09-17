@@ -120,3 +120,23 @@ test("head-to-head among 3 level clubs uses a mini-table of their games, and ign
 	// Mini-table: 1 has 9, 2 and 3 have 4 each, so scored puts 3 ahead of 2
 	expect(table.map((row) => row.tid)).toEqual([4, 1, 3, 2]);
 });
+
+test("takes off points a club has been deducted, which can change the order", () => {
+	const table = computeDivisionTable([
+		{ tid: 0, won: 8, lost: 2, tied: 0, pointDiff: 40, scored: 900 },
+		{
+			tid: 1,
+			won: 9,
+			lost: 1,
+			tied: 0,
+			pointDiff: 50,
+			scored: 950,
+			pointsDeduction: 10,
+		},
+	]);
+
+	expect(table.map((row) => [row.tid, row.points])).toEqual([
+		[0, 24],
+		[1, 17],
+	]);
+});

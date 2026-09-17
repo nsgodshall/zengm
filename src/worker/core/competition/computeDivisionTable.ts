@@ -9,6 +9,9 @@ export type ClubSeasonResult = {
 	// Stand-in for "goals scored," used as a later tiebreak the way real soccer
 	// tables do.
 	scored: number;
+	// International Soccer Zen GM mod (storytelling, Phase 6c): points taken off
+	// the club this season, as real leagues do to a club in administration
+	pointsDeduction?: number;
 };
 
 export type DivisionTableRow = ClubSeasonResult & {
@@ -61,7 +64,7 @@ const computeDivisionTable = (
 
 	const withPoints = results.map((result) => ({
 		...result,
-		points: getPoints(result),
+		points: getPoints(result) - (result.pointsDeduction ?? 0),
 	}));
 	withPoints.sort((a, b) => b.points - a.points || b.pointDiff - a.pointDiff);
 

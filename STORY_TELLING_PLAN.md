@@ -615,8 +615,8 @@ guesses waiting for a long run; transfers and the talent pool still to do.**
 
 #### 6c. Owners, takeovers, and administration
 
-**Status: owners, takeovers, and benefactors' money implemented;
-administration and points deductions still to do.**
+**Status: owners, takeovers, benefactors' money, administration, and points
+deductions implemented; transfer embargoes and forced sales still to do.**
 
 - **Owners** (`competition/clubOwners.ts`, pure): every club has an owner of
   one kind — a local owner, a wealthy benefactor, an investment group, or fan
@@ -635,10 +635,15 @@ administration and points deductions still to do.**
 - **Money running out:** when a benefactor's seasons are up, the club lives on
   what it earns again. Both the takeover and the end of the money are told as
   stories, and the team page names the owner and what they put in.
-- **Still to do:** administration when a club's debt passes what its owner will
-  cover (a points deduction of about a tenth of a season's points, a transfer
-  embargo, forced sales, debt written off, and a rescue takeover), which needs
-  points deductions in the tables.
+- **Administration:** when a club's debt passes what its owner will cover, it
+  goes into administration at the end of the season: its debts are written off,
+  it loses about a tenth of a season's points next season, someone else takes
+  it on, and it's told as a story. Deducted points come off in the tables, which
+  show them as "(-11)", and any season's table can find the deduction that
+  applied to it (`worldPointsDeductions` on the club). Decided: no liquidation,
+  so a club is never thrown down the pyramid.
+- **Still to do:** a transfer embargo and forced sales of the best-paid players
+  while a club is in administration.
 - **Tested:** unit tests for takeover chances, owner changes, a benefactor's
   money running out, and debt limits by kind; the World season test checks
   every club has an owner and only a benefactor puts money in.

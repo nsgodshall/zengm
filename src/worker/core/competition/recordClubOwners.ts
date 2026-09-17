@@ -2,7 +2,9 @@ import type { Conditions } from "../../../common/types.ts";
 import { idb } from "../../db/index.ts";
 import { g, helpers, logEvent } from "../../util/index.ts";
 import {
+	getAdministrationDeduction,
 	getNextOwner,
+	isInAdministration,
 	getOwnerFunding,
 	getTakeoverChance,
 	OWNER_KIND_LABELS,
@@ -50,19 +52,62 @@ export const updateClubOwners = async (
 			0,
 		);
 		const record = teamSeason.worldSeason;
+		// Storytelling (Phase 6c): a club whose debt is past what its owner will
+		// cover goes into administration: its debts are written off, it loses
+		// points next season, and someone else takes it on
+		const administration = isInAdministration({
+			cash: teamSeason.cash,
+			revenue,
+			owner: t.worldOwner,
+		});
+		if (administration) {
+			const division = structure.competitionDivisions.find(
+				(division) => division.divisionId === t.divisionId,
+			);
+			const points = getAdministrationDeduction({
+				numGames: division?.numGames ?? g.get("numGames"),
+				winPoints: division?.winPoints ?? 3,
+			});
+			t.worldPointsDeductions = [
+				...(t.worldPointsDeductions ?? []),
+				{ season: season + 1, points },
+			];
+			teamSeason.cash = 0;
+			await idb.cache.teamSeasons.put(teamSeason);
+
+			logEvent(
+				{
+					type: "story",
+					text: `The ${teamLink(t.tid)} have gone into administration. Their debts are written off, and they start next season on -${points} points.`,
+					tids: [t.tid],
+					score: 30,
+					showNotification: t.tid === g.get("userTid"),
+					hideInLiveGame: true,
+					story: {
+						kind: "administration",
+						countryId: division?.countryId ?? 0,
+						significance: 60,
+						facts: { points },
+					},
+				},
+				conditions,
+			);
+		}
+
 		const takeover =
-			t.worldOwner !== undefined &&
-			Math.random() <
-				getTakeoverChance({
-					stature: t.worldStature ?? 45,
-					tier:
-						(t.divisionId === undefined
-							? undefined
-							: tierByDivisionId.get(t.divisionId)) ?? 1,
-					cash: teamSeason.cash,
-					revenue,
-					champion: record?.champion === true,
-				});
+			administration ||
+			(t.worldOwner !== undefined &&
+				Math.random() <
+					getTakeoverChance({
+						stature: t.worldStature ?? 45,
+						tier:
+							(t.divisionId === undefined
+								? undefined
+								: tierByDivisionId.get(t.divisionId)) ?? 1,
+						cash: teamSeason.cash,
+						revenue,
+						champion: record?.champion === true,
+					}));
 
 		const { owner, change } = getNextOwner({
 			owner: t.worldOwner,

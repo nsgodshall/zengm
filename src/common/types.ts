@@ -1955,6 +1955,9 @@ export type Team = {
 		fundingPerSeason: number;
 		seasonsLeft?: number;
 	};
+	// International Soccer Zen GM mod (storytelling): points taken off the club in
+	// a season, after it went into administration (see competition/clubOwners.ts)
+	worldPointsDeductions?: { season: number; points: number }[];
 	tid: number;
 	cid: number;
 	did: number;

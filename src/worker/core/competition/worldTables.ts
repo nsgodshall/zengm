@@ -107,6 +107,7 @@ const getWorldTables = async (season: number) => {
 						conceded: row.scored - row.pointDiff,
 						pointDiff: row.pointDiff,
 						points: row.points,
+						pointsDeduction: row.pointsDeduction,
 						form: getRecentForm(games, row.tid, NUM_FORM_GAMES),
 						zone: zones[i],
 						result: resultByTid.get(row.tid),

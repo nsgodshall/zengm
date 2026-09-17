@@ -1141,6 +1141,58 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		assert.strictEqual(g.get("worldStoriesFilled"), true);
 	});
 
+	test("a club whose debts pass what its owner covers goes into administration and starts next season on negative points", async () => {
+		const season = g.get("season") - 1;
+		const t = (await idb.cache.teams.getAll())[1]!;
+		const teamSeason = (await idb.cache.teamSeasons.indexGet(
+			"teamSeasonsByTidSeason",
+			[t.tid, season],
+		))!;
+		const revenue = Object.values(teamSeason.revenues).reduce(
+			(sum, amount) => sum + amount,
+			0,
+		);
+		teamSeason.cash = -10 * Math.max(revenue, 1) - 1000000;
+		await idb.cache.teamSeasons.put(teamSeason);
+
+		await competition.updateClubOwners(season);
+
+		const after = (await idb.cache.teams.get(t.tid))!;
+		const deduction = after.worldPointsDeductions?.find(
+			(row) => row.season === season + 1,
+		);
+		assert(deduction && deduction.points > 0, "No points deducted");
+		assert.strictEqual(
+			(await idb.cache.teamSeasons.indexGet("teamSeasonsByTidSeason", [
+				t.tid,
+				season,
+			]))!.cash,
+			0,
+			"Debts weren't written off",
+		);
+		const events = await idb.getCopies.events(
+			{ season: g.get("season") },
+			"noCopyCache",
+		);
+		assert(
+			events.some(
+				(event) => "story" in event && event.story?.kind === "administration",
+			),
+			"No administration story",
+		);
+
+		// The deduction is in next season's table
+		const tables = await competition.getDivisionTables(season + 1);
+		const row = Object.values(tables)
+			.flat()
+			.find((row) => row.tid === t.tid)!;
+		assert.strictEqual(row.points, -deduction.points);
+
+		// Put it back, so the rest of the tests see the World as it was
+		after.worldPointsDeductions = [];
+		await idb.cache.teams.put(after);
+	});
+
 	test("a World made before season records gets them when it loads, and its league history reads them", async () => {
 		const before = (await idb.cache.teams.getAll()).map((t) => ({
 			tid: t.tid,
