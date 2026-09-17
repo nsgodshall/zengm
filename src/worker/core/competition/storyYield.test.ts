@@ -120,11 +120,8 @@ describe("analyzeStoryYield", () => {
 		expect(result.movement.yoYos).toEqual([
 			{ name: "Club 4", from: 2030, to: 2039 },
 		]);
-		expect(result.movement.bottomToTop).toContainEqual({
-			name: "Club 5",
-			from: 2030,
-			to: 2031,
-		});
+		// Two tiers have no real bottom to climb from: that would just be promotion
+		expect(result.movement.bottomToTop).toEqual([]);
 		expect(result.movement.climbs).toEqual([]);
 		expect(result.lowerTierDistinctChampionShare).toEqual({ 2: 3 / 8 });
 

@@ -230,7 +230,9 @@ threshold is a named constant for the long run to tune.
 
 ### Phase 0: measure story yield
 
-**Status: the report is implemented; the 20-season baseline is being run.**
+**Status: done.** The report is implemented and the 20-season baseline is
+measured; see `ROADMAP.md` for the numbers, which Phase 6a is now tuned
+against.
 
 Before building any page, find out what stories the current simulation
 produces, and how far its top tiers are from Phase 6a's targets.
@@ -253,7 +255,11 @@ produces, and how far its top tiers are from Phase 6a's targets.
   (`src/test/worldLongRunStories.ts`), with a table against Phase 6a's targets.
 - Chronicle headlines move to Phase 3, where the news descriptions that would
   write them are built.
-- Still to do: run it over 20 seasons and record the baseline in `ROADMAP.md`.
+- **Measured** (2026-09-17): the baseline and the first stature effects are in
+  `ROADMAP.md`. Titles are spread far wider than real leagues (6–7 different
+  champions a decade), and the wage budget ceiling was why: every top-tier club
+  sat at it. A Country with only two tiers has no "bottom tier to top" climb to
+  measure, so that one only counts Countries with three or more.
 
 ### Phase 1: remember (the club season record)
 

@@ -255,9 +255,11 @@ const analyzeCountry = (
 			climbs.push(climb);
 		}
 
+		// Only a Country with a tier below the second has a real bottom to climb
+		// from; in a two-tier Country that would just be promotion
 		const firstBottom = history.find((entry) => entry.tier === bottomTier);
 		const topAfter =
-			bottomTier > topTier && firstBottom
+			bottomTier - topTier >= settings.climbTiers && firstBottom
 				? history.find(
 						(entry) =>
 							entry.season > firstBottom.season && entry.tier === topTier,

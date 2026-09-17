@@ -343,6 +343,25 @@ Still open:
 
 Decided with the user (2026-09-17): the World should be a storytelling engine. Top tiers should look like real leagues, with a dominant few clubs challenged once in a while; club stature affects revenue, hype, and which clubs players join; owners bring takeovers, owners pulling out, and administration with points deductions, for the user's club too, but never liquidation; real clubs start with their real stature, founding year, and nickname, but no pre-World trophies; golden generations are a rare event; no managers yet; cups and continental competition come after the story engine; the user's Country gets full news and the rest a digest; stories are written from templates, with a language model planned later.
 
+### Storytelling — measured story yield (2026-09-17)
+
+Two 20-season runs of the usual 112-club World (UK, Spain, USA), one on the code before club stature affected play and one with its first effects on (hype resting points, commercial revenue, free agency order and wages, player mood). Both completed with no errors on a 6.5 GB heap; a 4 GB heap runs out during season 16.
+
+| Measure (all Countries)                     | Before stature | With stature                                | Target (Phase 6a)                     |
+| ------------------------------------------- | -------------- | ------------------------------------------- | ------------------------------------- |
+| Distinct top-tier champions per 10 seasons  | 6.1            | 6.8                                         | 2–5, typically 3                      |
+| Most titles by one club per 10 seasons      | 3.5            | 3.1                                         | 4–7                                   |
+| Longest title run                           | 3              | 3 (Athletic Club won 5 titles in 6 seasons) | 5+ somewhere                          |
+| Seasons with 2+ big clubs in the top four   | 18%            | **42%**                                     | most seasons                          |
+| Titles won by a big club                    | 33%            | 38%                                         | most                                  |
+| Big clubs relegated                         | 13             | 14                                          | about 1 per Country per 20–40 seasons |
+| Promoted to a top tier, straight back down  | 33%            | 33%                                         | 30–47%                                |
+| Relegated from a top tier, straight back up | 28%            | 26%                                         | 27–40%                                |
+
+Stature's first effects more than doubled how often a Country's big clubs stay in the top four, and produced the first real dynasty (Athletic Club, 5 titles in 6 seasons), but titles are still spread far wider than real leagues and giants still fall too often.
+
+**What was blocking it:** every top-tier club sat at the old wage budget ceiling of twice the salary cap (average budgets 294–299 of a 300 ceiling) while cash piled up unspent (average $400–830M a club). Revenue differences couldn't reach the pitch, so no club could outspend the rest. Top-tier clubs earn about $520–585M a season against $130–145M of running costs, so their budgets only start to differ above about 3 times the cap. The ceiling is now a separate setting from the maximum contract (which stays at twice the cap, since it also scales ZenGM's contract formula), and runs at 4 and 6 times the cap are measuring how much concentration that buys.
+
 ## Suggested build order
 
 1. Epic 0 (scaffolding) → Epic 1 (data model) — nothing else can start until Country/Division/promotion-relegation types exist.
