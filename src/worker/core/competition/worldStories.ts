@@ -65,6 +65,8 @@ export type WorldStoryClub = {
 	statureBefore: number;
 	// This season's runs, if they were kept
 	runs?: WorldSeasonRuns;
+	// Its town, for derbies
+	town?: string;
 };
 
 type Division = {
@@ -125,7 +127,13 @@ export const detectCountryStories = ({
 					divisionId: entry.divisionId,
 					tids: [club.tid, second.club.tid],
 					significance: margin === 0 ? 60 : 45,
-					facts: { margin, division: topDivisionName },
+					facts: {
+						margin,
+						division: topDivisionName,
+						...(club.town !== undefined && club.town === second.club.town
+							? { derbyTown: club.town }
+							: {}),
+					},
 				});
 			}
 		}
@@ -374,10 +382,15 @@ export const writeWorldStory = (
 	const { facts, tids } = story;
 	const main = club(tids[0]!);
 	switch (story.kind) {
-		case "titleRace":
+		case "titleRace": {
+			const runnerUp =
+				facts.derbyTown === undefined
+					? club(tids[1]!)
+					: `their ${facts.derbyTown} rivals ${club(tids[1]!)}`;
 			return facts.margin === 0
-				? `${main} won the ${facts.division} on tiebreakers, level on points with ${club(tids[1]!)}.`
-				: `${main} won the ${facts.division} by ${facts.margin} point${facts.margin === 1 ? "" : "s"} from ${club(tids[1]!)}.`;
+				? `${main} won the ${facts.division} on tiebreakers, level on points with ${runnerUp}.`
+				: `${main} won the ${facts.division} by ${facts.margin} point${facts.margin === 1 ? "" : "s"} from ${runnerUp}.`;
+		}
 		case "titleDefended": {
 			const n = facts.titlesInRow as number;
 			return n === 2

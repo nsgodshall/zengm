@@ -104,6 +104,19 @@ describe("detectCountryStories", () => {
 		);
 	});
 
+	test("a title race between clubs from the same town is a derby", () => {
+		const [race] = detect(
+			[
+				club(0, 80, ["1.1C/60"], { town: "Madrid" }),
+				club(1, 70, ["1.2/60"], { town: "Madrid" }),
+			],
+			2030,
+		).filter((story) => story.kind === "titleRace");
+		expect(writeWorldStory(race!, name)).toBe(
+			"Club 0 won the First Division on tiebreakers, level on points with their Madrid rivals Club 1.",
+		);
+	});
+
 	test("titles in a row, and champions who were only just promoted", () => {
 		const threeInARow = detect([club(0, 80, ["1.1C", "1.1C", "1.1C"])], 2032);
 		expect(

@@ -369,6 +369,7 @@ const updateTeamHistory = async (
 			leagueHistory: await competition.getLeagueHistory(inputs.tid),
 			// International Soccer Zen GM mod (storytelling)
 			worldHonours: await competition.getClubHonoursInfo(inputs.tid),
+			worldRivals: await competition.getClubRivalsInfo(inputs.tid),
 		};
 	}
 };

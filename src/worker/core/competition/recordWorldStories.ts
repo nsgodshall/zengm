@@ -46,6 +46,11 @@ export const recordWorldStories = async (season: number) => {
 		]),
 	);
 	const userTid = g.get("userTid");
+	const teamSeasonsByTid = new Map(
+		(await idb.getCopies.teamSeasons({ season }, "noCopyCache")).map(
+			(teamSeason) => [teamSeason.tid, teamSeason],
+		),
+	);
 	const clubs: WorldStoryClub[] = [];
 	let userCountryId: number | undefined;
 	for (const t of await idb.cache.teams.getAll()) {
@@ -61,10 +66,8 @@ export const recordWorldStories = async (season: number) => {
 
 		// Its stature going into the season: after the season before, or from
 		// its seed
-		const teamSeason = await idb.cache.teamSeasons.indexGet(
-			"teamSeasonsByTidSeason",
-			[t.tid, season],
-		);
+		// An earlier season's team season may only be in the database
+		const teamSeason = teamSeasonsByTid.get(t.tid);
 		const before = history.filter((row) => row.season < season);
 		const statureBefore =
 			before.at(-1)?.stature ??
@@ -82,6 +85,7 @@ export const recordWorldStories = async (season: number) => {
 			history,
 			statureBefore,
 			runs: teamSeason?.worldSeason?.runs ?? teamSeason?.worldRuns,
+			town: t.location?.town,
 		});
 	}
 

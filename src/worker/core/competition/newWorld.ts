@@ -142,13 +142,16 @@ export const ensureClubStature = async () => {
 		if (!teamSeason || tier === undefined) {
 			continue;
 		}
-		t.worldStature = describeClubStature({
-			seed: t.worldStatureSeed,
-			history: t.worldHistory ?? [],
-			tier,
-			pop: teamSeason.pop,
-			season: g.get("season"),
-		}).stature;
+		// The stature saved with its latest season, or worked out from its history
+		t.worldStature =
+			t.worldHistory?.at(-1)?.stature ??
+			describeClubStature({
+				seed: t.worldStatureSeed,
+				history: t.worldHistory ?? [],
+				tier,
+				pop: teamSeason.pop,
+				season: g.get("season"),
+			}).stature;
 		await idb.cache.teams.put(t);
 	}
 };

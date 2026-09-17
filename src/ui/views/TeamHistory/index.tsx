@@ -10,6 +10,7 @@ import { useLocal } from "../../util/local.ts";
 import { Championships } from "./Championships.tsx";
 import { LeagueHistoryChart } from "./LeagueHistoryChart.tsx";
 import { WorldHonours } from "./WorldHonours.tsx";
+import { WorldRivals } from "./WorldRivals.tsx";
 
 const TeamHistory = ({
 	abbrev,
@@ -29,6 +30,7 @@ const TeamHistory = ({
 	totalWinp,
 	totalWon,
 	worldHonours,
+	worldRivals,
 	worstRecord,
 }: View<"teamHistory">) => {
 	useTitleBar({
@@ -87,6 +89,12 @@ const TeamHistory = ({
 					{leagueHistory && leagueHistory.seasons.length > 0 ? (
 						<HideableSection title="League history" className="mb-3">
 							<LeagueHistoryChart leagueHistory={leagueHistory} />
+						</HideableSection>
+					) : null}
+					{/* International Soccer Zen GM mod (storytelling) */}
+					{worldRivals ? (
+						<HideableSection title="Rivals" className="mb-3">
+							<WorldRivals abbrev={abbrev} rivals={worldRivals} tid={tid} />
 						</HideableSection>
 					) : null}
 					<RetiredJerseyNumbers

@@ -1,9 +1,10 @@
-import type { Team } from "../../../common/types.ts";
+import type { GameAttributesLeague, Team } from "../../../common/types.ts";
 import { idb } from "../../db/index.ts";
 import { g } from "../../util/index.ts";
 import { getClubHonours } from "./clubHonours.ts";
 import { describeClubStature } from "./clubStature.ts";
 import { isSingleDivision } from "./competitionStructure.ts";
+import { getDerbyTown, getRivalries, type RivalryReason } from "./rivalries.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
 
 // A club's stature after its latest finished season, with this season's market
@@ -143,4 +144,83 @@ export const getClubRecordsHonours = async (
 		});
 	}
 	return summaries;
+};
+
+/**
+ * International Soccer Zen GM mod (storytelling): a World club's rivals (see
+ * competition/rivalries.ts), with why they're rivals and their all-time
+ * regular season record against each. Undefined outside a World.
+ */
+export const getClubRivalsInfo = async (tid: number) => {
+	const structure = getCompetitionStructure();
+	if (isSingleDivision(structure)) {
+		return;
+	}
+
+	const countryIdByDivisionId = new Map(
+		structure.competitionDivisions.map((division) => [
+			division.divisionId,
+			division.countryId,
+		]),
+	);
+	const teams = (await idb.cache.teams.getAll()).filter((t) => !t.disabled);
+	const rivals =
+		getRivalries({
+			season: g.get("season"),
+			clubs: teams.flatMap((t) => {
+				const countryId =
+					t.divisionId === undefined
+						? undefined
+						: countryIdByDivisionId.get(t.divisionId);
+				return countryId === undefined
+					? []
+					: [
+							{
+								tid: t.tid,
+								countryId,
+								town: t.location?.town,
+								history: t.worldHistory ?? [],
+							},
+						];
+			}),
+			playoffGames:
+				(g as unknown as Partial<GameAttributesLeague>)
+					.promotionPlayoffResults ?? [],
+		}).get(tid) ?? [];
+
+	const headToHeads = await idb.getCopies.headToHeads({}, "noCopyCache");
+	const teamInfoCache = g.get("teamInfoCache");
+	return rivals.map((rival) => {
+		const record = { won: 0, lost: 0, tied: 0 };
+		const low = Math.min(tid, rival.tid);
+		const high = Math.max(tid, rival.tid);
+		for (const headToHead of headToHeads) {
+			const row = headToHead.regularSeason[low]?.[high];
+			if (row) {
+				const won = row.won + row.otw;
+				const lost = row.lost + row.otl;
+				record.won += tid === low ? won : lost;
+				record.lost += tid === low ? lost : won;
+				record.tied += row.tied;
+			}
+		}
+		const seasons = (kind: RivalryReason["kind"]) =>
+			rival.reasons.flatMap((reason) =>
+				reason.kind === kind && "season" in reason ? [reason.season] : [],
+			);
+		return {
+			tid: rival.tid,
+			abbrev: teamInfoCache[rival.tid]?.abbrev ?? "???",
+			region: teamInfoCache[rival.tid]?.region ?? "",
+			name: teamInfoCache[rival.tid]?.name ?? "",
+			imgURL: teamInfoCache[rival.tid]?.imgURL,
+			imgURLSmall: teamInfoCache[rival.tid]?.imgURLSmall,
+			derbyTown: getDerbyTown(rival),
+			titleRaces: seasons("titleRace"),
+			wentUpTogether: seasons("wentUp"),
+			wentDownTogether: seasons("wentDown"),
+			playoffMeetings: [...new Set(seasons("playoffMeeting"))],
+			record,
+		};
+	});
 };

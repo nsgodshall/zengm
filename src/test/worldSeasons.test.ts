@@ -1074,6 +1074,7 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 	test("a club's history page, League History, and Team Records show its honours", async () => {
 		const teams = await idb.cache.teams.getAll();
 		const championsByTier = new Map<number, number>();
+		let numRivals = 0;
 		for (const t of teams) {
 			const history = t.worldHistory!;
 			const data = await teamHistoryView(
@@ -1115,7 +1116,26 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 				honours.seasons.map((row) => row.season),
 				completedSeasons,
 			);
+
+			// Rivals come from shared history, with their all-time record
+			assert("worldRivals" in data && data.worldRivals);
+			for (const rival of data.worldRivals) {
+				assert.notStrictEqual(rival.tid, t.tid);
+				assert(
+					rival.titleRaces.length +
+						rival.wentUpTogether.length +
+						rival.wentDownTogether.length +
+						rival.playoffMeetings.length >
+						0,
+				);
+				assert(
+					rival.record.won + rival.record.lost + rival.record.tied > 0,
+					`${t.tid} vs ${rival.tid}`,
+				);
+			}
+			numRivals += data.worldRivals.length;
 		}
+		assert(numRivals > 0);
 		// Every Division has a champion every season
 		for (const tier of [1, 2]) {
 			assert.strictEqual(
@@ -2328,9 +2348,21 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		}
 
 		// The user borrows an AI club's academy player who isn't ready for its
-		// first team, once he's old enough
+		// first team, once he's old enough. A club with fewer players than its
+		// rotation in the preseason keeps all of them.
+		const rotationSize = 2 * g.get("numPlayersOnCourt");
+		const firstTeamSizes = new Map<number, number>();
+		for (const p of await idb.cache.players.indexGetAll("playersByTid", [
+			0,
+			Infinity,
+		])) {
+			firstTeamSizes.set(p.tid, (firstTeamSizes.get(p.tid) ?? 0) + 1);
+		}
 		const aiProspect = (await competition.getAcademyPlayers()).find(
-			(p) => p.academyTid !== userTid && p.draft.year >= endSeason,
+			(p) =>
+				p.academyTid !== userTid &&
+				p.draft.year >= endSeason &&
+				(firstTeamSizes.get(p.academyTid!) ?? 0) >= rotationSize,
 		);
 		assert(aiProspect, "No AI academy player");
 		const lenderTid = aiProspect.academyTid!;
