@@ -384,8 +384,8 @@ cheapest big improvement, and the first use of the saved records.
 
 ### Phase 4: recognize (the story engine)
 
-**Status: season-end stories and rivalries implemented; in-season stories and
-player stories still to do.**
+**Status: season-end stories, in-season stories, and rivalries implemented;
+player stories (legends, golden generations) still to do.**
 
 What landed (`competition/worldStories.ts`, pure, and
 `competition/recordWorldStories.ts`):
@@ -426,6 +426,15 @@ What landed (`competition/worldStories.ts`, pure, and
   head-to-head. A title race between clubs from the same town reads "from their
   Madrid rivals". Rivalries are worked out from the saved histories when shown,
   so nothing new is stored.
+- **In-season stories** (`competition/inSeasonStories.ts`, pure, and
+  `competition/recordInSeasonStories.ts`), checked after each regular season
+  day: a Division title or automatic promotion clinched, or relegation
+  confirmed, while games are still to play (settled means no other club can
+  still reach the points, counting ties as reachable), and winning and losing
+  runs at 10 games and every 5 after (a run is told again once a new one
+  starts). What's been told this season is kept in a small game attribute
+  (`worldInSeasonStoryState`), so each is told once. They're story news like
+  the season-end stories, and show in the Chronicle too.
 - **Fixed on the way:** stories found again for an older World read that
   season's team seasons from the database, not just the cache, so they match
   what was found when the season ended.

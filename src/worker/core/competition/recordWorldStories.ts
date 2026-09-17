@@ -8,6 +8,7 @@ import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
 import teamLink from "./teamLink.ts";
 import {
 	detectCountryStories,
+	WORLD_STORY_KINDS,
 	type WorldStory,
 	type WorldStoryClub,
 	writeWorldStory,
@@ -18,7 +19,10 @@ import {
  * the World's as a digest (decided with the user), so they show up among big
  * news only when they're big
  */
-export const getStoryScore = (story: WorldStory, userCountryId?: number) =>
+export const getStoryScore = (
+	story: Pick<WorldStory, "countryId" | "significance">,
+	userCountryId?: number,
+) =>
 	Math.round(
 		(story.countryId === userCountryId ? 0.5 : 0.25) * story.significance,
 	);
@@ -34,8 +38,18 @@ export const recordWorldStories = async (season: number) => {
 		return;
 	}
 
+	// Stories told during the season don't count
 	const existing = await idb.getCopies.events({ season }, "noCopyCache");
-	if (existing.some((event) => event.type === "story")) {
+	if (
+		existing.some(
+			(event) =>
+				event.type === "story" &&
+				"story" in event &&
+				(WORLD_STORY_KINDS as readonly string[]).includes(
+					event.story?.kind ?? "",
+				),
+		)
+	) {
 		return;
 	}
 

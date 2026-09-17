@@ -714,6 +714,16 @@ export type GameAttributesLeague = {
 	// International Soccer Zen GM mod (storytelling): set once a World made before
 	// season stories has had its finished seasons' stories found
 	worldStoriesFilled?: true;
+	// International Soccer Zen GM mod (storytelling): what's already been told
+	// while this season is played (see competition/inSeasonStories.ts)
+	worldInSeasonStoryState?: {
+		season: number;
+		titleClinched: number[];
+		promotionClinched: number[];
+		relegationConfirmed: number[];
+		winningRuns: Record<number, number>;
+		losingRuns: Record<number, number>;
+	};
 	// International Soccer Zen GM mod (Epic 4): the transfer window whose talent
 	// pool has arrived, so it only arrives once (see competition/talentPoolMoves.ts)
 	talentPoolKey?: string;

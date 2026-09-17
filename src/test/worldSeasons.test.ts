@@ -31,7 +31,10 @@ import {
 	getStature,
 } from "../worker/core/competition/clubStature.ts";
 import { getRealClubHistory } from "../worker/core/competition/realClubHistory.ts";
-import { detectCountryStories } from "../worker/core/competition/worldStories.ts";
+import {
+	detectCountryStories,
+	WORLD_STORY_KINDS,
+} from "../worker/core/competition/worldStories.ts";
 import {
 	describePromotion,
 	describeRelegation,
@@ -946,9 +949,15 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 				division.countryId,
 			]),
 		);
+		// Stories from the end of the season, not ones told while it was played
 		const storyEvents = async (season: number) =>
 			(await idb.getCopies.events({ season }, "noCopyCache")).filter(
-				(event) => event.type === "story",
+				(event) =>
+					event.type === "story" &&
+					"story" in event &&
+					(WORLD_STORY_KINDS as readonly string[]).includes(
+						event.story?.kind ?? "",
+					),
 			);
 
 		let numStories = 0;
@@ -1011,7 +1020,9 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 					assert.strictEqual(division.champion?.tid, champion?.tid);
 				}
 				assert.strictEqual(
-					country.stories.length,
+					country.stories.filter((story) =>
+						(WORLD_STORY_KINDS as readonly string[]).includes(story.kind),
+					).length,
 					expected.filter((story) => story.countryId === country.countryId)
 						.length,
 				);
@@ -1019,6 +1030,35 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		}
 		// Three seasons of two small Countries tell at least one story
 		assert(numStories > 0);
+
+		// Stories were checked while the last season was played, and whatever was
+		// settled early during a season happened
+		assert.strictEqual(
+			g.get("worldInSeasonStoryState")?.season,
+			completedSeasons.at(-1),
+		);
+		for (const season of completedSeasons) {
+			for (const event of await idb.getCopies.events(
+				{ season },
+				"noCopyCache",
+			)) {
+				if (event.type !== "story" || !("story" in event) || !event.story) {
+					continue;
+				}
+				const tid = event.tids![0]!;
+				const entry = teams
+					.find((t) => t.tid === tid)!
+					.worldHistory!.find((row) => row.season === season)!;
+				const { kind } = event.story;
+				if (kind === "titleClinched") {
+					assert(entry.champion, event.text);
+				} else if (kind === "promotionClinched") {
+					assert.strictEqual(entry.moved, "promoted", event.text);
+				} else if (kind === "relegationConfirmed") {
+					assert.strictEqual(entry.moved, "relegated", event.text);
+				}
+			}
+		}
 
 		// A World made before stories finds them when it loads
 		const season = completedSeasons[0]!;

@@ -46,6 +46,7 @@ import { last } from "../../../common/utils.ts";
 import { advStats } from "../../util/advStats.ts";
 import { isSingleDivision } from "../competition/competitionStructure.ts";
 import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
+import { recordInSeasonStories } from "../competition/recordInSeasonStories.ts";
 import { recordPromotionPlayoffResults } from "../competition/promotionPlayoffSchedule.ts";
 
 /**
@@ -164,6 +165,12 @@ const play = async (
 			const schedule = await season.getSchedule();
 			if (schedule.length > 0) {
 				await team.updateClinchedPlayoffs(false, conditions);
+			}
+
+			// International Soccer Zen GM mod (storytelling): a World's stories
+			// as the season is played
+			if (dayOver) {
+				await recordInSeasonStories(conditions);
 			}
 		}
 

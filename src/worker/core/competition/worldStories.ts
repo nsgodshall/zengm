@@ -12,20 +12,23 @@ import { getDynasties } from "./clubHonours.ts";
 // keeps the facts it was written from, so its wording can change (or a
 // language model can write it) without losing what happened.
 
-export type WorldStoryKind =
-	| "titleRace"
-	| "titleDefended"
-	| "promotedChampions"
-	| "dynasty"
-	| "endOfEra"
-	| "challengerTitle"
-	| "fallenGiant"
-	| "climb"
-	| "yoYo"
-	| "recordPoints"
-	| "fewestPoints"
-	| "unbeaten"
-	| "winless";
+export const WORLD_STORY_KINDS = [
+	"titleRace",
+	"titleDefended",
+	"promotedChampions",
+	"dynasty",
+	"endOfEra",
+	"challengerTitle",
+	"fallenGiant",
+	"climb",
+	"yoYo",
+	"recordPoints",
+	"fewestPoints",
+	"unbeaten",
+	"winless",
+] as const;
+
+export type WorldStoryKind = (typeof WORLD_STORY_KINDS)[number];
 
 export type WorldStory = {
 	kind: WorldStoryKind;
