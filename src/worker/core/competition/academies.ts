@@ -1,4 +1,4 @@
-import { PHASE, PLAYER } from "../../../common/constants.ts";
+import { PHASE, PLAYER, RATINGS } from "../../../common/constants.ts";
 import type { Player, PlayerWithoutKey } from "../../../common/types.ts";
 import { last } from "../../../common/utils.ts";
 import { idb } from "../../db/index.ts";
@@ -15,6 +15,7 @@ import { makePlayersMostlyLocal } from "./localPlayers.ts";
 import teamLink from "./teamLink.ts";
 import { getWageBudgets } from "./wageBudgets.ts";
 import {
+	GOLDEN_GENERATION_SETTINGS,
 	academyPlayerDevelops,
 	allocateAcademyProspects,
 	getAcademyAges,
@@ -23,6 +24,7 @@ import {
 	getAcademyDraftYear,
 	getAcademyIntakeSize,
 	getAcademyStrength,
+	pickGoldenGenerationClub,
 	planAcademyPromotions,
 } from "./youthAcademy.ts";
 
@@ -117,11 +119,54 @@ export const getAcademyClubs = async () => {
 };
 
 /**
+ * International Soccer Zen GM mod (storytelling, Phase 6): a golden generation
+ * is news at the club and a story in the World
+ */
+const reportGoldenGeneration = async (
+	tid: number,
+	prospects: { academyTid?: number; ratings: { pot: number }[] }[],
+	graduationSeason: number,
+) => {
+	const best = Math.max(
+		0,
+		...prospects
+			.filter((p) => p.academyTid === tid)
+			.map((p) => p.ratings.at(-1)?.pot ?? 0),
+	);
+	const t = await idb.cache.teams.get(tid);
+	const countryId =
+		getCompetitionStructure().competitionDivisions.find(
+			(division) => division.divisionId === t?.divisionId,
+		)?.countryId ?? 0;
+
+	logEvent({
+		type: "story",
+		text: `The ${teamLink(tid)} have taken in a golden generation: the best group their academy has ever seen, due to graduate in ${graduationSeason}.`,
+		tids: [tid],
+		score: 25,
+		showNotification: tid === g.get("userTid"),
+		hideInLiveGame: true,
+		story: {
+			kind: "goldenGeneration",
+			countryId,
+			significance: 50,
+			facts: { graduationSeason, bestPotential: best },
+		},
+	});
+};
+
+/**
  * Generates one intake of academy players, who have to graduate in the summer
  * of `graduationSeason`, and shares it out between the clubs. When academies
  * are filled from scratch, older intakes are developed to their ages.
  */
-const addIntake = async (graduationSeason: number, clubs: AcademyClub[]) => {
+const addIntake = async (
+	graduationSeason: number,
+	clubs: AcademyClub[],
+	// Storytelling (Phase 6): one club's intake this summer can be a golden
+	// generation (see GOLDEN_GENERATION_SETTINGS)
+	golden = false,
+) => {
 	const season = g.get("season");
 	const { intakeAge, graduationAge } = getAcademyAges(g.get("draftAges"));
 	const age = graduationAge - (graduationSeason - season);
@@ -165,12 +210,38 @@ const addIntake = async (graduationSeason: number, clubs: AcademyClub[]) => {
 		prospects.push(p);
 	}
 
+	const goldenTid = golden
+		? pickGoldenGenerationClub(clubs.map((club) => club.tid))
+		: undefined;
 	const tids = allocateAcademyProspects({
 		pots: prospects.map((p) => last(p.ratings).pot),
 		clubs,
+		goldenTid,
 	});
 	for (const [i, p] of prospects.entries()) {
 		p.academyTid = tids[i];
+	}
+
+	// A golden generation's prospects are better than any intake usually is
+	if (goldenTid !== undefined) {
+		for (const p of prospects) {
+			if (p.academyTid !== goldenTid) {
+				continue;
+			}
+			const ratings = last(p.ratings) as unknown as Record<string, number>;
+			for (const key of RATINGS) {
+				const rating = ratings[key];
+				if (typeof rating === "number") {
+					ratings[key] = helpers.bound(
+						rating + GOLDEN_GENERATION_SETTINGS.ratingBoost,
+						0,
+						100,
+					);
+				}
+			}
+			await player.develop(p, 0);
+		}
+		await reportGoldenGeneration(goldenTid, prospects, graduationSeason);
 	}
 
 	// Most of a club's academy players are from its Country
@@ -542,7 +613,7 @@ const doAcademySummer = async () => {
 	await idb.cache.flush();
 
 	const { numCohorts } = getAcademyAges(g.get("draftAges"));
-	const intake = await addIntake(season + numCohorts, clubs);
+	const intake = await addIntake(season + numCohorts, clubs, true);
 	if (!aiRunsUserClubs) {
 		await reportUserIntakes(intake);
 	}

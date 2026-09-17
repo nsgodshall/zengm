@@ -94,6 +94,28 @@ export const getAcademyStrength = ({
 // this much luck either way
 export const ACADEMY_PICK_ORDER_LUCK = 0.75;
 
+export const GOLDEN_GENERATION_SETTINGS = {
+	// The chance that one club in a Country takes in a golden generation in a
+	// summer (decided with the user: a rare event)
+	chance: 0.05,
+	// How much better than usual every rating of its prospects is that year
+	ratingBoost: 4,
+};
+
+/**
+ * The club in a Country that takes in a golden generation this summer, if any:
+ * an intake so good it's talked about for years. `random` is uniform on [0, 1).
+ */
+export const pickGoldenGenerationClub = (
+	tids: number[],
+	random: () => number = Math.random,
+) => {
+	if (tids.length === 0 || random() >= GOLDEN_GENERATION_SETTINGS.chance) {
+		return;
+	}
+	return tids[Math.min(tids.length - 1, Math.floor(random() * tids.length))];
+};
+
 /**
  * Shares out one intake of prospects between clubs, returning the tid each
  * prospect joins, in the same order as `pots`. Every club gets the same number
@@ -104,6 +126,7 @@ export const ACADEMY_PICK_ORDER_LUCK = 0.75;
 export const allocateAcademyProspects = ({
 	pots,
 	clubs,
+	goldenTid,
 	random = Math.random,
 }: {
 	pots: number[];
@@ -111,6 +134,9 @@ export const allocateAcademyProspects = ({
 		tid: number;
 		strength: number;
 	}[];
+	// A club with a golden generation picks first in every round (see
+	// GOLDEN_GENERATION_SETTINGS)
+	goldenTid?: number;
 	random?: () => number;
 }) => {
 	const tids: number[] = Array.from({ length: pots.length });
@@ -127,7 +153,11 @@ export const allocateAcademyProspects = ({
 			tid: club.tid,
 			score: club.strength + (2 * random() - 1) * ACADEMY_PICK_ORDER_LUCK,
 		}));
-		order.sort((a, b) => b.score - a.score);
+		order.sort(
+			(a, b) =>
+				(b.tid === goldenTid ? 1 : 0) - (a.tid === goldenTid ? 1 : 0) ||
+				b.score - a.score,
+		);
 
 		for (const { tid } of order) {
 			const prospect = bestFirst[next];

@@ -12,7 +12,14 @@ import {
 	getAcademyIntakeSize,
 	getAcademyStrength,
 	planAcademyPromotions,
+	pickGoldenGenerationClub,
 } from "./youthAcademy.ts";
+
+// A random sequence that repeats
+const sequence = (values: number[]) => {
+	let i = 0;
+	return () => values[i++ % values.length]!;
+};
 
 describe("getAcademyAges", () => {
 	test("basketball's draft ages give an academy from 16 to 22, 6 intakes", () => {
@@ -320,5 +327,32 @@ describe("getAcademyDraftYear", () => {
 	test("is the season a graduate joins a first team after", () => {
 		expect(getAcademyDraftYear(2020, PHASE.DRAFT)).toBe(2020);
 		expect(getAcademyDraftYear(2020, PHASE.PRESEASON)).toBe(2019);
+	});
+});
+
+describe("golden generations", () => {
+	test("one club in a World takes one in now and then, and picks first that year", () => {
+		const tids = [1, 2, 3, 4];
+		// The first number decides whether it happens, the second which club
+		expect(pickGoldenGenerationClub(tids, sequence([0.9, 0]))).toBe(undefined);
+		expect(pickGoldenGenerationClub(tids, sequence([0.01, 0.5]))).toBe(3);
+		expect(pickGoldenGenerationClub([], sequence([0.01, 0.5]))).toBe(undefined);
+	});
+
+	test("a golden club takes the best prospects of the intake", () => {
+		const clubs = [
+			{ tid: 1, strength: 1 },
+			{ tid: 2, strength: 0 },
+			{ tid: 3, strength: -1 },
+		];
+		const tids = allocateAcademyProspects({
+			pots: [80, 70, 60, 50, 40, 30],
+			clubs,
+			goldenTid: 3,
+			random: () => 0.5,
+		});
+		// Club 3 picks first in both rounds, so it gets the best two
+		expect(tids[0]).toBe(3);
+		expect(tids[3]).toBe(3);
 	});
 });

@@ -683,9 +683,12 @@ deductions implemented; transfer embargoes and forced sales still to do.**
 #### Later
 
 - **Managers:** not being added yet.
-- **Golden generations** (decided: yes, after 6b is measured): occasional
-  exceptional academy intakes at one club, as another way for challengers to
-  appear, and a story of its own.
+- **Golden generations: implemented.** Each summer one club in a World can take
+  in a golden generation (`GOLDEN_GENERATION_SETTINGS`, 5%): it picks first in
+  every round of that year's intake, so it takes the best prospects, and they're
+  better than any intake usually is (every rating 4 higher). It's told as a
+  story naming the summer they graduate, and pays off years later when they
+  come through.
 - **Cups and continental competition** (`PLAN.md` priorities 6 and 7): giant
   killings, doubles and trebles, cross-Country rivalries, and Country
   strength.
