@@ -1,6 +1,7 @@
 import { idb } from "../../db/index.ts";
 import { g } from "../../util/index.ts";
 import { describeClubStature } from "./clubStature.ts";
+import { getOwnerFunding, OWNER_KIND_LABELS } from "./clubOwners.ts";
 import { isSingleDivision } from "./competitionStructure.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
 import { getTransferFunds } from "./transferMarket.ts";
@@ -69,6 +70,13 @@ export const getClubInfo = async (tid: number, season: number) => {
 		: undefined;
 
 	return {
+		owner: t?.worldOwner
+			? {
+					label: OWNER_KIND_LABELS[t.worldOwner.kind],
+					since: t.worldOwner.since,
+					funding: getOwnerFunding(t.worldOwner) / 1000,
+				}
+			: undefined,
 		founded: t?.worldIdentity?.founded,
 		nickname: t?.worldIdentity?.nickname,
 		stature: stature?.stature,

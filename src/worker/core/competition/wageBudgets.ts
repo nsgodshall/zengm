@@ -2,6 +2,7 @@ import { PHASE } from "../../../common/constants.ts";
 import { idb } from "../../db/index.ts";
 import { g, helpers } from "../../util/index.ts";
 import { team } from "../index.ts";
+import { getOwnerFunding } from "./clubOwners.ts";
 import { isSingleDivision } from "./competitionStructure.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
 import { getWageBudget, MAX_CONTRACT_CAP_MULTIPLE } from "./transferMarket.ts";
@@ -88,6 +89,9 @@ export const getWageBudgets = async () => {
 							tier: getTier(t.divisionId) ?? finances.lastTier,
 						})
 					: undefined,
+				// Storytelling (Phase 6c): a benefactor's money counts as income for
+				// the board's budget (see competition/clubOwners.ts)
+				ownerFunding: getOwnerFunding(t.worldOwner),
 				runningCosts: finances?.runningCosts ?? 0,
 				cash: finances?.cash ?? 0,
 				minWageBudget,

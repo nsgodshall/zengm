@@ -1946,6 +1946,15 @@ export type Team = {
 	// latest finished season, which affects its hype, revenue, and signings (see
 	// competition/statureEffects.ts)
 	worldStature?: number;
+	// International Soccer Zen GM mod (storytelling): who owns the club, how much
+	// they put in each season, and for how many more seasons (see
+	// competition/clubOwners.ts)
+	worldOwner?: {
+		kind: "local" | "benefactor" | "investmentGroup" | "fanOwned";
+		since: number;
+		fundingPerSeason: number;
+		seasonsLeft?: number;
+	};
 	tid: number;
 	cid: number;
 	did: number;

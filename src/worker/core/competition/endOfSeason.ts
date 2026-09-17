@@ -27,6 +27,7 @@ import {
 import { releaseRelegationClausePlayers } from "./relegationClauses.ts";
 import { recordWorldSeason } from "./recordWorldSeason.ts";
 import { recordWorldStories } from "./recordWorldStories.ts";
+import { updateClubOwners } from "./recordClubOwners.ts";
 import { getRestingHype } from "./statureEffects.ts";
 import {
 	describePromotion,
@@ -390,6 +391,9 @@ const doEndOfSeason = async (conditions: Conditions) => {
 	// and the stories the season told
 	await recordWorldSeason(season);
 	await recordWorldStories(season);
+
+	// Storytelling (Phase 6c): clubs change hands in the summer
+	await updateClubOwners(season, conditions);
 
 	return true;
 };

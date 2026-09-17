@@ -31,6 +31,7 @@ import {
 	getStature,
 } from "../worker/core/competition/clubStature.ts";
 import { getRealClubHistory } from "../worker/core/competition/realClubHistory.ts";
+import { getOwnerFunding } from "../worker/core/competition/clubOwners.ts";
 import {
 	detectCountryStories,
 	WORLD_STORY_KINDS,
@@ -1223,6 +1224,20 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 				honours.seasons.map((row) => row.season),
 				completedSeasons,
 			);
+
+			// Every club has an owner, and a benefactor's money is in its budget
+			const owner = t.worldOwner!;
+			assert(owner, `${t.tid} has no owner`);
+			assert(
+				["local", "benefactor", "investmentGroup", "fanOwned"].includes(
+					owner.kind,
+				),
+				owner.kind,
+			);
+			assert(owner.since >= STARTING_SEASON);
+			if (owner.kind !== "benefactor") {
+				assert.strictEqual(getOwnerFunding(owner), 0);
+			}
 
 			// Legends come from the players who played for the club
 			assert("worldLegends" in data && data.worldLegends);

@@ -2,6 +2,7 @@ import type { GameAttributesLeague } from "../../../common/types.ts";
 import { idb } from "../../db/index.ts";
 import { g } from "../../util/index.ts";
 import { ensureAcademies } from "./academies.ts";
+import { getNextOwner } from "./clubOwners.ts";
 import {
 	describeClubStature,
 	getLegacyForStature,
@@ -46,6 +47,14 @@ const seedClubStature = async () => {
 			legacy: t.worldStatureSeed.legacy,
 			pop: teamSeason.pop,
 		});
+		// Storytelling (Phase 6c): every club starts with an owner
+		t.worldOwner = getNextOwner({
+			owner: undefined,
+			season,
+			revenue: 0,
+			takeover: false,
+			random: Math.random,
+		}).owner;
 		if (real) {
 			applyRealClubIdentity(t, real);
 		}
@@ -129,7 +138,21 @@ export const ensureClubStature = async () => {
 	}
 
 	for (const t of await idb.cache.teams.getAll()) {
-		if (t.worldStature !== undefined || t.disabled) {
+		if (t.disabled) {
+			continue;
+		}
+		// Storytelling (Phase 6c): a World from before owners gets them
+		if (!t.worldOwner) {
+			t.worldOwner = getNextOwner({
+				owner: undefined,
+				season: g.get("season"),
+				revenue: 0,
+				takeover: false,
+				random: Math.random,
+			}).owner;
+			await idb.cache.teams.put(t);
+		}
+		if (t.worldStature !== undefined) {
 			continue;
 		}
 		const teamSeason = await idb.cache.teamSeasons.indexGet(

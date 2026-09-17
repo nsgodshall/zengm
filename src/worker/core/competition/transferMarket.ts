@@ -194,6 +194,7 @@ export const getWageBudget = ({
 	startingPayroll,
 	seasonsCompleted,
 	maxBudget,
+	ownerFunding = 0,
 }: {
 	salaryCap: number;
 	revenue: number | undefined;
@@ -206,6 +207,8 @@ export const getWageBudget = ({
 	seasonsCompleted?: number;
 	// The ceiling, for a club whose revenue would take it higher
 	maxBudget?: number;
+	// What the club's owner puts in this season, which the board can spend
+	ownerFunding?: number;
 }) => {
 	if (revenue !== undefined) {
 		const cashAdjustment =
@@ -222,7 +225,7 @@ export const getWageBudget = ({
 				maxBudget ?? MAX_CONTRACT_CAP_MULTIPLE * salaryCap,
 				Math.max(
 					minWageBudget,
-					revenue - runningCosts + cashAdjustment,
+					revenue + ownerFunding - runningCosts + cashAdjustment,
 					startingPayrollFloor,
 				),
 			),

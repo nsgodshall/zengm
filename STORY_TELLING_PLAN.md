@@ -615,38 +615,33 @@ guesses waiting for a long run; transfers and the talent pool still to do.**
 
 #### 6c. Owners, takeovers, and administration
 
-This builds on the finance ledger in progress (`worldFinance`,
-`buildWorldPreseasonFinance`), where an owner now automatically covers any debt
-beyond twice a season's revenue.
+**Status: owners, takeovers, and benefactors' money implemented;
+administration and points deductions still to do.**
 
-- **Owners:** each club gets an owner with a generated name and a kind that
-  decides how much debt it will cover, how much it puts in, and what it
-  expects: a local owner (little to put in, patient), a benefactor (rich,
-  ambitious, puts money in, loses patience), an investment group (wants the
-  club to pay its way and sells stars at a profit), or fan ownership (never
-  puts money in, very patient).
-- **Takeovers:** each summer every club has a small chance of being bought
-  (first guess 1–2%, so one or two a season in a 112-club World). It's higher
-  for a sleeping giant (big market or stature, doing badly) or a club deep in
-  debt (a rescue), and lower for a dominant club. A benefactor puts cash in for
-  several seasons, which raises the wage budget above what revenue alone allows
-  (up to a limit) and pays for transfers and infrastructure. That's where most
-  challengers to the dominant few come from.
-- **Owners pulling out:** a benefactor whose club keeps missing its objectives,
-  or who runs out of money or patience, leaves. The budget falls back to
-  revenue, and the big contracts have to go.
-- **Administration:** when a club's debt passes what its owner will cover, it
-  goes into administration: a points deduction next season (first guess a
-  tenth of the most points a club could take in a season, about what real
-  leagues deduct), a transfer embargo for the next window (minimum contracts
-  only), its best-paid players transfer listed at reduced prices, part of the
-  debt written off, and a new owner (a rescue takeover). A second
-  administration within 5 seasons doubles the deduction.
-- **Points deductions:** `computeDivisionTable` takes a points adjustment for
-  each club (sport-agnostic), and tables show it. Promotion, relegation, board
-  objectives, and stories all use the adjusted points.
-- **Stories:** takeovers, owners leaving, administration, points deductions,
-  and "relegated after a points deduction" all go to the story engine.
+- **Owners** (`competition/clubOwners.ts`, pure): every club has an owner of
+  one kind — a local owner, a wealthy benefactor, an investment group, or fan
+  owned — with the season they took over and what they put in. New Worlds get
+  owners at once, older Worlds when they load, and each kind covers a different
+  amount of debt before a club is in trouble (1, 3, 1.5, and 0.75 times
+  revenue).
+- **Takeovers**, checked each summer after promotion and relegation
+  (`competition/recordClubOwners.ts`): 1.5% a club, 3 times as likely for a
+  sleeping giant (stature 60 or more outside the top tier), 2.5 times for a
+  club whose debt is past a season's revenue, and much less likely for
+  champions. A benefactor puts in 30–80% of the club's revenue each season for
+  3–8 seasons; the money goes into its cash and counts as income in the board's
+  wage budget, so it can buy and pay players. That's where challengers to the
+  dominant few come from.
+- **Money running out:** when a benefactor's seasons are up, the club lives on
+  what it earns again. Both the takeover and the end of the money are told as
+  stories, and the team page names the owner and what they put in.
+- **Still to do:** administration when a club's debt passes what its owner will
+  cover (a points deduction of about a tenth of a season's points, a transfer
+  embargo, forced sales, debt written off, and a rescue takeover), which needs
+  points deductions in the tables.
+- **Tested:** unit tests for takeover chances, owner changes, a benefactor's
+  money running out, and debt limits by kind; the World season test checks
+  every club has an owner and only a benefactor puts money in.
 
 #### 6d. Real clubs' real history
 
