@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { PHASE } from "../../../common/constants.ts";
+import { buildClubSquadPlan } from "./clubSquadPlan.ts";
 import {
 	ACADEMY_LOAN_MIN_AGE,
 	aiWouldBorrow,
@@ -37,26 +38,32 @@ describe("getLoanEndSeason", () => {
 
 // A roster of 12, whose 10-man rotation is everyone worth 45 or more
 const roster = [70, 65, 60, 58, 55, 52, 50, 48, 46, 45, 40, 35];
+const squadPlan = (rosterValues = roster, rotationSize = 10) =>
+	buildClubSquadPlan({
+		rosterValues,
+		wageBudget: 100_000,
+		minContract: 1_000,
+		minimumRosterSize: 5,
+		maxRosterSize: 15,
+		rotationSize,
+	});
 
 describe("aiWouldLend", () => {
 	const lend = (options: Partial<Parameters<typeof aiWouldLend>[0]>) =>
 		aiWouldLend({
 			age: 20,
-			valueNoPot: 40,
-			rosterValuesNoPot: roster,
-			rotationSize: 10,
-			minRosterSize: 5,
+			plannedAction: "loan",
 			...options,
 		});
 
 	test("lends out a young player outside the rotation", () => {
 		expect(lend({})).toBe(true);
-		expect(lend({ valueNoPot: 35 })).toBe(true);
+		expect(lend({ plannedAction: "loan" })).toBe(true);
 	});
 
-	test("keeps players in the rotation", () => {
-		expect(lend({ valueNoPot: 45 })).toBe(false);
-		expect(lend({ valueNoPot: 70 })).toBe(false);
+	test("keeps every player the squad plan did not mark for a loan", () => {
+		expect(lend({ plannedAction: "retain" })).toBe(false);
+		expect(lend({ plannedAction: "core" })).toBe(false);
 	});
 
 	test("keeps older players", () => {
@@ -65,15 +72,8 @@ describe("aiWouldLend", () => {
 		expect(lend({ age: 24 })).toBe(false);
 	});
 
-	test("keeps everyone when its roster is too small", () => {
-		expect(lend({ minRosterSize: 12 })).toBe(false);
-		expect(
-			lend({
-				rosterValuesNoPot: [60, 50, 40],
-				valueNoPot: 40,
-				minRosterSize: 2,
-			}),
-		).toBe(false);
+	test("requires a concrete action from the current plan", () => {
+		expect(lend({ plannedAction: undefined })).toBe(false);
 	});
 });
 
@@ -82,15 +82,13 @@ describe("aiWouldBorrow", () => {
 		expect(
 			aiWouldBorrow({
 				valueNoPot: 46,
-				rosterValuesNoPot: roster,
-				rotationSize: 10,
+				squadPlan: squadPlan(),
 			}),
 		).toBe(true);
 		expect(
 			aiWouldBorrow({
 				valueNoPot: 45,
-				rosterValuesNoPot: roster,
-				rotationSize: 10,
+				squadPlan: squadPlan(),
 			}),
 		).toBe(false);
 	});
@@ -99,8 +97,7 @@ describe("aiWouldBorrow", () => {
 		expect(
 			aiWouldBorrow({
 				valueNoPot: 10,
-				rosterValuesNoPot: [60, 50],
-				rotationSize: 10,
+				squadPlan: squadPlan([60, 50]),
 			}),
 		).toBe(true);
 	});
@@ -148,8 +145,7 @@ describe("aiWouldLendAcademyPlayer", () => {
 		expect(
 			aiWouldLendAcademyPlayer({
 				valueNoPot: 44,
-				rosterValuesNoPot: roster,
-				rotationSize: 10,
+				squadPlan: squadPlan(),
 			}),
 		).toBe(true);
 	});
@@ -158,8 +154,7 @@ describe("aiWouldLendAcademyPlayer", () => {
 		expect(
 			aiWouldLendAcademyPlayer({
 				valueNoPot: 45,
-				rosterValuesNoPot: roster,
-				rotationSize: 10,
+				squadPlan: squadPlan(),
 			}),
 		).toBe(false);
 	});
@@ -168,8 +163,7 @@ describe("aiWouldLendAcademyPlayer", () => {
 		expect(
 			aiWouldLendAcademyPlayer({
 				valueNoPot: 10,
-				rosterValuesNoPot: [60, 50],
-				rotationSize: 10,
+				squadPlan: squadPlan([60, 50]),
 			}),
 		).toBe(false);
 	});

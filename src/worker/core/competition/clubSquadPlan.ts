@@ -1,3 +1,5 @@
+import type { TeamSeason } from "../../../common/types.ts";
+
 export type WorldSquadRole = "key" | "starter" | "rotation" | "depth";
 
 export const WORLD_SQUAD_ROLES: WorldSquadRole[] = [
@@ -83,6 +85,9 @@ export type ClubSquadNeed = {
 	players: number;
 	cutoffValue?: number;
 };
+
+export type ClubSquadRecruitmentNeed = ClubSquadNeed["kind"];
+export type ClubRecruitmentFocus = "current" | "potential";
 
 export type ClubSummerPlan = {
 	squadPlan: ClubSquadPlan;
@@ -268,6 +273,83 @@ export const evaluatePlayerForClubSquadPlan = ({
 		improvesRole: cutoffValue === undefined || playerValue > cutoffValue,
 	};
 };
+
+/** The first current squad-building job that a candidate would actually do. */
+export const getClubSquadRecruitmentNeed = ({
+	plan,
+	playerValue,
+}: {
+	plan: ClubSquadPlan;
+	playerValue: number;
+}): ClubSquadRecruitmentNeed | undefined => {
+	if (plan.rosterSize < plan.minimumRosterSize) {
+		return "fillMinimumRoster";
+	}
+
+	const evaluation = evaluatePlayerForClubSquadPlan({ plan, playerValue });
+	if (plan.rosterSize < plan.rotationSize) {
+		return "repairRotation";
+	}
+	if (
+		evaluation.rank <= plan.roles.starter.lastRank &&
+		evaluation.improvesRole
+	) {
+		return "upgradeStarter";
+	}
+	if (plan.rosterSize < plan.targetRosterSize) {
+		return "addDepth";
+	}
+};
+
+/** A loan only helps when the player would enter the borrowing club's rotation. */
+export const fillsClubRotationNeed = ({
+	plan,
+	playerValue,
+}: {
+	plan: ClubSquadPlan;
+	playerValue: number;
+}) => {
+	if (plan.rosterSize < plan.rotationSize) {
+		return true;
+	}
+	const cutoff = plan.rosterValues[plan.rotationSize - 1];
+	return cutoff !== undefined && playerValue > cutoff;
+};
+
+export const getPlannedPlayerAction = (plan: ClubSummerPlan, pid: number) =>
+	plan.playerActions.find((row) => row.pid === pid)?.action;
+
+/**
+ * Existing team strategy supplies the durable signal. A concrete competitive
+ * board objective turns this summer into a current-ability push.
+ */
+export const getClubRecruitmentFocus = ({
+	teamStrategy,
+	boardObjectiveKind,
+}: {
+	teamStrategy: "contending" | "rebuilding";
+	boardObjectiveKind?: NonNullable<TeamSeason["boardObjective"]>["kind"];
+}): ClubRecruitmentFocus => {
+	if (
+		boardObjectiveKind === "title" ||
+		boardObjectiveKind === "promotion" ||
+		boardObjectiveKind === "promotionPlayoff" ||
+		boardObjectiveKind === "avoidRelegation"
+	) {
+		return "current";
+	}
+	return teamStrategy === "rebuilding" ? "potential" : "current";
+};
+
+export const getRecruitmentCandidateScore = ({
+	focus,
+	value,
+	valueNoPot,
+}: {
+	focus: ClubRecruitmentFocus;
+	value: number;
+	valueNoPot: number;
+}) => (focus === "potential" ? value : valueNoPot);
 
 /**
  * The club's ordered summer work and its intended action for every player.

@@ -59,7 +59,12 @@ with lower tiers choosing first.
 
 ### Phase 3: use the plan in every player-movement system
 
-**Status: next.**
+**Status: implemented.** Transfers now expose only planned surplus and recruit
+for an actual squad need. Loans require a development-loan action from the
+lender and a rotation place at the borrower. Academy graduates use the same
+role fit before the club recruits externally. Existing team strategy and board
+objectives choose whether recruitment favors potential or current ability,
+without adding persistent fields.
 
 - AI transfers buy for a recorded need and sell from recorded surplus.
 - Loan borrowers target a real rotation opening; lenders protect required
@@ -70,6 +75,8 @@ with lower tiers choosing first.
   from current state rather than adding a database migration.
 
 ### Phase 4: multi-season strategy
+
+**Status: next.**
 
 - Derive strategy from tier, board objective, squad age, finances, and recent
   promotion or relegation: title challenge, promotion push, survival,

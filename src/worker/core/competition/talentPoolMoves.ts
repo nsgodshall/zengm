@@ -34,6 +34,8 @@ import {
 	buildClubSquadPlan,
 	canAddContractAfterMinimumRosterReserve,
 	evaluatePlayerForClubSquadPlan,
+	getClubRecruitmentFocus,
+	getRecruitmentCandidateScore,
 } from "./clubSquadPlan.ts";
 
 // International Soccer Zen GM mod (Epic 4): moving players in and out of the
@@ -314,45 +316,63 @@ export const aiTalentPoolSignings = async (
 	let numSigned = 0;
 	for (let i = 0; i < numAttempts; i++) {
 		const tid = choice(aiTids);
-		// Like AI transfers, better players are more likely to be looked at
+		if (tid === undefined) {
+			continue;
+		}
+		const t = teamsByTid.get(tid);
+		const teamSeason = await idb.cache.teamSeasons.indexGet(
+			"teamSeasonsBySeasonTid",
+			[season, tid],
+		);
+		if (!t || !teamSeason) {
+			continue;
+		}
+		const recruitmentFocus = getClubRecruitmentFocus({
+			teamStrategy: t.strategy,
+			boardObjectiveKind: teamSeason.boardObjective?.kind,
+		});
 		const p = choice(
 			pool.filter((p) => p.talentPool !== undefined),
-			(p) => p.value,
+			(p) =>
+				getRecruitmentCandidateScore({
+					focus: recruitmentFocus,
+					value: p.value,
+					valueNoPot: p.valueNoPot,
+				}),
 		);
-		if (tid === undefined || !p) {
+		if (!p) {
 			continue;
 		}
 
 		const roster = await idb.cache.players.indexGetAll("playersByTid", tid);
+		const wageBudget = wageBudgets.get(tid);
+		if (wageBudget === undefined) {
+			continue;
+		}
+		const movementSquadPlan = buildClubSquadPlan({
+			wageBudget,
+			minContract: g.get("minContract"),
+			rosterValues: roster.map((other) => other.valueNoPot),
+			minimumRosterSize: g.get("minRosterSize"),
+			maxRosterSize: g.get("maxRosterSize"),
+			rotationSize,
+		});
 		if (
 			roster.length >= g.get("maxRosterSize") ||
 			!aiWouldBorrow({
 				valueNoPot: p.valueNoPot,
-				rosterValuesNoPot: roster.map((p2) => p2.valueNoPot),
-				rotationSize,
+				squadPlan: movementSquadPlan,
 			})
 		) {
 			continue;
 		}
 
-		const wageBudget = wageBudgets.get(tid);
 		const wage = getTalentPoolWage(p);
-		const t = teamsByTid.get(tid);
 		const tier =
 			t?.divisionId === undefined
 				? 1
 				: (tierByDivisionId.get(t.divisionId) ?? 1);
-		const squadPlan =
-			wageBudget !== undefined && tier > 1
-				? buildClubSquadPlan({
-						wageBudget,
-						minContract: g.get("minContract"),
-						rosterValues: roster.map((other) => other.valueNoPot),
-						minimumRosterSize: g.get("minRosterSize"),
-						maxRosterSize: g.get("maxRosterSize"),
-						rotationSize,
-					})
-				: undefined;
+		const squadPlan = tier > 1 ? movementSquadPlan : undefined;
 		const roleLimit = squadPlan
 			? evaluatePlayerForClubSquadPlan({
 					plan: squadPlan,
@@ -360,7 +380,6 @@ export const aiTalentPoolSignings = async (
 				}).contractLimit
 			: Infinity;
 		if (
-			wageBudget === undefined ||
 			wage > roleLimit ||
 			!canAddContractAfterMinimumRosterReserve({
 				payroll: await team.getPayroll(tid),
@@ -374,12 +393,8 @@ export const aiTalentPoolSignings = async (
 			continue;
 		}
 
-		const teamSeason = await idb.cache.teamSeasons.indexGet(
-			"teamSeasonsBySeasonTid",
-			[season, tid],
-		);
 		const fee = getTalentPoolFee(p);
-		if (!teamSeason || !canAiAffordFee({ cash: teamSeason.cash, fee })) {
+		if (!canAiAffordFee({ cash: teamSeason.cash, fee })) {
 			continue;
 		}
 

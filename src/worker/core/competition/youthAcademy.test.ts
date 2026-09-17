@@ -251,16 +251,30 @@ describe("planAcademyPromotions", () => {
 				],
 				roster: [player(50, 50), player(60, 60)],
 				minRosterSize: 4,
+				maxRosterSize: 4,
+				rotationSize: 2,
 			}),
 		).toEqual({ promote: [2, 1], release: [3] });
 	});
 
-	test("a graduate who isn't better than anyone goes to free agency, even with space on the roster", () => {
+	test("a graduate fills planned depth before the club recruits externally", () => {
 		expect(
 			planAcademyPromotions({
 				...ai,
 				prospects: [{ pid: 1, ...player(30, 30), graduating: true }],
 				roster: [player(50, 50), player(60, 60)],
+			}),
+		).toEqual({ promote: [1], release: [] });
+	});
+
+	test("a graduate who fits no role goes to free agency once the target squad is full", () => {
+		expect(
+			planAcademyPromotions({
+				...ai,
+				prospects: [{ pid: 1, ...player(30, 30), graduating: true }],
+				roster: [player(50, 50), player(60, 60)],
+				maxRosterSize: 2,
+				rotationSize: 2,
 			}),
 		).toEqual({ promote: [], release: [1] });
 	});

@@ -1613,6 +1613,9 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			.filter((p) => p.loan === undefined)
 			.sort((a, b) => a.valueNoPot - b.valueNoPot)[0]!;
 		bench.born.year = season - 20;
+		// The shared summer plan makes a development loan available only for a
+		// young reserve with meaningful upside.
+		bench.value = bench.valueNoPot + 8;
 		bench.gamesUntilTradable = 0;
 		bench.contract.amount = minContract;
 		bench.contract.exp = Math.max(bench.contract.exp, season);

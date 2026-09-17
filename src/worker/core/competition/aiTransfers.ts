@@ -9,6 +9,13 @@ import { getTeammateJerseyNumbers } from "../player/genJerseyNumber.ts";
 import { ValueChangeCalculator } from "../team/ValueChangeCalculator.ts";
 import isUntradable from "../trade/isUntradable.ts";
 import { academyTransfersBetweenAiClubs } from "./academyTransfers.ts";
+import buildClubSummerPlanForRoster from "./buildClubSummerPlanForRoster.ts";
+import {
+	getClubRecruitmentFocus,
+	getClubSquadRecruitmentNeed,
+	getPlannedPlayerAction,
+	getRecruitmentCandidateScore,
+} from "./clubSquadPlan.ts";
 import { loansBetweenAiClubs } from "./loanMoves.ts";
 import {
 	aiTalentPoolSignings,
@@ -152,16 +159,54 @@ const attempt = async (
 	if (buyerRoster.length >= g.get("maxRosterSize")) {
 		return;
 	}
+	const buyerWageBudget = wageBudgets.get(buyerTid);
+	if (buyerWageBudget === undefined) {
+		return;
+	}
+	const buyerPlan = buildClubSummerPlanForRoster({
+		players: buyerRoster,
+		wageBudget: buyerWageBudget,
+	});
+	const currentSeason = g.get("season");
+	const buyer = await idb.cache.teams.get(buyerTid);
+	const buyerSeason = await idb.cache.teamSeasons.indexGet(
+		"teamSeasonsBySeasonTid",
+		[currentSeason, buyerTid],
+	);
+	if (!buyer || !buyerSeason) {
+		return;
+	}
+	const recruitmentFocus = getClubRecruitmentFocus({
+		teamStrategy: buyer.strategy,
+		boardObjectiveKind: buyerSeason.boardObjective?.kind,
+	});
 
 	const candidates: Player[] = [];
 	for (const tid of aiTids) {
 		if (tid !== buyerTid) {
-			for (const p of await idb.cache.players.indexGetAll(
+			const sellerRoster = await idb.cache.players.indexGetAll(
 				"playersByTid",
 				tid,
-			)) {
+			);
+			const sellerWageBudget = wageBudgets.get(tid);
+			if (sellerWageBudget === undefined) {
+				continue;
+			}
+			const sellerPlan = buildClubSummerPlanForRoster({
+				players: sellerRoster,
+				wageBudget: sellerWageBudget,
+			});
+			for (const p of sellerRoster) {
 				// A player on loan belongs to another club
-				if (!isUntradable(p).untradable && p.loan === undefined) {
+				if (
+					!isUntradable(p).untradable &&
+					p.loan === undefined &&
+					getPlannedPlayerAction(sellerPlan, p.pid) === "transfer" &&
+					getClubSquadRecruitmentNeed({
+						plan: buyerPlan.squadPlan,
+						playerValue: p.valueNoPot,
+					}) !== undefined
+				) {
 					candidates.push(p);
 				}
 			}
@@ -169,13 +214,18 @@ const attempt = async (
 	}
 
 	// Like AI trades, better players are more likely to be looked at
-	const p = choice(candidates, (p) => p.value);
+	const p = choice(candidates, (p) =>
+		getRecruitmentCandidateScore({
+			focus: recruitmentFocus,
+			value: p.value,
+			valueNoPot: p.valueNoPot,
+		}),
+	);
 	if (!p) {
 		return;
 	}
 	const sellerTid = p.tid;
 
-	const currentSeason = g.get("season");
 	const seasonsLeft = getContractSeasonsLeft({
 		exp: p.contract.exp,
 		season: currentSeason,
@@ -191,16 +241,12 @@ const attempt = async (
 		seasonsLeft,
 	});
 
-	const buyerSeason = await idb.cache.teamSeasons.indexGet(
-		"teamSeasonsBySeasonTid",
-		[currentSeason, buyerTid],
-	);
 	const sellerSeason = await idb.cache.teamSeasons.indexGet(
 		"teamSeasonsBySeasonTid",
 		[currentSeason, sellerTid],
 	);
-	const wageBudget = wageBudgets.get(buyerTid);
-	if (!buyerSeason || !sellerSeason || wageBudget === undefined) {
+	const wageBudget = buyerWageBudget;
+	if (!sellerSeason || wageBudget === undefined) {
 		return;
 	}
 
@@ -210,14 +256,6 @@ const attempt = async (
 
 	const payroll = await team.getPayroll(buyerTid);
 	if (payroll + p.contract.amount > wageBudget) {
-		return;
-	}
-
-	const sellerRoster = await idb.cache.players.indexGetAll(
-		"playersByTid",
-		sellerTid,
-	);
-	if (sellerRoster.length <= g.get("minRosterSize")) {
 		return;
 	}
 

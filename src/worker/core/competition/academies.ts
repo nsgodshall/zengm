@@ -8,6 +8,7 @@ import { getTeammateJerseyNumbers } from "../player/genJerseyNumber.ts";
 import { getNumPlayersTradedAwayNormalizedAll } from "../player/getNumPlayersTradedAwayNormalized.ts";
 import { dropPlayers } from "../team/checkRosterSizes.ts";
 import { isSingleDivision } from "./competitionStructure.ts";
+import { getClubRecruitmentFocus } from "./clubSquadPlan.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
 import { makePlayersMostlyLocal } from "./localPlayers.ts";
 import teamLink from "./teamLink.ts";
@@ -403,6 +404,9 @@ const doAcademySummer = async () => {
 	const season = g.get("season");
 	const maxRosterSize = g.get("maxRosterSize");
 	const clubs = await getAcademyClubs();
+	const teamsByTid = new Map(
+		(await idb.cache.teams.getAll()).map((t) => [t.tid, t]),
+	);
 	const academyPlayersByTid = Map.groupBy(
 		await getAcademyPlayers(),
 		(p) => p.academyTid!,
@@ -441,6 +445,11 @@ const doAcademySummer = async () => {
 			continue;
 		}
 
+		const t = teamsByTid.get(tid);
+		const teamSeason = await idb.cache.teamSeasons.indexGet(
+			"teamSeasonsBySeasonTid",
+			[season, tid],
+		);
 		const plan = planAcademyPromotions({
 			prospects: academyPlayers.map((p) => ({
 				pid: p.pid,
@@ -458,6 +467,13 @@ const doAcademySummer = async () => {
 			maxRosterSize,
 			// Twice the players on court, a basketball rotation
 			rotationSize: 2 * g.get("numPlayersOnCourt"),
+			recruitmentFocus:
+				t && teamSeason
+					? getClubRecruitmentFocus({
+							teamStrategy: t.strategy,
+							boardObjectiveKind: teamSeason.boardObjective?.kind,
+						})
+					: "potential",
 		});
 
 		const byPid = new Map(academyPlayers.map((p) => [p.pid, p]));

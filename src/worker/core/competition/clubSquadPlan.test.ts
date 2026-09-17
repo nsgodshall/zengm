@@ -4,6 +4,11 @@ import {
 	buildClubSummerPlan,
 	canAddContractAfterMinimumRosterReserve,
 	evaluatePlayerForClubSquadPlan,
+	fillsClubRotationNeed,
+	getClubRecruitmentFocus,
+	getClubSquadRecruitmentNeed,
+	getPlannedPlayerAction,
+	getRecruitmentCandidateScore,
 	getWorldNewContractLimit,
 	WORLD_MINIMUM_TEAMMATES_RESERVED,
 } from "./clubSquadPlan.ts";
@@ -173,6 +178,84 @@ describe("evaluatePlayerForClubSquadPlan", () => {
 		expect(
 			evaluatePlayerForClubSquadPlan({ plan, playerValue: 10 }),
 		).toMatchObject({ role: "depth", rank: 15, improvesRole: true });
+	});
+});
+
+describe("shared player-movement decisions", () => {
+	test("matches candidates to the first squad need they can fill", () => {
+		const shortPlan = buildPlan([70, 60, 50, 40, 30]);
+		expect(
+			getClubSquadRecruitmentNeed({ plan: shortPlan, playerValue: 10 }),
+		).toBe("fillMinimumRoster");
+
+		const completePlan = buildPlan();
+		expect(
+			getClubSquadRecruitmentNeed({ plan: completePlan, playerValue: 62 }),
+		).toBe("upgradeStarter");
+		expect(
+			getClubSquadRecruitmentNeed({ plan: completePlan, playerValue: 10 }),
+		).toBe("addDepth");
+
+		const targetPlan = buildPlan([
+			80, 75, 70, 65, 60, 55, 50, 45, 40, 35, 30, 25, 20, 15, 14, 13,
+		]);
+		expect(
+			getClubSquadRecruitmentNeed({ plan: targetPlan, playerValue: 10 }),
+		).toBeUndefined();
+	});
+
+	test("a borrower takes only a player who clears its rotation cutoff", () => {
+		const plan = buildPlan();
+		expect(fillsClubRotationNeed({ plan, playerValue: 36 })).toBe(true);
+		expect(fillsClubRotationNeed({ plan, playerValue: 35 })).toBe(false);
+	});
+
+	test("looks up the action assigned to a player", () => {
+		const players = Array.from({ length: 18 }, (_, i) => ({
+			pid: i + 1,
+			value: 100 - i,
+			valueNoPot: 100 - i,
+			age: 28,
+			contract: { amount: 1_000, exp: 2031 },
+		}));
+		const plan = buildClubSummerPlan({
+			players,
+			season: 2030,
+			wageBudget: 100_000,
+			minContract: 1_000,
+			minimumRosterSize: 14,
+			maxRosterSize: 18,
+			rotationSize: 10,
+		});
+		expect(getPlannedPlayerAction(plan, 1)).toBe("core");
+		expect(getPlannedPlayerAction(plan, 18)).toBe("transfer");
+		expect(getPlannedPlayerAction(plan, 999)).toBeUndefined();
+	});
+
+	test("rebuilds value potential while competitive pushes value current ability", () => {
+		expect(getClubRecruitmentFocus({ teamStrategy: "rebuilding" })).toBe(
+			"potential",
+		);
+		expect(
+			getClubRecruitmentFocus({
+				teamStrategy: "rebuilding",
+				boardObjectiveKind: "promotion",
+			}),
+		).toBe("current");
+		expect(
+			getRecruitmentCandidateScore({
+				focus: "potential",
+				value: 70,
+				valueNoPot: 50,
+			}),
+		).toBe(70);
+		expect(
+			getRecruitmentCandidateScore({
+				focus: "current",
+				value: 70,
+				valueNoPot: 50,
+			}),
+		).toBe(50);
 	});
 });
 

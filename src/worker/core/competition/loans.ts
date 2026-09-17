@@ -1,5 +1,10 @@
 import { PHASE } from "../../../common/constants.ts";
 import type { Phase } from "../../../common/types.ts";
+import type {
+	ClubSquadPlan,
+	ClubSquadPlayerActionType,
+} from "./clubSquadPlan.ts";
+import { fillsClubRotationNeed } from "./clubSquadPlan.ts";
 
 // International Soccer Zen GM mod (Epic 4, stage D): season-long loans. A player
 // on loan plays for, and is paid by, the club he's loaned to, and goes back to
@@ -22,40 +27,17 @@ export const getLoanEndSeason = ({
 }) => (phase <= PHASE.PLAYOFFS ? season : season + 1);
 
 /**
- * The value on current ability (valueNoPot) a player needs to be in a club's
- * rotation, its best `rotationSize` players. Undefined if it has fewer players
- * than that, so everyone is.
- */
-const getRotationCutoff = (valuesNoPot: number[], rotationSize: number) => {
-	const sorted = [...valuesNoPot].sort((a, b) => b - a);
-	return sorted.length < rotationSize ? undefined : sorted[rotationSize - 1];
-};
-
-/**
- * Whether an AI club would lend out one of its players: a young one who isn't
- * getting minutes, because he's outside its rotation, as long as it keeps more
- * than `minRosterSize` players. `rosterValuesNoPot` includes the player.
+ * Whether an AI club would lend out one of its first-team players. The summer
+ * plan has already protected its rotation and required depth, so only a young
+ * player marked for a development loan is available.
  */
 export const aiWouldLend = ({
 	age,
-	valueNoPot,
-	rosterValuesNoPot,
-	rotationSize,
-	minRosterSize,
+	plannedAction,
 }: {
 	age: number;
-	valueNoPot: number;
-	rosterValuesNoPot: number[];
-	rotationSize: number;
-	minRosterSize: number;
-}) => {
-	if (age > LOAN_MAX_AGE || rosterValuesNoPot.length <= minRosterSize) {
-		return false;
-	}
-
-	const cutoff = getRotationCutoff(rosterValuesNoPot, rotationSize);
-	return cutoff !== undefined && valueNoPot < cutoff;
-};
+	plannedAction: ClubSquadPlayerActionType | undefined;
+}) => age <= LOAN_MAX_AGE && plannedAction === "loan";
 
 // Decided: academy players can go on loan once they're this old
 export const ACADEMY_LOAN_MIN_AGE = 18;
@@ -83,14 +65,15 @@ export const canLoanAcademyPlayer = ({
  */
 export const aiWouldLendAcademyPlayer = ({
 	valueNoPot,
-	rosterValuesNoPot,
-	rotationSize,
+	squadPlan,
 }: {
 	valueNoPot: number;
-	rosterValuesNoPot: number[];
-	rotationSize: number;
+	squadPlan: ClubSquadPlan;
 }) => {
-	const cutoff = getRotationCutoff(rosterValuesNoPot, rotationSize);
+	if (squadPlan.rosterSize < squadPlan.rotationSize) {
+		return false;
+	}
+	const cutoff = squadPlan.rosterValues[squadPlan.rotationSize - 1];
 	return cutoff !== undefined && valueNoPot < cutoff;
 };
 
@@ -100,13 +83,8 @@ export const aiWouldLendAcademyPlayer = ({
  */
 export const aiWouldBorrow = ({
 	valueNoPot,
-	rosterValuesNoPot,
-	rotationSize,
+	squadPlan,
 }: {
 	valueNoPot: number;
-	rosterValuesNoPot: number[];
-	rotationSize: number;
-}) => {
-	const cutoff = getRotationCutoff(rosterValuesNoPot, rotationSize);
-	return cutoff === undefined || valueNoPot > cutoff;
-};
+	squadPlan: ClubSquadPlan;
+}) => fillsClubRotationNeed({ plan: squadPlan, playerValue: valueNoPot });

@@ -10,6 +10,8 @@ import { getNumPlayersTradedAwayNormalizedAll } from "../player/getNumPlayersTra
 import { dropPlayers } from "../team/checkRosterSizes.ts";
 import isUntradable from "../trade/isUntradable.ts";
 import { getAcademyPlayers } from "./academies.ts";
+import buildClubSummerPlanForRoster from "./buildClubSummerPlanForRoster.ts";
+import { getPlannedPlayerAction } from "./clubSquadPlan.ts";
 import { isSingleDivision } from "./competitionStructure.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
 import {
@@ -252,7 +254,6 @@ export const loansBetweenAiClubs = async (
 	}
 
 	const season = g.get("season");
-	const rotationSize = 2 * g.get("numPlayersOnCourt");
 	const wageBudgets = await getWageBudgets();
 	const aiTidsSet = new Set(aiTids);
 
@@ -268,41 +269,51 @@ export const loansBetweenAiClubs = async (
 		if (borrowerRoster.length >= g.get("maxRosterSize")) {
 			return false;
 		}
+		const borrowerWageBudget = wageBudgets.get(borrowerTid);
+		if (borrowerWageBudget === undefined) {
+			return false;
+		}
+		const borrowerPlan = buildClubSummerPlanForRoster({
+			players: borrowerRoster,
+			wageBudget: borrowerWageBudget,
+		});
 
 		const academy = p.academyTid !== undefined;
+		const lenderTid = p.academyTid ?? p.tid;
 		const lenderRoster = await idb.cache.players.indexGetAll(
 			"playersByTid",
-			p.academyTid ?? p.tid,
+			lenderTid,
 		);
-		const rosterValuesNoPot = lenderRoster.map((p2) => p2.valueNoPot);
+		const lenderWageBudget = wageBudgets.get(lenderTid);
+		if (lenderWageBudget === undefined) {
+			return false;
+		}
+		const lenderPlan = buildClubSummerPlanForRoster({
+			players: lenderRoster,
+			wageBudget: lenderWageBudget,
+		});
 		const wouldLend = academy
 			? aiWouldLendAcademyPlayer({
 					valueNoPot: p.valueNoPot,
-					rosterValuesNoPot,
-					rotationSize,
+					squadPlan: lenderPlan.squadPlan,
 				})
 			: aiWouldLend({
 					age: season - p.born.year,
-					valueNoPot: p.valueNoPot,
-					rosterValuesNoPot,
-					rotationSize,
-					minRosterSize: g.get("minRosterSize"),
+					plannedAction: getPlannedPlayerAction(lenderPlan, p.pid),
 				});
 		if (
 			!wouldLend ||
 			!aiWouldBorrow({
 				valueNoPot: p.valueNoPot,
-				rosterValuesNoPot: borrowerRoster.map((p2) => p2.valueNoPot),
-				rotationSize,
+				squadPlan: borrowerPlan.squadPlan,
 			})
 		) {
 			return false;
 		}
 
-		const wageBudget = wageBudgets.get(borrowerTid);
 		if (
-			wageBudget === undefined ||
-			(await team.getPayroll(borrowerTid)) + getLoanWage(p) > wageBudget
+			(await team.getPayroll(borrowerTid)) + getLoanWage(p) >
+			borrowerWageBudget
 		) {
 			return false;
 		}
@@ -486,7 +497,8 @@ export const requestLoan = async ({
 	}
 
 	const wage = getLoanWage(p);
-	const wageBudget = (await getWageBudgets()).get(userTid);
+	const wageBudgets = await getWageBudgets();
+	const wageBudget = wageBudgets.get(userTid);
 	if (wageBudget === undefined) {
 		return error("Your club has no wage budget this season.");
 	}
@@ -502,14 +514,19 @@ export const requestLoan = async ({
 		"playersByTid",
 		lenderTid,
 	);
-	const rotationSize = 2 * g.get("numPlayersOnCourt");
-	const rosterValuesNoPot = lenderRoster.map((p2) => p2.valueNoPot);
+	const lenderWageBudget = wageBudgets.get(lenderTid);
+	if (lenderWageBudget === undefined) {
+		return error(`The ${lenderName} have no wage budget this season.`);
+	}
+	const lenderPlan = buildClubSummerPlanForRoster({
+		players: lenderRoster,
+		wageBudget: lenderWageBudget,
+	});
 	if (academy) {
 		if (
 			!aiWouldLendAcademyPlayer({
 				valueNoPot: p.valueNoPot,
-				rosterValuesNoPot,
-				rotationSize,
+				squadPlan: lenderPlan.squadPlan,
 			})
 		) {
 			return {
@@ -520,10 +537,7 @@ export const requestLoan = async ({
 	} else if (
 		!aiWouldLend({
 			age,
-			valueNoPot: p.valueNoPot,
-			rosterValuesNoPot,
-			rotationSize,
-			minRosterSize: g.get("minRosterSize"),
+			plannedAction: getPlannedPlayerAction(lenderPlan, p.pid),
 		})
 	) {
 		return {
@@ -581,7 +595,6 @@ export const makeAiLoanRequests = async (numAttempts: number) => {
 		return 0;
 	}
 
-	const rotationSize = 2 * g.get("numPlayersOnCourt");
 	const wageBudgets = await getWageBudgets();
 	const endSeason = getLoanEndSeason({
 		season: g.get("season"),
@@ -605,11 +618,18 @@ export const makeAiLoanRequests = async (numAttempts: number) => {
 			"playersByTid",
 			borrowerTid,
 		);
+		const borrowerWageBudget = wageBudgets.get(borrowerTid);
+		if (borrowerWageBudget === undefined) {
+			continue;
+		}
+		const borrowerPlan = buildClubSummerPlanForRoster({
+			players: borrowerRoster,
+			wageBudget: borrowerWageBudget,
+		});
 		if (
 			!aiWouldBorrow({
 				valueNoPot: p.valueNoPot,
-				rosterValuesNoPot: borrowerRoster.map((p2) => p2.valueNoPot),
-				rotationSize,
+				squadPlan: borrowerPlan.squadPlan,
 			})
 		) {
 			continue;

@@ -3,6 +3,13 @@ import { PHASE } from "../../../common/constants.ts";
 import { defaultGameAttributes } from "../../../common/defaultGameAttributes.ts";
 import type { Phase, PlayerContract } from "../../../common/types.ts";
 import { minBy } from "../../../common/utils.ts";
+import {
+	buildClubSquadPlan,
+	type ClubRecruitmentFocus,
+	fillsClubRotationNeed,
+	getClubSquadRecruitmentNeed,
+	getRecruitmentCandidateScore,
+} from "./clubSquadPlan.ts";
 
 // Players join an academy this many years younger than the youngest age
 // ZenGM's draft would take them
@@ -174,34 +181,68 @@ export const planAcademyPromotions = ({
 	minRosterSize,
 	maxRosterSize,
 	rotationSize,
+	recruitmentFocus = "potential",
 }: {
 	prospects: AcademyProspect[];
 	roster: AcademyRosterPlayer[];
 	minRosterSize: number;
 	maxRosterSize: number;
 	rotationSize: number;
+	recruitmentFocus?: ClubRecruitmentFocus;
 }) => {
 	const promote: number[] = [];
 	const release: number[] = [];
 
 	const firstTeam = [...roster];
 
-	const bestFirst = [...prospects].sort((a, b) => b.value - a.value);
+	const bestFirst = [...prospects].sort(
+		(a, b) =>
+			getRecruitmentCandidateScore({
+				focus: recruitmentFocus,
+				value: b.value,
+				valueNoPot: b.valueNoPot,
+			}) -
+			getRecruitmentCandidateScore({
+				focus: recruitmentFocus,
+				value: a.value,
+				valueNoPot: a.valueNoPot,
+			}),
+	);
 	for (const prospect of bestFirst) {
 		const lowestValue = minBy(firstTeam, "value");
 		const beatsLowestValue =
 			lowestValue !== undefined && prospect.value > lowestValue.value;
+		const squadPlan = buildClubSquadPlan({
+			rosterValues: firstTeam.map((p) => p.valueNoPot),
+			// Recruitment fit depends on ranks and roster targets, not wages.
+			wageBudget: 0,
+			minContract: 0,
+			minimumRosterSize: minRosterSize,
+			maxRosterSize,
+			rotationSize,
+		});
+		const recruitmentNeed = getClubSquadRecruitmentNeed({
+			plan: squadPlan,
+			playerValue: prospect.valueNoPot,
+		});
 
 		let promoted;
 		if (prospect.graduating) {
-			promoted = firstTeam.length < minRosterSize || beatsLowestValue;
-		} else {
-			const bestNow = firstTeam.map((p) => p.valueNoPot).sort((a, b) => b - a);
-			const rotationCutoff =
-				bestNow[Math.min(rotationSize, bestNow.length) - 1];
 			promoted =
-				rotationCutoff !== undefined &&
-				prospect.valueNoPot > rotationCutoff &&
+				(recruitmentNeed !== undefined || beatsLowestValue) &&
+				(firstTeam.length < maxRosterSize || beatsLowestValue);
+		} else {
+			const currentRotationCutoff =
+				firstTeam.length < rotationSize
+					? minBy(firstTeam, "valueNoPot")?.valueNoPot
+					: squadPlan.rosterValues[rotationSize - 1];
+			promoted =
+				currentRotationCutoff !== undefined &&
+				prospect.valueNoPot > currentRotationCutoff &&
+				fillsClubRotationNeed({
+					plan: squadPlan,
+					playerValue: prospect.valueNoPot,
+				}) &&
 				(firstTeam.length < maxRosterSize || beatsLowestValue);
 		}
 
