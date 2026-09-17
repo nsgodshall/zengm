@@ -471,8 +471,8 @@ What landed (`competition/worldStories.ts`, pure, and
 
 ### Phase 5: tell (presentation)
 
-**Status: the World Chronicle page and the World Season Preview implemented;
-the rest still to do.**
+**Status: the World Chronicle page, the World Season Preview, and club legends
+implemented; the rest still to do.**
 
 What landed: the **Chronicle** (League → Chronicle, World only;
 `competition/worldChronicle.ts`, `ui/views/WorldChronicle.tsx`): pick a
@@ -489,6 +489,12 @@ means (straight back, back after years away, or there for the first time in a
 long while), big clubs stuck below the top tier (stature 60 or more), and the
 derbies in each Division, marking one that's back after a move. Its thresholds
 are in `SEASON_STORYLINE_SETTINGS`.
+
+**Club legends** (`competition/clubLegends.ts`, pure): a World club's history
+page names its most-used players and top scorers (the same stat as its
+Division's Top Scorer award), its one-club players, and its academy graduates,
+each with games played and the seasons they played, from the players who have
+played for it.
 
 - **World Chronicle** (a World-only page): season by season, and Country by
   Country, the headline story, each Division's champion and who went up and

@@ -11,6 +11,7 @@ import { Championships } from "./Championships.tsx";
 import { LeagueHistoryChart } from "./LeagueHistoryChart.tsx";
 import { WorldHonours } from "./WorldHonours.tsx";
 import { WorldRivals } from "./WorldRivals.tsx";
+import { WorldLegends } from "./WorldLegends.tsx";
 
 const TeamHistory = ({
 	abbrev,
@@ -30,6 +31,7 @@ const TeamHistory = ({
 	totalWinp,
 	totalWon,
 	worldHonours,
+	worldLegends,
 	worldRivals,
 	worstRecord,
 }: View<"teamHistory">) => {
@@ -95,6 +97,11 @@ const TeamHistory = ({
 					{worldRivals ? (
 						<HideableSection title="Rivals" className="mb-3">
 							<WorldRivals abbrev={abbrev} rivals={worldRivals} tid={tid} />
+						</HideableSection>
+					) : null}
+					{worldLegends ? (
+						<HideableSection title="Club legends" className="mb-3">
+							<WorldLegends legends={worldLegends} />
 						</HideableSection>
 					) : null}
 					<RetiredJerseyNumbers

@@ -21,7 +21,7 @@ import { getWorldSeasonSummary } from "./seasonSummary.ts";
 
 // A club's top scorer counts the same stat as its Division's Top Scorer award
 // (see getDivisionAwards). Stats rows are season totals.
-const getScore = bySport<(row: Record<string, number>) => number>({
+export const getScorerValue = bySport<(row: Record<string, number>) => number>({
 	baseball: (row) => row.hr ?? 0,
 	basketball: (row) => row.pts ?? 0,
 	football: (row) => (row.rusTD ?? 0) + (row.recTD ?? 0),
@@ -70,7 +70,11 @@ export const recordWorldSeason = async (season: number) => {
 			season === g.get("season")
 				? await idb.cache.players.getAll()
 				: await idb.getCopies.players({ activeSeason: season }, "noCopyCache");
-		leadersByTid = getClubSeasonLeaders({ players, season, getScore });
+		leadersByTid = getClubSeasonLeaders({
+			players,
+			season,
+			getScore: getScorerValue,
+		});
 	}
 
 	const records = buildWorldSeasonRecords({

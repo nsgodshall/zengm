@@ -370,6 +370,17 @@ const updateTeamHistory = async (
 			// International Soccer Zen GM mod (storytelling)
 			worldHonours: await competition.getClubHonoursInfo(inputs.tid),
 			worldRivals: await competition.getClubRivalsInfo(inputs.tid),
+			// International Soccer Zen GM mod (storytelling): the club's legends,
+			// from the players who have played for it
+			worldLegends: competition.isSingleDivision(
+				competition.getCompetitionStructure(),
+			)
+				? undefined
+				: competition.getClubLegends({
+						players,
+						tid: inputs.tid,
+						getScore: competition.getScorerValue,
+					}),
 		};
 	}
 };

@@ -1129,6 +1129,7 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		const teams = await idb.cache.teams.getAll();
 		const championsByTier = new Map<number, number>();
 		let numRivals = 0;
+		let numLegends = 0;
 		for (const t of teams) {
 			const history = t.worldHistory!;
 			const data = await teamHistoryView(
@@ -1171,6 +1172,15 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 				completedSeasons,
 			);
 
+			// Legends come from the players who played for the club
+			assert("worldLegends" in data && data.worldLegends);
+			for (const legend of data.worldLegends.mostAppearances) {
+				assert(legend.gp > 0, legend.name);
+				assert(legend.firstSeason >= STARTING_SEASON);
+				assert(legend.lastSeason <= completedSeasons.at(-1)!);
+			}
+			numLegends += data.worldLegends.mostAppearances.length;
+
 			// Rivals come from shared history, with their all-time record
 			assert("worldRivals" in data && data.worldRivals);
 			for (const rival of data.worldRivals) {
@@ -1190,6 +1200,7 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			numRivals += data.worldRivals.length;
 		}
 		assert(numRivals > 0);
+		assert(numLegends > 0);
 		// Every Division has a champion every season
 		for (const tier of [1, 2]) {
 			assert.strictEqual(
@@ -1857,6 +1868,8 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 					p.tid !== userTid &&
 					p.contract.exp >= season &&
 					p.gamesUntilTradable === 0 &&
+					// A player out on loan goes back before he can be sold
+					p.loan === undefined &&
 					rosterSizes.get(p.tid)! > g.get("minRosterSize"),
 			)
 			.sort((a, b) => a.contract.amount - b.contract.amount)[0];

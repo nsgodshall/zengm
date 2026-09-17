@@ -85,8 +85,10 @@ import { getWorldRollOfHonour } from "./worldLeagueHistory.ts";
 import { getWorldChronicle, getWorldStorylines } from "./worldChronicle.ts";
 import {
 	fillWorldSeasonRecords,
+	getScorerValue,
 	recordWorldSeason,
 } from "./recordWorldSeason.ts";
+import { getClubLegends } from "./clubLegends.ts";
 import runPromotionPlayoff from "./promotionPlayoff.ts";
 import ensureCompetitionStructure, {
 	getCompetitionStructure,
@@ -128,6 +130,8 @@ export default {
 	getClubHonoursInfo,
 	getClubRecordsHonours,
 	getClubRivalsInfo,
+	getClubLegends,
+	getScorerValue,
 	getWorldRollOfHonour,
 	getWorldChronicle,
 	getWorldStorylines,
