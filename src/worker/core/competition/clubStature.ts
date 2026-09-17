@@ -58,6 +58,15 @@ export const getStartingLegacy = (tier: number) => {
 	return legacies[Math.min(tier, legacies.length) - 1]!;
 };
 
+// The points of stature a market size (population in millions) is worth
+const getMarketScore = (pop: number) => {
+	const settings = STATURE_SETTINGS;
+	const market =
+		(Math.log(Math.max(pop, 1e-6)) - Math.log(settings.marketPopMin)) /
+		(Math.log(settings.marketPopMax) - Math.log(settings.marketPopMin));
+	return settings.marketMax * Math.min(1, Math.max(0, market));
+};
+
 /** Stature from legacy and market size (population in millions) */
 export const getStature = ({
 	legacy,
@@ -69,11 +78,30 @@ export const getStature = ({
 	const settings = STATURE_SETTINGS;
 	const legacyScore =
 		settings.legacyMax * (1 - Math.exp(-legacy / settings.legacyScale));
-	const market =
-		(Math.log(Math.max(pop, 1e-6)) - Math.log(settings.marketPopMin)) /
-		(Math.log(settings.marketPopMax) - Math.log(settings.marketPopMin));
-	const marketScore = settings.marketMax * Math.min(1, Math.max(0, market));
-	return Math.round(Math.min(100, Math.max(0, legacyScore + marketScore)));
+	return Math.round(
+		Math.min(100, Math.max(0, legacyScore + getMarketScore(pop))),
+	);
+};
+
+/**
+ * The legacy that gives a club of this market size this stature, for real
+ * clubs' starting stature (see competition/realClubHistory.ts). A stature below
+ * what the market alone is worth needs no legacy, and one above what legacy can
+ * add stops just short of it.
+ */
+export const getLegacyForStature = ({
+	stature,
+	pop,
+}: {
+	stature: number;
+	pop: number;
+}) => {
+	const settings = STATURE_SETTINGS;
+	const fraction = Math.min(
+		0.99,
+		Math.max(0, (stature - getMarketScore(pop)) / settings.legacyMax),
+	);
+	return -settings.legacyScale * Math.log(1 - fraction);
 };
 
 /**

@@ -353,6 +353,7 @@ const createGameAttributes = async (
 			gameAttributes.worldMinimumRosterSet = true;
 			gameAttributes.worldSeasonRecordsFilled = true;
 			gameAttributes.worldTransferRecordsFilled = true;
+			gameAttributes.worldRealClubHistoryFilled = true;
 
 			// Per-game salaries and revenue, contracts, and awards go by the
 			// league-wide season length, so it has to match the Divisions' own

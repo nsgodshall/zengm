@@ -69,6 +69,8 @@ export const getClubInfo = async (tid: number, season: number) => {
 		: undefined;
 
 	return {
+		founded: t?.worldIdentity?.founded,
+		nickname: t?.worldIdentity?.nickname,
 		stature: stature?.stature,
 		statureLabel: stature?.label,
 		stadiumCapacity: teamSeason.stadiumCapacity,

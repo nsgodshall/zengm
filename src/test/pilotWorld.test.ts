@@ -4,6 +4,11 @@ import { afterAll, assert, beforeAll, describe, test } from "vitest";
 import { LEAGUE_DATABASE_VERSION, PHASE } from "../common/constants.ts";
 import type { Player } from "../common/types.ts";
 import { PILOT_CLUBS_PER_DIVISION } from "../worker/core/competition/pilotWorld.ts";
+import {
+	getLegacyForStature,
+	getStature,
+} from "../worker/core/competition/clubStature.ts";
+import { getRealClubHistory } from "../worker/core/competition/realClubHistory.ts";
 import { getWageBudgets } from "../worker/core/competition/wageBudgets.ts";
 import {
 	MAX_STADIUM_CAPACITY,
@@ -271,6 +276,27 @@ describe("the pilot World", () => {
 			);
 		}
 		assert(Math.max(...capacities) > 2 * Math.min(...capacities));
+	});
+
+	test("real clubs start with their real stature, founding year, and nickname", async () => {
+		for (const t of await idb.cache.teams.getAll()) {
+			const real = getRealClubHistory(t);
+			assert(real, `${t.region} ${t.name}`);
+			const info = (await competition.getClubInfo(t.tid, g.get("season")))!;
+			// Between what the market alone is worth and the most legacy can add
+			const marketOnly = getStature({ legacy: 0, pop: info.pop });
+			const most = getStature({
+				legacy: getLegacyForStature({ stature: 100, pop: info.pop }),
+				pop: info.pop,
+			});
+			const expected = Math.min(most, Math.max(real.stature, marketOnly));
+			assert(
+				Math.abs(info.stature! - expected) <= 1,
+				`${t.region}: ${info.stature} for ${real.stature}`,
+			);
+			assert.strictEqual(info.founded, real.founded);
+			assert.strictEqual(info.nickname, real.nickname);
+		}
 	});
 
 	test("every club has a youth academy", async () => {

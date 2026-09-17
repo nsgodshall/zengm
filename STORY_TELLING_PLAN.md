@@ -543,15 +543,35 @@ beyond twice a season's revenue.
 
 #### 6d. Real clubs' real history
 
-- Each of the 260 real clubs gets its founding year, nickname, and a starting
-  stature from its real standing: for football clubs, league titles, seasons in
-  the top flight, and European trophies; for the American, Japanese, and
-  Mexican clubs, their standing in their own sport (the Yankees start as
-  giants). These are data files the user reviews Country by Country, like the
-  club lists.
-- Generated clubs get a generated founding year and a starting stature from
-  their starting tier and market size.
-- Older Worlds get stature seeds and founding years once when they load.
+**Status: implemented, with the data drafted for the user's review.**
+
+- **Data** (`competition/realClubHistory.ts`): every one of the 260 real clubs
+  has a starting stature from its real standing: for football clubs, titles,
+  seasons in the top flight, and European success; for the American, Japanese,
+  and Mexican teams, their standing in their own sport (the Yankees start at
+  95, Real Madrid at 95, Bayern Munich at 96). The British, Spanish, and German
+  clubs also have founding years and nicknames, left out where uncertain. The
+  American, Japanese, and Mexican teams have none yet. **All of it is a first
+  draft for the user to review Country by Country.**
+- **Starting stature:** a new World seeds each real club with the legacy that
+  gives its starting stature at its market size (`getLegacyForStature`); a
+  stature below what the market alone is worth needs no legacy, and one above
+  what legacy can add is capped (Real Madrid's 95 comes out at 93). Other clubs
+  keep the starting-tier seed. A real club is matched by abbreviation, region,
+  and name, since ZenGM's default Baltimore Crabs and Portland Roses are also
+  real American clubs but its other default teams only share towns.
+- **Founding year and nickname** show on the team page next to its stadium and
+  market.
+- **Older Worlds** give their real clubs founding years and nicknames, and real
+  starting stature if they have no stature seed yet, once when they load
+  (`worldRealClubHistoryFilled`).
+- Decided: real trophies don't show in cabinets; honours count what happens in
+  the World.
+- **Tested:** every real club has an entry with a sensible stature and founding
+  year, and nothing else does; a club sharing only an abbreviation and town
+  isn't matched; starting stature turns into legacy and back within a point.
+  The pilot World test checks every real club's stature, founding year, and
+  nickname at creation.
 
 #### Later
 

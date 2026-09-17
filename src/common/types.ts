@@ -698,6 +698,9 @@ export type GameAttributesLeague = {
 		byCountryId: Record<number, WorldTransferRecord>;
 	};
 	worldTransferRecordsFilled?: true;
+	// International Soccer Zen GM mod (storytelling): set once a World made before
+	// real clubs' history was added has been given it
+	worldRealClubHistoryFilled?: true;
 	// International Soccer Zen GM mod (Epic 4): the transfer window whose talent
 	// pool has arrived, so it only arrives once (see competition/talentPoolMoves.ts)
 	talentPoolKey?: string;
@@ -1910,6 +1913,9 @@ export type Team = {
 	// going into a season, which its stature builds on from there (see
 	// competition/clubStature.ts)
 	worldStatureSeed?: { legacy: number; season: number };
+	// International Soccer Zen GM mod (storytelling): a real club's founding year
+	// and nickname (see competition/realClubHistory.ts)
+	worldIdentity?: { founded?: number; nickname?: string };
 	tid: number;
 	cid: number;
 	did: number;

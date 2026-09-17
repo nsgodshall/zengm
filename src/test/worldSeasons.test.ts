@@ -24,10 +24,12 @@ import {
 } from "../worker/core/competition/loans.ts";
 import { getTvShare } from "../worker/core/competition/worldRevenue.ts";
 import {
+	getLegacyForStature,
 	getLegacyTimeline,
 	getStartingLegacy,
 	getStature,
 } from "../worker/core/competition/clubStature.ts";
+import { getRealClubHistory } from "../worker/core/competition/realClubHistory.ts";
 import {
 	describePromotion,
 	describeRelegation,
@@ -874,9 +876,16 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 	test("every club's stature builds from its starting tier, its finishes, and its market", async () => {
 		const teamSeasons: TeamSeason[] = await idb.league.getAll("teamSeasons");
 		for (const t of await idb.cache.teams.getAll()) {
+			// ZenGM's default Baltimore and Portland teams are real American clubs
 			const startingTier = t.worldHistory![0]!.tier;
+			const real = getRealClubHistory(t);
+			const startingPop = teamSeasons.find(
+				(row) => row.tid === t.tid && row.season === STARTING_SEASON,
+			)!.pop;
 			assert.deepStrictEqual(t.worldStatureSeed, {
-				legacy: getStartingLegacy(startingTier),
+				legacy: real
+					? getLegacyForStature({ stature: real.stature, pop: startingPop })
+					: getStartingLegacy(startingTier),
 				season: STARTING_SEASON,
 			});
 			const timeline = getLegacyTimeline(t.worldStatureSeed!, t.worldHistory!);

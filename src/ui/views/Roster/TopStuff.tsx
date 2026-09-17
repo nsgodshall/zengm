@@ -300,6 +300,12 @@ const TopStuff = ({
 									{helpers.ordinal(clubInfo.marketRank)} of{" "}
 									{clubInfo.numClubsInCountry} in {clubInfo.countryName}
 									{/* International Soccer Zen GM mod (storytelling) */}
+									{clubInfo.founded !== undefined ? (
+										<> · Founded {clubInfo.founded}</>
+									) : null}
+									{clubInfo.nickname !== undefined ? (
+										<> · {clubInfo.nickname}</>
+									) : null}
 									{clubInfo.stature !== undefined ? (
 										<>
 											{" "}
