@@ -49,6 +49,9 @@ import createStreamFromLeagueObject from "../worker/core/league/create/createStr
 import { idb } from "../worker/db/index.ts";
 import { g, helpers, local, lock } from "../worker/util/index.ts";
 import academyView from "../worker/views/academy.ts";
+import historyAllView from "../worker/views/historyAll.ts";
+import teamHistoryView from "../worker/views/teamHistory.ts";
+import teamRecordsView from "../worker/views/teamRecords.ts";
 import { getWorldDefaultSettings } from "../worker/views/newLeague.ts";
 
 // International Soccer Zen GM mod (Epic 8): create a small World and auto play
@@ -897,6 +900,101 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		assert.strictEqual(leagueHistory.seasons[0]!.pyramidPosition, 99);
 		t.worldHistory = original;
 		await idb.cache.teams.put(t);
+	});
+
+	test("a club's history page, League History, and Team Records show its honours", async () => {
+		const teams = await idb.cache.teams.getAll();
+		const championsByTier = new Map<number, number>();
+		for (const t of teams) {
+			const history = t.worldHistory!;
+			const data = await teamHistoryView(
+				{ tid: t.tid, abbrev: t.abbrev, show: "10" },
+				["firstRun"],
+				{},
+			);
+			assert(data && "worldHonours" in data && data.worldHonours);
+			const honours = data.worldHonours;
+
+			assert.strictEqual(honours.numSeasons, completedSeasons.length);
+			assert.deepStrictEqual(
+				honours.titles.flatMap((row) => row.seasons).sort(),
+				history
+					.filter((e) => e.champion)
+					.map((e) => e.season)
+					.sort(),
+			);
+			for (const row of honours.titles) {
+				championsByTier.set(
+					row.tier,
+					(championsByTier.get(row.tier) ?? 0) + row.seasons.length,
+				);
+			}
+			assert.deepStrictEqual(
+				honours.promotions.map((row) => row.season),
+				history.filter((e) => e.moved === "promoted").map((e) => e.season),
+			);
+			assert.deepStrictEqual(
+				honours.relegations,
+				history.filter((e) => e.moved === "relegated").map((e) => e.season),
+			);
+			assert.strictEqual(
+				honours.seasonsByTier.reduce((sum, row) => sum + row.seasons, 0),
+				completedSeasons.length,
+			);
+			assert(honours.seasonsByTier.every((row) => row.divisionName !== ""));
+			assert.deepStrictEqual(
+				honours.seasons.map((row) => row.season),
+				completedSeasons,
+			);
+		}
+		// Every Division has a champion every season
+		for (const tier of [1, 2]) {
+			assert.strictEqual(
+				championsByTier.get(tier),
+				structure.countries.length * completedSeasons.length,
+			);
+		}
+
+		const leagueHistory = await historyAllView({}, ["firstRun"]);
+		assert(leagueHistory && "worldRollOfHonour" in leagueHistory);
+		const rollOfHonour = leagueHistory.worldRollOfHonour!;
+		assert.deepStrictEqual(
+			rollOfHonour.map((country) => country.name),
+			["Northland", "Southland"],
+		);
+		for (const country of rollOfHonour) {
+			assert.deepStrictEqual(
+				country.seasons.map((row) => row.season),
+				completedSeasons.toReversed(),
+			);
+			for (const row of country.seasons) {
+				assert(row.champions.every((champion) => champion !== undefined));
+				assert(row.runnerUp);
+				const link = structure.promotionRelegationLinks.find(
+					(link) => link.countryId === country.countryId,
+				)!;
+				assert.strictEqual(row.relegatedFromTop.length, link.numAutoRelegated);
+				assert.strictEqual(row.promotedToTop.length, link.numAutoRelegated);
+			}
+		}
+
+		const records = await teamRecordsView(
+			{ byType: "by_team", filter: "all" },
+			["firstRun"],
+			{},
+		);
+		assert(records && "world" in records && records.world);
+		for (const row of records.teams.filter((row) => row.root)) {
+			const t = teams.find((t) => t.tid === row.tid)!;
+			assert.strictEqual(
+				row.world?.promotions,
+				t.worldHistory!.filter((e) => e.moved === "promoted").length,
+			);
+			assert.strictEqual(
+				row.world?.titles,
+				t.worldHistory!.filter((e) => e.champion && e.tier === 1).length,
+			);
+		}
 	});
 
 	test("each Division has its own MVP, top scorer, young player, and All-Division team, and there are no other awards, even in a World made before that was decided", async () => {

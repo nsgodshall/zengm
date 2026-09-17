@@ -2,6 +2,7 @@ import clsx from "clsx";
 import { RecordAndPlayoffs } from "../../components/RecordAndPlayoffs.tsx";
 import type { View } from "../../../common/types.ts";
 import { useState } from "react";
+import { helpers } from "../../util/helpers.ts";
 
 const ExpandableNote = ({ note }: { note: string | undefined }) => {
 	const [expand, setExpand] = useState(false);
@@ -24,14 +25,42 @@ const ExpandableNote = ({ note }: { note: string | undefined }) => {
 	);
 };
 
-const Seasons = ({ history }: Pick<View<"teamHistory">, "history">) => {
+const Seasons = ({
+	history,
+	worldSeasons,
+}: Pick<View<"teamHistory">, "history"> & {
+	worldSeasons?: NonNullable<View<"teamHistory">["worldHonours"]>["seasons"];
+}) => {
 	const numTeamNames = new Set(
 		history.map((h) => h.name).filter((name) => name !== undefined),
 	).size;
 
 	let prevName = numTeamNames === 1 ? history[0]!.name : undefined;
 	const historySeasons = history.map((h, i) => {
-		const recordAndPlayoffs = (
+		// International Soccer Zen GM mod (storytelling): a World club's finish in
+		// its Division, and whether it went up or down
+		const worldSeason = worldSeasons?.find((row) => row.season === h.season);
+		const recordAndPlayoffs = worldSeason ? (
+			<span className={worldSeason.champion ? "fw-bold" : undefined}>
+				<a
+					href={helpers.leagueUrl(["roster", `${h.abbrev}_${h.tid}`, h.season])}
+				>
+					{h.season}
+				</a>
+				:{" "}
+				<a href={helpers.leagueUrl(["standings", h.season])}>
+					{helpers.formatRecord(h)}
+				</a>
+				, {helpers.ordinal(worldSeason.position)} in the{" "}
+				{worldSeason.divisionName}
+				{worldSeason.champion ? " (C)" : ""}
+				{worldSeason.moved === "promoted"
+					? ` ▲${worldSeason.promotionPlayoff === "won" ? " (P)" : ""}`
+					: worldSeason.moved === "relegated"
+						? " ▼"
+						: ""}
+			</span>
+		) : (
 			<RecordAndPlayoffs
 				abbrev={h.abbrev}
 				className={

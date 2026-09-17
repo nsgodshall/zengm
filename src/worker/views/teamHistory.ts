@@ -367,6 +367,8 @@ const updateTeamHistory = async (
 			retiredJerseyNumbers: retiredJerseyNumbers2,
 			// International Soccer Zen GM mod (Epic 6)
 			leagueHistory: await competition.getLeagueHistory(inputs.tid),
+			// International Soccer Zen GM mod (storytelling)
+			worldHonours: await competition.getClubHonoursInfo(inputs.tid),
 		};
 	}
 };

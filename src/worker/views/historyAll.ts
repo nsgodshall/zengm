@@ -6,6 +6,7 @@ import { groupByUnique, last, orderBy, range } from "../../common/utils.ts";
 import { formatAwardNamePrefix } from "../core/awards/prefixes.ts";
 import { bySport } from "../../common/sportFunctions.ts";
 import { PlayersCache } from "../db/PlayersCache.ts";
+import { competition } from "../core/index.ts";
 
 const getAbbrev = (
 	tid: number,
@@ -379,6 +380,9 @@ const updateHistory = async (inputs: unknown, updateEvents: UpdateEvents) => {
 		return {
 			awards: awardTypes,
 			seasons,
+			// International Soccer Zen GM mod (storytelling): a World's roll of
+			// honour for each Country, in place of league champions
+			worldRollOfHonour: await competition.getWorldRollOfHonour(),
 		};
 	}
 };

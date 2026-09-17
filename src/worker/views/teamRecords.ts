@@ -6,7 +6,7 @@ import type {
 	ViewInput,
 	Awards,
 } from "../../common/types.ts";
-import { season } from "../core/index.ts";
+import { competition, season } from "../core/index.ts";
 import { omit, orderBy } from "../../common/utils.ts";
 
 const sumBy = <Key extends string, T extends Record<Key, number>>(
@@ -498,11 +498,23 @@ const updateTeamRecords = async (
 		const pointsFormula = g.get("pointsFormula");
 		const usePts = pointsFormula !== "";
 
+		// International Soccer Zen GM mod (storytelling): in a World, each club's
+		// honours in place of playoff appearances, finals, and titles
+		const worldHonours = await competition.getClubRecordsHonours(
+			(tid, season) =>
+				filter !== "your_teams" || tid === g.get("userTid", season),
+		);
+
 		return {
 			awardTypes,
 			byType,
 			filter,
-			teams,
+			teams: teams.map((t) => ({
+				...t,
+				world:
+					byType === "by_team" && t.root ? worldHonours?.get(t.tid) : undefined,
+			})),
+			world: worldHonours !== undefined,
 			ties: season.hasTies(Infinity) || ties,
 			otl: g.get("otl") || otl,
 			usePts,

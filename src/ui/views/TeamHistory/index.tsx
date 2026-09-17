@@ -9,6 +9,7 @@ import HideableSection from "../../components/HideableSection.tsx";
 import { useLocal } from "../../util/local.ts";
 import { Championships } from "./Championships.tsx";
 import { LeagueHistoryChart } from "./LeagueHistoryChart.tsx";
+import { WorldHonours } from "./WorldHonours.tsx";
 
 const TeamHistory = ({
 	abbrev,
@@ -27,6 +28,7 @@ const TeamHistory = ({
 	totalTied,
 	totalWinp,
 	totalWon,
+	worldHonours,
 	worstRecord,
 }: View<"teamHistory">) => {
 	useTitleBar({
@@ -46,23 +48,38 @@ const TeamHistory = ({
 
 			<div className="row">
 				<div className="col-sm-5 col-md-3">
-					<HideableSection pageName="TeamHistory" title="Overall">
-						<Overall
-							bestRecord={bestRecord}
-							championships={championships}
-							finalsAppearances={finalsAppearances}
-							playoffAppearances={playoffAppearances}
-							totalLost={totalLost}
-							totalOtl={totalOtl}
-							totalTied={totalTied}
-							totalWinp={totalWinp}
-							totalWon={totalWon}
-							worstRecord={worstRecord}
-						/>
-					</HideableSection>
+					{/* International Soccer Zen GM mod (storytelling): a World club's
+					honours in place of playoff appearances and championships */}
+					{worldHonours ? (
+						<HideableSection pageName="TeamHistory" title="Honours">
+							<WorldHonours
+								honours={worldHonours}
+								totalLost={totalLost}
+								totalOtl={totalOtl}
+								totalTied={totalTied}
+								totalWinp={totalWinp}
+								totalWon={totalWon}
+							/>
+						</HideableSection>
+					) : (
+						<HideableSection pageName="TeamHistory" title="Overall">
+							<Overall
+								bestRecord={bestRecord}
+								championships={championships}
+								finalsAppearances={finalsAppearances}
+								playoffAppearances={playoffAppearances}
+								totalLost={totalLost}
+								totalOtl={totalOtl}
+								totalTied={totalTied}
+								totalWinp={totalWinp}
+								totalWon={totalWon}
+								worstRecord={worstRecord}
+							/>
+						</HideableSection>
+					)}
 
 					<HideableSection title="Seasons" className="mt-3">
-						<Seasons history={history} />
+						<Seasons history={history} worldSeasons={worldHonours?.seasons} />
 					</HideableSection>
 				</div>
 				<div className="col-sm-7 col-md-9 mt-3 mt-sm-0">

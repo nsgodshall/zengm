@@ -10,6 +10,7 @@ import {
 } from "../components/PlayerNameLabels.tsx";
 import { TeamLogoInline } from "../components/TeamLogoInline.tsx";
 import { useLocal } from "../util/local.ts";
+import { WorldRollOfHonour } from "../components/WorldRollOfHonour.tsx";
 
 const awardName = (
 	award: {
@@ -88,9 +89,24 @@ const formatTeam = (
 	};
 };
 
-const HistoryAll = ({ awards, seasons }: View<"historyAll">) => {
+const HistoryAll = ({
+	awards,
+	seasons,
+	worldRollOfHonour,
+}: View<"historyAll">) => {
 	useTitleBar({ title: "League History" });
 	const { userTid } = useLocal(["userTid"]);
+
+	// International Soccer Zen GM mod (storytelling): a World has a roll of
+	// honour for each Country instead of league champions
+	if (worldRollOfHonour) {
+		return (
+			<>
+				<MoreLinks type="league" page="history_all" />
+				<WorldRollOfHonour countries={worldRollOfHonour} userTid={userTid} />
+			</>
+		);
+	}
 
 	const cols = getCols([
 		"Season",

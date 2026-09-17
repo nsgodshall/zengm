@@ -296,35 +296,43 @@ to Phase 4 with the in-season stories that need it. No gameplay change.
 
 ### Phase 2: club identity and honours
 
-**Status: not started.**
+**Status: honours and the history pages implemented; stature and real clubs'
+history (Phase 6d) still to do.**
 
-- **Honours** (`getClubHonours`, pure, from the records): titles by tier,
-  promotions (and through playoffs), relegations, seasons in each tier, best
-  finish, current top-flight run, "never relegated", dynasties, and records
-  held.
-- **Stature:** a slow-moving number from 0 to 100 for how big a club is, from
-  titles, top finishes, and seasons in each tier with a half-life of 10–15
-  seasons, plus market size. It's kept on the team with a copy in each season's
-  record, so its rise and fall can be charted. Real clubs start from their real
-  standing and generated clubs from their starting tier and market size (Phase
-  6d). In this phase it only labels clubs "giant", "established", "yo-yo",
-  "rising", "minnow", or "sleeping giant" (high stature, low tier); Phase 6b
-  makes it affect hype, revenue, and players' choices.
-- **Founding years and nicknames:** from Phase 6d's data, shown on the team
-  page.
-- **Pages:**
-  - **Club honours** on the team page (trophy cabinet) and the team history
-    page (roll of honour by season, eras).
-  - **League History** in a World: for every season, each Country's champion
-    for every tier and who went up and down, in place of the empty playoff
-    view.
-  - **Team Records** in a World: titles by tier, promotions, relegations,
-    seasons in the top flight, best finish, and stature, instead of playoff
-    columns.
-  - **Roll of honour** for each Division: champions by season and titles by
-    club.
-- **Tested:** honours from hand-built records; the World test's honours match
-  its seasons.
+- **Honours** (`competition/clubHonours.ts`, pure, from a club's saved
+  history): titles by tier, dynasties (3 top-tier titles within 5 seasons,
+  overlapping runs joined), promotions (and whether through a playoff),
+  relegations, promotion playoffs won and lost, seasons on each tier, best
+  finish, the current and longest runs in the top tier, and whether the club
+  has never been relegated. The story yield report shares the dynasty rule.
+- **Team history page** (`competition/clubHonoursInfo.ts`,
+  `ui/views/TeamHistory/WorldHonours.tsx`): in a World, an Honours box replaces
+  ZenGM's playoff appearances, finals, and championships: record, titles for
+  each Division with their seasons, dynasties, promotions, relegations,
+  promotion playoffs, best finish, seasons in each Division, the top-flight run,
+  "never relegated", and the club's record signing. Each season in the Seasons
+  list shows the club's place and Division, (C) for a title, and ▲/▼ for moves.
+- **League History** (`competition/worldLeagueHistory.ts`,
+  `ui/components/WorldRollOfHonour.tsx`): in a World, a roll of honour for each
+  Country, season by season: the champion of every tier with how many titles it
+  had by then, the top tier's runner-up, and the clubs promoted to and relegated
+  from the top tier, in place of ZenGM's league champion, runner-up, and awards.
+- **Team Records:** in a World, seasons in the top tier, titles, last title,
+  lower-tier titles, promotions, relegations, and best finish replace playoff
+  appearances, finals, titles, and best records.
+- **Tested:** unit tests for honours, dynasties, runs, and the roll of honour.
+  The World season test checks the team history, League History, and Team
+  Records views against every club's saved history.
+- **Stature** (still to do): a slow-moving number from 0 to 100 for how big a
+  club is, from titles, top finishes, and seasons in each tier with a half-life
+  of 10–15 seasons, plus market size. It's kept on the team with a copy in each
+  season's record, so its rise and fall can be charted. Real clubs start from
+  their real standing and generated clubs from their starting tier and market
+  size (Phase 6d). In this phase it only labels clubs "giant", "established",
+  "yo-yo", "rising", "minnow", or "sleeping giant" (high stature, low tier);
+  Phase 6b makes it affect hype, revenue, and players' choices.
+- **Founding years and nicknames** (still to do): from Phase 6d's data, shown
+  on the team page.
 
 ### Phase 3: context in the news
 

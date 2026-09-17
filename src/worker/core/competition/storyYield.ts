@@ -1,4 +1,5 @@
 import type { WorldHistoryEntry } from "../../../common/types.ts";
+import { getDynasties } from "./clubHonours.ts";
 
 // International Soccer Zen GM mod (storytelling): how many of the stories real
 // leagues are made of a World's history produced, measured from its clubs'
@@ -12,9 +13,6 @@ export const STORY_YIELD_SETTINGS = {
 	// in its pyramid over this many seasons before it
 	bigClubLookback: 5,
 	numBigClubs: 3,
-	// A dynasty is this many titles within this many seasons
-	dynastyTitles: 3,
-	dynastySeasons: 5,
 	// A climb is this many tiers up within this many seasons
 	climbTiers: 2,
 	climbSeasons: 5,
@@ -131,36 +129,15 @@ const analyzeCountry = (
 		}
 	}
 
-	const dynasties: (Span & { titles: number })[] = [];
-	for (const club of clubs) {
-		const titleSeasons = [...topChampions]
-			.filter(([, tid]) => tid === club.tid)
-			.map(([season]) => season)
-			.sort((a, b) => a - b);
-		const clubDynasties: Span[] = [];
-		for (let i = 0; i + settings.dynastyTitles <= titleSeasons.length; i++) {
-			const from = titleSeasons[i]!;
-			const to = titleSeasons[i + settings.dynastyTitles - 1]!;
-			if (to - from >= settings.dynastySeasons) {
-				continue;
-			}
-			const last = clubDynasties.at(-1);
-			if (last && from <= last.to) {
-				last.to = to;
-			} else {
-				clubDynasties.push({ name: club.name, from, to });
-			}
-		}
-		for (const dynasty of clubDynasties) {
-			dynasties.push({
-				...dynasty,
-				titles: titleSeasons.filter(
-					(season) => season >= dynasty.from && season <= dynasty.to,
-				).length,
-			});
-		}
-	}
-	dynasties.sort((a, b) => a.from - b.from);
+	const dynasties = clubs
+		.flatMap((club) =>
+			getDynasties(
+				[...topChampions]
+					.filter(([, tid]) => tid === club.tid)
+					.map(([season]) => season),
+			).map((dynasty) => ({ name: club.name, ...dynasty })),
+		)
+		.sort((a, b) => a.from - b.from);
 
 	// First titles, after the first season
 	let numFirstTitles = 0;

@@ -37,6 +37,7 @@ const TeamRecords = ({
 	ties,
 	otl,
 	usePts,
+	world,
 }: View<"teamRecords">) => {
 	const [showHistorical, setShowHistorical] = useState(true);
 
@@ -67,15 +68,53 @@ const TeamRecords = ({
 		...(otl ? ["OTL"] : []),
 		...(ties ? ["T"] : []),
 		...(usePts ? ["PTS", "PTS%"] : ["%"]),
-		"PlayoffAppearances",
-		"Last",
-		"Finals",
-		"Last",
-		"Titles",
-		"Last",
-		"BR",
-		"BRC",
-		"BRD",
+		// International Soccer Zen GM mod (storytelling): a World's honours in
+		// place of playoff records
+		...(world
+			? [
+					{
+						title: "Top",
+						desc: "Seasons in the Top Tier",
+						sortSequence: ["desc", "asc"] as const,
+						sortType: "number" as const,
+					},
+					"Titles",
+					"Last",
+					{
+						title: "Lower",
+						desc: "Lower Tier Titles",
+						sortSequence: ["desc", "asc"] as const,
+						sortType: "number" as const,
+					},
+					{
+						title: "Up",
+						desc: "Promotions",
+						sortSequence: ["desc", "asc"] as const,
+						sortType: "number" as const,
+					},
+					{
+						title: "Down",
+						desc: "Relegations",
+						sortSequence: ["desc", "asc"] as const,
+						sortType: "number" as const,
+					},
+					{
+						title: "Best",
+						desc: "Best Finish",
+						sortType: "number" as const,
+					},
+				]
+			: [
+					"PlayoffAppearances",
+					"Last",
+					"Finals",
+					"Last",
+					"Titles",
+					"Last",
+					"BR",
+					"BRC",
+					"BRD",
+				]),
 		...awardTypes.map((award) => {
 			return {
 				desc: award.name,
@@ -89,9 +128,13 @@ const TeamRecords = ({
 	]);
 
 	const lasts = cols.filter((col) => col.title === "Last");
-	lasts[0]!.desc = "Last Playoffs Appearance";
-	lasts[1]!.desc = "Last Finals Appearance";
-	lasts[2]!.desc = "Last Championship";
+	if (world) {
+		lasts[0]!.desc = "Last Top Tier Title";
+	} else {
+		lasts[0]!.desc = "Last Playoffs Appearance";
+		lasts[1]!.desc = "Last Finals Appearance";
+		lasts[2]!.desc = "Last Championship";
+	}
 
 	const rows = teams
 		.filter((t) => showHistorical || !isHistorical(t))
@@ -111,15 +154,37 @@ const TeamRecords = ({
 					...(usePts
 						? [t.pts, helpers.roundWinp(t.ptsPct)]
 						: [helpers.roundWinp(t.winp)]),
-					blankIfZero(t.playoffs),
-					t.lastPlayoffs,
-					blankIfZero(t.finals),
-					t.lastFinals,
-					blankIfZero(t.titles),
-					t.lastTitle,
-					blankIfZero(t.bestRecord),
-					blankIfZero(t.bestRecordConf),
-					blankIfZero(t.bestRecordDiv),
+					...(world
+						? [
+								t.world?.topTierSeasons,
+								blankIfZero(t.world?.titles ?? 0),
+								t.world?.lastTitle,
+								blankIfZero(t.world?.lowerTitles ?? 0),
+								blankIfZero(t.world?.promotions ?? 0),
+								blankIfZero(t.world?.relegations ?? 0),
+								t.world?.bestFinish
+									? {
+											value:
+												t.world.bestFinish.tier === 1
+													? helpers.ordinal(t.world.bestFinish.position)
+													: `${helpers.ordinal(t.world.bestFinish.position)} (tier ${t.world.bestFinish.tier})`,
+											sortValue:
+												100 * t.world.bestFinish.tier +
+												t.world.bestFinish.position,
+										}
+									: undefined,
+							]
+						: [
+								blankIfZero(t.playoffs),
+								t.lastPlayoffs,
+								blankIfZero(t.finals),
+								t.lastFinals,
+								blankIfZero(t.titles),
+								t.lastTitle,
+								blankIfZero(t.bestRecord),
+								blankIfZero(t.bestRecordConf),
+								blankIfZero(t.bestRecordDiv),
+							]),
 					...awardTypes.map((award) => {
 						return t.custom[award.shortName];
 					}),

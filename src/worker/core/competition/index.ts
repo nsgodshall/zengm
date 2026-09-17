@@ -77,6 +77,11 @@ import {
 } from "./transferMarket.ts";
 import planEndOfSeason from "./planEndOfSeason.ts";
 import {
+	getClubHonoursInfo,
+	getClubRecordsHonours,
+} from "./clubHonoursInfo.ts";
+import { getWorldRollOfHonour } from "./worldLeagueHistory.ts";
+import {
 	fillWorldSeasonRecords,
 	recordWorldSeason,
 } from "./recordWorldSeason.ts";
@@ -118,6 +123,9 @@ export default {
 	getWorldNewLeagueInfo,
 	getClubDivisionInfo,
 	getLeagueHistory,
+	getClubHonoursInfo,
+	getClubRecordsHonours,
+	getWorldRollOfHonour,
 	fillWorldSeasonRecords,
 	recordWorldSeason,
 	getAcademySummary,
