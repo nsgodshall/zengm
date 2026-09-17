@@ -968,7 +968,10 @@ describe.runIf(NUM_SEASONS > 0)("a realistic World over many seasons", () => {
 			// (STORY_TELLING_PLAN.md, Phase 0)
 			const stories = await getStoryYieldReport();
 			await writeReport("stories.json", stories);
-			await writeReport("stories.md", formatStoryYield(stories.storyYield));
+			await writeReport(
+				"stories.md",
+				formatStoryYield(stories.storyYield, stories.storiesTold),
+			);
 			await logProgress("report written");
 		},
 		6 * 60 * 60 * 1000,

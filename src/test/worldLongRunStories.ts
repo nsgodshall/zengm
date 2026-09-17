@@ -27,8 +27,21 @@ export const getStoryYieldReport = async () => {
 			history: t.worldHistory ?? [],
 		}));
 
+	// How many stories of each kind were actually told (see
+	// competition/worldStories.ts and competition/inSeasonStories.ts)
+	const events = await idb.league.getAll("events");
+	const toldByKind: Record<string, number> = {};
+	let numTold = 0;
+	for (const event of events) {
+		if (event.type === "story" && "story" in event && event.story) {
+			toldByKind[event.story.kind] = (toldByKind[event.story.kind] ?? 0) + 1;
+			numTold += 1;
+		}
+	}
+
 	return {
 		settings: STORY_YIELD_SETTINGS,
+		storiesTold: { total: numTold, byKind: toldByKind },
 		storyYield: analyzeStoryYield({
 			countries: structure.countries,
 			clubs,
@@ -50,13 +63,26 @@ const seasons = (rows: { name: string; season: number }[]) =>
 		? "none"
 		: rows.map((row) => `${row.name} (${row.season})`).join("; ");
 
-export const formatStoryYield = (storyYield: StoryYield[]) => {
+export const formatStoryYield = (
+	storyYield: StoryYield[],
+	storiesTold?: { total: number; byKind: Record<string, number> },
+) => {
 	const lines = [
 		"# Stories",
 		"",
 		"Measured against STORY_TELLING_PLAN.md's Phase 6a targets for real-league concentration. Big clubs are each season's 3 clubs with the best average place in their Country's pyramid over the 5 seasons before.",
 		"",
 	];
+
+	if (storiesTold) {
+		lines.push(
+			`${storiesTold.total} stories told: ${Object.entries(storiesTold.byKind)
+				.sort((a, b) => b[1] - a[1])
+				.map(([kind, count]) => `${kind} ${count}`)
+				.join(", ")}`,
+			"",
+		);
+	}
 
 	const mean = (values: (number | undefined)[]) => {
 		const defined = values.filter((value) => value !== undefined);
