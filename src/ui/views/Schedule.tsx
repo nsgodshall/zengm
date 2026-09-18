@@ -143,8 +143,17 @@ const Schedule = ({
 									? game.teams[1].tid
 									: game.teams[0].tid;
 
+							// International Soccer Zen GM mod (storytelling, Phase 5): a
+							// World says when the next game is against a rival
+							const rival = "worldRival" in game ? game.worldRival : undefined;
+
 							return (
 								<Fragment key={game.gid}>
+									{rival ? (
+										<div className="text-body-secondary small mb-1">
+											{rival.derbyTown ? `${rival.derbyTown} derby` : "Rivalry"}
+										</div>
+									) : null}
 									<ScoreBox
 										game={{
 											// Leave out forceTie, since ScoreBox wants the value for finished games

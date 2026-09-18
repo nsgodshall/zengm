@@ -79,6 +79,7 @@ import planEndOfSeason from "./planEndOfSeason.ts";
 import {
 	getClubHonoursInfo,
 	getClubRecordsHonours,
+	getClubRivalMarks,
 	getClubRivalsInfo,
 } from "./clubHonoursInfo.ts";
 import { getWorldRollOfHonour } from "./worldLeagueHistory.ts";
@@ -132,6 +133,7 @@ export default {
 	getLeagueHistory,
 	getClubHonoursInfo,
 	getClubRecordsHonours,
+	getClubRivalMarks,
 	getClubRivalsInfo,
 	getClubLegends,
 	getScorerValue,

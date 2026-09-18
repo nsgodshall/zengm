@@ -156,12 +156,9 @@ export const getClubRecordsHonours = async (
  * competition/rivalries.ts), with why they're rivals and their all-time
  * regular season record against each. Undefined outside a World.
  */
-export const getClubRivalsInfo = async (tid: number) => {
+/** Every World club's rivals, keyed by tid (see competition/rivalries.ts) */
+export const getWorldRivalries = async () => {
 	const structure = getCompetitionStructure();
-	if (isSingleDivision(structure)) {
-		return;
-	}
-
 	const countryIdByDivisionId = new Map(
 		structure.competitionDivisions.map((division) => [
 			division.divisionId,
@@ -169,29 +166,58 @@ export const getClubRivalsInfo = async (tid: number) => {
 		]),
 	);
 	const teams = (await idb.cache.teams.getAll()).filter((t) => !t.disabled);
-	const rivals =
-		getRivalries({
-			season: g.get("season"),
-			clubs: teams.flatMap((t) => {
-				const countryId =
-					t.divisionId === undefined
-						? undefined
-						: countryIdByDivisionId.get(t.divisionId);
-				return countryId === undefined
-					? []
-					: [
-							{
-								tid: t.tid,
-								countryId,
-								town: t.location?.town,
-								history: t.worldHistory ?? [],
-							},
-						];
-			}),
-			playoffGames:
-				(g as unknown as Partial<GameAttributesLeague>)
-					.promotionPlayoffResults ?? [],
-		}).get(tid) ?? [];
+	return getRivalries({
+		season: g.get("season"),
+		clubs: teams.flatMap((t) => {
+			const countryId =
+				t.divisionId === undefined
+					? undefined
+					: countryIdByDivisionId.get(t.divisionId);
+			return countryId === undefined
+				? []
+				: [
+						{
+							tid: t.tid,
+							countryId,
+							town: t.location?.town,
+							history: t.worldHistory ?? [],
+						},
+					];
+		}),
+		playoffGames:
+			(g as unknown as Partial<GameAttributesLeague>).promotionPlayoffResults ??
+			[],
+	});
+};
+
+/**
+ * International Soccer Zen GM mod (storytelling, Phase 5): who a World club's
+ * next opponents are to it, keyed by the opponent's tid, so its schedule can
+ * mark the derbies. Empty outside a World.
+ */
+export const getClubRivalMarks = async (tid: number) => {
+	const marks = new Map<number, { derbyTown?: string }>();
+	if (isSingleDivision(getCompetitionStructure())) {
+		return marks;
+	}
+	for (const rival of (await getWorldRivalries()).get(tid) ?? []) {
+		const derbyTown = getDerbyTown(rival);
+		marks.set(rival.tid, derbyTown === undefined ? {} : { derbyTown });
+	}
+	return marks;
+};
+
+/**
+ * International Soccer Zen GM mod (storytelling): a World club's rivals, with
+ * why they're rivals and its all-time record against each, for its history
+ * page. Undefined outside a World.
+ */
+export const getClubRivalsInfo = async (tid: number) => {
+	if (isSingleDivision(getCompetitionStructure())) {
+		return;
+	}
+
+	const rivals = (await getWorldRivalries()).get(tid) ?? [];
 
 	const headToHeads = await idb.getCopies.headToHeads({}, "noCopyCache");
 	const teamInfoCache = g.get("teamInfoCache");

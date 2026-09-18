@@ -1,4 +1,4 @@
-import { player, season, team } from "../core/index.ts";
+import { competition, player, season, team } from "../core/index.ts";
 import { idb } from "../db/index.ts";
 import { g, helpers } from "../util/index.ts";
 import type {
@@ -491,6 +491,18 @@ const updateUpcoming = async (
 
 		const topPlayers = await getTopPlayers<[any, any]>(inputs.tid, 2);
 
+		// International Soccer Zen GM mod (storytelling, Phase 5): a World marks
+		// the games against the club's rivals
+		const rivalMarks = await competition.getClubRivalMarks(inputs.tid);
+		const upcomingWithRivals = upcoming.map((game) => {
+			const otherTid =
+				game.teams[0].tid === inputs.tid
+					? game.teams[1].tid
+					: game.teams[0].tid;
+			const rival = rivalMarks.get(otherTid);
+			return rival ? { ...game, worldRival: rival } : game;
+		});
+
 		return {
 			abbrev: inputs.abbrev,
 			canLiveSimFirstGame,
@@ -499,7 +511,7 @@ const updateUpcoming = async (
 			tid: inputs.tid,
 			ties: season.hasTies("current"),
 			topPlayers,
-			upcoming,
+			upcoming: upcomingWithRivals,
 		};
 	}
 };
