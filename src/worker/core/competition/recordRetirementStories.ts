@@ -119,15 +119,17 @@ export const recordRetirementStories = async (
 				.filter((transaction) => transaction.type === "academy")
 				.map((transaction) => transaction.tid),
 		};
-		if (!couldBeALegend(player)) {
+		const main = getMainClub(player);
+		const t = main ? teamsByTid.get(main.tid) : undefined;
+		const division =
+			t?.divisionId === undefined ? undefined : divisionsById.get(t.divisionId);
+		if (!main || !t || !division) {
 			continue;
 		}
 
-		const main = getMainClub(player)!;
-		const t = teamsByTid.get(main.tid);
-		const division =
-			t?.divisionId === undefined ? undefined : divisionsById.get(t.divisionId);
-		if (!t || !division) {
+		// A Division's season is as long as its size makes it
+		const gamesPerSeason = division.numGames ?? g.get("numGames");
+		if (!couldBeALegend(player, gamesPerSeason)) {
 			continue;
 		}
 
@@ -139,6 +141,7 @@ export const recordRetirementStories = async (
 					.filter((entry) => entry.champion)
 					.map((entry) => entry.season),
 			},
+			gamesPerSeason,
 		});
 		if (!facts) {
 			continue;

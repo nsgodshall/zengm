@@ -3,21 +3,24 @@
 // something to a club get one, so a squad's worth of retirements each summer
 // doesn't flood the news.
 
+// Thresholds are in seasons' worth of games, not appearances, since a World's
+// Divisions play as many games as their size decides (and other sports play
+// different numbers again)
 export const RETIREMENT_STORY_SETTINGS = {
-	// Appearances for one club that make a player its legend
-	appearances: 150,
+	// Seasons' worth of games for one club that make a player its legend
+	seasons: 4,
 	// Fewer will do for a player who never played anywhere else
-	oneClubAppearances: 100,
+	oneClubSeasons: 3,
 	// Or for one who came through the club's academy
-	academyAppearances: 120,
+	academySeasons: 3.5,
 	// However few he played, a club's all-time leader in appearances or scoring
-	// gets his story, as long as he played this many
-	leaderAppearances: 40,
+	// gets his story, as long as he played this much
+	leaderSeasons: 1.5,
 	// Significance: a legend's floor, plus this much for each title he won at
-	// the club and for each of these many appearances, capped
+	// the club and for each season's worth of games he played, capped
 	baseSignificance: 35,
 	significancePerTitle: 6,
-	appearancesPerPoint: 40,
+	significancePerSeason: 2,
 	maxSignificance: 80,
 };
 
@@ -73,8 +76,12 @@ export const getMainClub = (p: RetiringPlayer) =>
  * Most players who retire played nowhere near long enough at one club to be
  * anybody's legend, and the bests cost a database read.
  */
-export const couldBeALegend = (player: RetiringPlayer) =>
-	(getMainClub(player)?.gp ?? 0) >= RETIREMENT_STORY_SETTINGS.leaderAppearances;
+export const couldBeALegend = (
+	player: RetiringPlayer,
+	gamesPerSeason: number,
+) =>
+	(getMainClub(player)?.gp ?? 0) >=
+	RETIREMENT_STORY_SETTINGS.leaderSeasons * gamesPerSeason;
 
 /**
  * The facts behind a retiring player's story, or undefined if his career
@@ -84,6 +91,7 @@ export const couldBeALegend = (player: RetiringPlayer) =>
 export const getRetirementStory = ({
 	player,
 	club,
+	gamesPerSeason,
 }: {
 	player: RetiringPlayer;
 	club: {
@@ -93,8 +101,11 @@ export const getRetirementStory = ({
 		// The seasons the club was champion of its Division
 		titleSeasons: number[];
 	};
+	// How many games its Division plays in a season
+	gamesPerSeason: number;
 }): RetirementStoryFacts | undefined => {
 	const settings = RETIREMENT_STORY_SETTINGS;
+	const games = (seasons: number) => seasons * Math.max(1, gamesPerSeason);
 	const main = getMainClub(player);
 	if (!main || main.gp <= 0) {
 		return;
@@ -103,25 +114,23 @@ export const getRetirementStory = ({
 	const oneClub = player.statsTids.every((tid) => tid === main.tid);
 	const academy = player.academyTids.includes(main.tid);
 	const leader: RetirementStoryFacts["leader"] = [];
-	if (
-		main.gp >= club.mostAppearances &&
-		main.gp >= settings.leaderAppearances
-	) {
+	const leaderGames = games(settings.leaderSeasons);
+	if (main.gp >= club.mostAppearances && main.gp >= leaderGames) {
 		leader.push("appearances");
 	}
 	if (
 		main.value > 0 &&
 		main.value >= club.mostScoring &&
-		main.gp >= settings.leaderAppearances
+		main.gp >= leaderGames
 	) {
 		leader.push("scoring");
 	}
 
 	const enough =
 		leader.length > 0 ||
-		main.gp >= settings.appearances ||
-		(oneClub && main.gp >= settings.oneClubAppearances) ||
-		(academy && main.gp >= settings.academyAppearances);
+		main.gp >= games(settings.seasons) ||
+		(oneClub && main.gp >= games(settings.oneClubSeasons)) ||
+		(academy && main.gp >= games(settings.academySeasons));
 	if (!enough) {
 		return;
 	}
@@ -148,7 +157,8 @@ export const getRetirementStory = ({
 			Math.round(
 				settings.baseSignificance +
 					settings.significancePerTitle * titles +
-					main.gp / settings.appearancesPerPoint,
+					(settings.significancePerSeason * main.gp) /
+						Math.max(1, gamesPerSeason),
 			),
 		),
 	};

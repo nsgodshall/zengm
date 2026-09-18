@@ -19,6 +19,8 @@ const player = (overrides: Partial<RetiringPlayer> = {}): RetiringPlayer => ({
 	...overrides,
 });
 
+const GAMES = 38;
+
 const club = (overrides = {}) => ({
 	mostAppearances: 400,
 	mostScoring: 5000,
@@ -37,6 +39,7 @@ describe("getRetirementStory", () => {
 				statsTids: [4, 7],
 			}),
 			club: club(),
+			gamesPerSeason: GAMES,
 		});
 
 		expect(facts?.tid).toBe(7);
@@ -53,35 +56,45 @@ describe("getRetirementStory", () => {
 					],
 				}),
 				club: club(),
+				gamesPerSeason: GAMES,
 			}),
 		).toBeUndefined();
 	});
 
 	test("asks less of a one-club player and of an academy graduate", () => {
-		const gp = RETIREMENT_STORY_SETTINGS.oneClubAppearances;
+		const gp = RETIREMENT_STORY_SETTINGS.oneClubSeasons * GAMES;
 		const byTid = [
 			{ tid: 4, gp, value: 300, firstSeason: 2030, lastSeason: 2038 },
 		];
 
 		expect(
-			getRetirementStory({ player: player({ byTid }), club: club() })?.oneClub,
+			getRetirementStory({
+				player: player({ byTid }),
+				club: club(),
+				gamesPerSeason: GAMES,
+			})?.oneClub,
 		).toBe(true);
 		expect(
 			getRetirementStory({
 				player: player({ byTid, statsTids: [4, 9] }),
 				club: club(),
+				gamesPerSeason: GAMES,
 			}),
 		).toBeUndefined();
 		expect(
 			getRetirementStory({
 				player: player({
 					byTid: [
-						{ ...byTid[0]!, gp: RETIREMENT_STORY_SETTINGS.academyAppearances },
+						{
+							...byTid[0]!,
+							gp: RETIREMENT_STORY_SETTINGS.academySeasons * GAMES,
+						},
 					],
 					statsTids: [4, 9],
 					academyTids: [4],
 				}),
 				club: club(),
+				gamesPerSeason: GAMES,
 			})?.academy,
 		).toBe(true);
 	});
@@ -95,6 +108,7 @@ describe("getRetirementStory", () => {
 				statsTids: [4, 9],
 			}),
 			club: club({ mostAppearances: 90, mostScoring: 700 }),
+			gamesPerSeason: GAMES,
 		});
 
 		expect(facts?.leader).toEqual(["appearances", "scoring"]);
@@ -110,6 +124,7 @@ describe("getRetirementStory", () => {
 					statsTids: [4, 9],
 				}),
 				club: club({ mostAppearances: 5, mostScoring: 20 }),
+				gamesPerSeason: GAMES,
 			}),
 		).toBeUndefined();
 	});
@@ -118,6 +133,7 @@ describe("getRetirementStory", () => {
 		const facts = getRetirementStory({
 			player: player(),
 			club: club({ titleSeasons: [2020, 2030, 2035, 2040] }),
+			gamesPerSeason: GAMES,
 		});
 
 		expect(facts?.titles).toBe(2);
@@ -127,8 +143,13 @@ describe("getRetirementStory", () => {
 		const withTitles = getRetirementStory({
 			player: player(),
 			club: club({ titleSeasons: [2030, 2035] }),
+			gamesPerSeason: GAMES,
 		})!;
-		const without = getRetirementStory({ player: player(), club: club() })!;
+		const without = getRetirementStory({
+			player: player(),
+			club: club(),
+			gamesPerSeason: GAMES,
+		})!;
 
 		expect(withTitles.significance).toBeGreaterThan(without.significance);
 		expect(withTitles.significance).toBeLessThanOrEqual(
@@ -146,9 +167,10 @@ describe("couldBeALegend", () => {
 						{ tid: 4, gp: 8, value: 20, firstSeason: 2038, lastSeason: 2038 },
 					],
 				}),
+				GAMES,
 			),
 		).toBe(false);
-		expect(couldBeALegend(player())).toBe(true);
+		expect(couldBeALegend(player(), GAMES)).toBe(true);
 	});
 });
 
@@ -158,6 +180,7 @@ describe("describeRetirement", () => {
 			facts: getRetirementStory({
 				player: player(),
 				club: club({ titleSeasons: [2030] }),
+				gamesPerSeason: GAMES,
 				...overrides,
 			})!,
 			club: "the Foo Bars",
@@ -181,6 +204,7 @@ describe("describeRetirement", () => {
 			facts: getRetirementStory({
 				player: player({ statsTids: [4, 9] }),
 				club: club({ mostAppearances: 300, mostScoring: 9999 }),
+				gamesPerSeason: GAMES,
 			})!,
 			club: "the Foo Bars",
 			scoring: "points",

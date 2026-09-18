@@ -435,8 +435,10 @@ What landed (`competition/worldStories.ts`, pure, and
 - **A legend retires** (`competition/retirementStories.ts`, pure, and
   `competition/recordRetirementStories.ts`), told in the summer when the
   season's retirements are worked out: a player who ends up his club's
-  all-time leader in appearances or scoring, a one-club player with 100 games,
-  an academy graduate with 120, or anyone with 150 for one club. The story
+  all-time leader in appearances or scoring, a one-club player who stayed 3
+  seasons, an academy graduate who stayed 3.5, or anyone who played 4 seasons'
+  worth of games for one club. The thresholds are in seasons, not appearances,
+  since a Division plays as many games as its size decides. The story
   says how long he stayed, his appearances and scoring, the titles he won
   there, and what he ends up top of, and it counts for more the more he won
   (`RETIREMENT_STORY_SETTINGS`). Every other retirement stays as quiet as it is
