@@ -13,6 +13,7 @@ import {
 	isSingleDivision,
 } from "./competitionStructure.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
+import { getFanExpectation } from "./fanExpectations.ts";
 import { getClubDivisionInfo } from "./leagueHistory.ts";
 
 // A squad's strength, the same team rating as the team page and power rankings
@@ -129,8 +130,32 @@ export const getBoardObjectiveInfo = async (tid: number, season: number) => {
 	}
 
 	const divisionInfo = await getClubDivisionInfo(tid, season);
+
+	// Storytelling (Phase 5): what the club's own history has the fans expecting
+	const structure = getCompetitionStructure();
+	const t = await idb.cache.teams.get(tid);
+	const countryId = structure.competitionDivisions.find(
+		(division) => division.divisionId === divisionInfo?.divisionId,
+	)?.countryId;
+	const topDivisionName =
+		structure.competitionDivisions.find(
+			(division) => division.countryId === countryId && division.tier === 1,
+		)?.name ?? "";
+	const fans =
+		divisionInfo && t
+			? getFanExpectation({
+					history: (t.worldHistory ?? []).filter(
+						(entry) => entry.season < season,
+					),
+					tier: divisionInfo.tier,
+					divisionName: divisionInfo.divisionName,
+					topDivisionName,
+				})
+			: undefined;
+
 	return {
 		text: describeObjective(teamSeason.boardObjective),
+		fans,
 		targetPosition: teamSeason.boardObjective.targetPosition,
 		position:
 			divisionInfo && divisionInfo.played > 0

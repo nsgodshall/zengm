@@ -5,12 +5,13 @@ export const BoardObjective = ({
 }: {
 	boardObjective: {
 		text: string;
+		fans?: string;
 		targetPosition: number;
 		position: number | undefined;
 		seasonOver: boolean;
 	};
 }) => {
-	const { text, targetPosition, position, seasonOver } = boardObjective;
+	const { text, fans, targetPosition, position, seasonOver } = boardObjective;
 
 	let status;
 	if (position !== undefined) {
@@ -29,6 +30,8 @@ export const BoardObjective = ({
 			</span>
 			: {text}
 			{status ? <> ({status})</> : null}
+			{/* International Soccer Zen GM mod (storytelling, Phase 5) */}
+			{fans ? <div className="text-body-secondary small">{fans}</div> : null}
 		</>
 	);
 };
