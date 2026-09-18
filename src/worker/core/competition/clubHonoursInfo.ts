@@ -1,6 +1,7 @@
 import type { GameAttributesLeague, Team } from "../../../common/types.ts";
 import { idb } from "../../db/index.ts";
 import { g } from "../../util/index.ts";
+import { describeClubEra, getClubEras } from "./clubEras.ts";
 import { getClubHonours } from "./clubHonours.ts";
 import { describeClubStature } from "./clubStature.ts";
 import { isSingleDivision } from "./competitionStructure.ts";
@@ -61,6 +62,10 @@ export const getClubHonoursInfo = async (tid: number) => {
 		...honours,
 		stature: stature?.stature,
 		statureLabel: stature?.label,
+		// Storytelling (Phase 5): the club's spells in each tier, oldest first
+		eras: getClubEras(t.worldHistory ?? []).map((era) =>
+			describeClubEra({ era, divisionName: divisionName(era.divisionId) }),
+		),
 		titles: honours.titles.map((row) => ({
 			...row,
 			divisionName: divisionName(row.divisionId),

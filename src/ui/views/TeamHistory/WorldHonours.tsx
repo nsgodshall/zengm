@@ -114,6 +114,16 @@ export const WorldHonours = ({
 					{line.value ? `: ${line.value}` : null}
 				</div>
 			))}
+			{honours.eras.length > 1 ? (
+				<div className="mt-2">
+					<b>Eras</b>
+					{honours.eras.map((era) => (
+						<div key={era.span}>
+							{era.span}: {era.text}
+						</div>
+					))}
+				</div>
+			) : null}
 			{honours.recordSigning ? (
 				<div>
 					Record signing:{" "}
