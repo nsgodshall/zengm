@@ -381,7 +381,27 @@ Decided: the ceiling is 6 times the salary cap, where it rarely binds, so what a
 
 **A full validation run** of every storytelling feature (20 seasons, owners and takeovers, administration, golden generations, real clubs' history, but before the lower-tier TV money landed) told 873 stories, and Spain read like a real league: Real Madrid three titles in a row, then Villarreal three, Barcelona four, Atlético five, Athletic three. But across the three Countries there were 21 challenger titles against a target of 1–2 per Country, and 47 takeovers in 20 seasons, so wealthy benefactors look like they're manufacturing challengers faster than real football does. Two 20-season runs are measuring that: parachute payments as committed, and the same with takeovers at 0.8% a summer instead of 1.5% and benefactors putting in 0.15–0.4 of revenue instead of 0.3–0.8.
 
-**Still to fix:** relegated clubs come straight back up only 18% of the time (target 27–40%), since the second tier they drop into is now stronger. Real leagues answer that with parachute payments, which is the next thing to measure. The third tier is still weak (average rating 13).
+**Parachute payments, and whether rich owners are the problem** (two more 20-season runs, both with everything above and every storytelling feature on; they differ only in the owner settings):
+
+| Measure (all Countries)                     | **Parachutes (chosen)** | Parachutes + quieter owners | Target                           |
+| ------------------------------------------- | ----------------------- | --------------------------- | -------------------------------- |
+| Distinct top-tier champions per 10 seasons  | **3.3**                 | 4.5                         | 2–5, typically 3                 |
+| Most titles by one club per 10 seasons      | **5.9**                 | 4.4                         | 4–7                              |
+| Longest title run                           | **7**                   | 4                           | 5+ somewhere                     |
+| Seasons with 2+ big clubs in the top four   | **69%**                 | 78%                         | most                             |
+| Titles won by a big club                    | **78%**                 | 62%                         | most                             |
+| Challenger titles                           | **10**                  | 17                          | 3–6 over three Countries         |
+| Big clubs relegated                         | **0**                   | 2                           | ~1 per Country per 20–40 seasons |
+| Promoted to a top tier, straight back down  | **42%**                 | 46%                         | 30–47%                           |
+| Relegated from a top tier, straight back up | **24%**                 | 23%                         | 27–40%                           |
+
+Decided: keep parachute payments (half the TV money a relegated club loses for a season, a quarter for a second) and leave the owner settings alone. Making takeovers rarer (0.8% a summer instead of 1.5%) and benefactors poorer did not reduce challenger titles — it produced *more* of them, and weaker dynasties. Takeovers mostly rescue distressed clubs and sleeping giants, which are usually clubs that were big before, so they reinforce the pattern rather than break it. The 21 challenger titles in the earlier validation run were largely run-to-run variance, which is worth remembering when reading any single run.
+
+With parachutes, every concentration target is met: Manchester United won 7 titles in 8 seasons and then Liverpool 9 in 12; Real Madrid took 11 in 14 before Barcelona's 5; the Brooklyn Dodgers and Chicago Bears traded eras in the USA.
+
+**Still to fix:** relegated clubs come straight back up 24% of the time (target 27–40%), though Spain managed 32%. The USA's third tier is still weak (average rating 16) and its pyramid still churns, with 17 clubs climbing from the bottom tier to the top in 20 seasons.
+
+**Story volume:** the parachute run told 1722 stories, but 897 of them were club legends retiring, because a young World's club records are cheap to break. The bar for a club's all-time leader is now 3 seasons at the club, with at most 3 retirements a summer told per Country (the user's own club always included).
 
 ## Suggested build order
 
