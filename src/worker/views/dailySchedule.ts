@@ -227,6 +227,10 @@ const updateDailySchedule = async (
 			// International Soccer Zen GM mod (Epic 6): in a World, games are grouped
 			// by Division
 			worldDivisions: await competition.getScheduleDivisions(inputs.season),
+			// Storytelling (Phase 5): and the day's derbies are marked
+			worldRivalPairs: Object.fromEntries(
+				await competition.getWorldRivalPairs(),
+			),
 			elam: g.get("elam"),
 			elamASG: g.get("elamASG"),
 			season: inputs.season,

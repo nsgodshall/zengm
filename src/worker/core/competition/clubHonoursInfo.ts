@@ -191,6 +191,26 @@ export const getWorldRivalries = async () => {
 };
 
 /**
+ * International Soccer Zen GM mod (storytelling, Phase 5): every pair of rival
+ * clubs in a World, keyed "lower-higher" by tid, so a day's fixtures can mark
+ * the derbies. Empty outside a World.
+ */
+export const getWorldRivalPairs = async () => {
+	const pairs = new Map<string, { derbyTown?: string }>();
+	if (isSingleDivision(getCompetitionStructure())) {
+		return pairs;
+	}
+	for (const [tid, rivals] of await getWorldRivalries()) {
+		for (const rival of rivals) {
+			const key = `${Math.min(tid, rival.tid)}-${Math.max(tid, rival.tid)}`;
+			const derbyTown = getDerbyTown(rival);
+			pairs.set(key, derbyTown === undefined ? {} : { derbyTown });
+		}
+	}
+	return pairs;
+};
+
+/**
  * International Soccer Zen GM mod (storytelling, Phase 5): who a World club's
  * next opponents are to it, keyed by the opponent's tid, so its schedule can
  * mark the derbies. Empty outside a World.

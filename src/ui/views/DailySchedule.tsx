@@ -24,6 +24,7 @@ const DailySchedule = ({
 	topPlayers,
 	upcoming,
 	worldDivisions,
+	worldRivalPairs,
 }: View<"dailySchedule">) => {
 	useTitleBar({
 		title: DAILY_SCHEDULE,
@@ -61,6 +62,22 @@ const DailySchedule = ({
 	}
 
 	const upcomingAndCompleted = upcoming.length > 0 && completed.length > 0;
+
+	// International Soccer Zen GM mod (storytelling, Phase 5): a World says when
+	// a fixture is a derby or another rivalry
+	const rivalry = (game: { teams: [{ tid: number }, { tid: number }] }) => {
+		const [a, b] = [game.teams[0].tid, game.teams[1].tid];
+		const pair =
+			worldRivalPairs?.[`${Math.min(a, b)}-${Math.max(a, b)}`] ?? undefined;
+		if (!pair) {
+			return null;
+		}
+		return (
+			<div className="text-body-secondary small">
+				{pair.derbyTown ? `${pair.derbyTown} derby` : "Rivalry"}
+			</div>
+		);
+	};
 
 	const tradeDeadline =
 		upcoming.length === 1 &&
@@ -199,6 +216,7 @@ const DailySchedule = ({
 										<Fragment key={game.gid}>
 											{divisionHeading(game, i, games)}
 											<div className="flex-grow-1" style={{ maxWidth: 510 }}>
+												{rivalry(game)}
 												<ScoreBox
 													game={{
 														// Leave out forceTie, since ScoreBox wants the value for finished games
@@ -231,6 +249,7 @@ const DailySchedule = ({
 										<Fragment key={game.gid}>
 											{divisionHeading(game, i, games)}
 											<div className="flex-grow-1" style={{ maxWidth: 510 }}>
+												{rivalry(game)}
 												<ScoreBox game={game} />
 											</div>
 										</Fragment>
