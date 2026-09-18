@@ -434,12 +434,17 @@ const newPhaseBeforeDraft = async (
 
 		const retiredPlayersByTeam = new Map<number, Player[]>();
 
+		// International Soccer Zen GM mod (storytelling, Phase 4): every player who
+		// retires, free agents included, so a World can tell its legends' stories
+		const retiredPlayers: Player[] = [];
+
 		const playersToSave = [];
 		for (const p of players) {
 			let update = false;
 
 			if (!repeatSeasonType) {
 				if (await player.shouldRetire(p)) {
+					retiredPlayers.push(p);
 					if (p.tid >= 0) {
 						const retiredPlayers = retiredPlayersByTeam.getOrInsert(p.tid, []);
 						retiredPlayers.push(p);
@@ -498,6 +503,10 @@ const newPhaseBeforeDraft = async (
 				conditions,
 			);
 		}
+
+		// International Soccer Zen GM mod (storytelling, Phase 4): a World marks a
+		// club legend hanging up his boots
+		await competition.recordRetirementStories(retiredPlayers, conditions);
 
 		const releasedPlayers = await idb.cache.releasedPlayers.getAll();
 

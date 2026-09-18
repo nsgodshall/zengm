@@ -1144,6 +1144,55 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		assert.strictEqual(g.get("worldStoriesFilled"), true);
 	});
 
+	test("a club legend's retirement is a story, and an ordinary squad player's isn't", async () => {
+		const t = (await idb.cache.teams.getAll())[0]!;
+		const season = g.get("season");
+		const p = (await idb.cache.players.indexGetAll("playersByTid", t.tid))[0]!;
+
+		const retiring = (gp: number) => ({
+			...helpers.deepCopy(p),
+			pid: p.pid,
+			retiredYear: season,
+			statsTids: [t.tid],
+			stats: [
+				{
+					...p.stats[0],
+					season,
+					tid: t.tid,
+					playoffs: false,
+					gp,
+					pts: 10 * gp,
+				},
+			],
+		});
+
+		const legendStories = async () =>
+			(await idb.getCopies.events({ season }, "noCopyCache")).filter(
+				(event) =>
+					event.type === "story" &&
+					"story" in event &&
+					event.story?.kind === "legendRetires",
+			);
+
+		assert.strictEqual((await legendStories()).length, 0);
+
+		// A squad player who came and went isn't news
+		await competition.recordRetirementStories([retiring(10) as any]);
+		await idb.cache.flush();
+		assert.strictEqual((await legendStories()).length, 0);
+
+		// A club's all-time leader is
+		await competition.recordRetirementStories([retiring(500) as any]);
+		await idb.cache.flush();
+		const stories = await legendStories();
+		assert.strictEqual(stories.length, 1);
+		const story = stories[0]!;
+		assert(story.text?.includes("500 appearances"), story.text);
+		assert(story.text?.includes("Nobody has played more games"), story.text);
+		assert.deepStrictEqual(story.pids, [p.pid]);
+		assert.deepStrictEqual(story.tids, [t.tid]);
+	});
+
 	test("a club whose debts pass what its owner covers goes into administration and starts next season on negative points", async () => {
 		const season = g.get("season") - 1;
 		const t = (await idb.cache.teams.getAll())[1]!;

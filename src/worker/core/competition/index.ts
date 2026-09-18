@@ -82,6 +82,7 @@ import {
 	getClubRivalsInfo,
 } from "./clubHonoursInfo.ts";
 import { getWorldRollOfHonour } from "./worldLeagueHistory.ts";
+import { recordRetirementStories } from "./recordRetirementStories.ts";
 import { getWorldChronicle, getWorldStorylines } from "./worldChronicle.ts";
 import {
 	fillWorldSeasonRecords,
@@ -139,6 +140,7 @@ export default {
 	getWorldRecordsInfo,
 	getWorldChronicle,
 	getWorldStorylines,
+	recordRetirementStories,
 	fillWorldSeasonRecords,
 	recordWorldSeason,
 	getAcademySummary,
