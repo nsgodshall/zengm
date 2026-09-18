@@ -12,8 +12,11 @@ export const WORLD_REVENUE_SETTINGS = {
 	// A club's national TV revenue as a multiple of ZenGM's, by tier (1 is the
 	// top). The last applies to any lower tier.
 	// Tuned in 10-season long runs: a top-tier deal big enough that a promoted
-	// club can pay close to what the rest of its new Division pays
-	tvShareByTier: [4, 0.6, 0.4],
+	// club can pay close to what the rest of its new Division pays. Raised for
+	// the lower tiers in a 20-season run once the wage budget ceiling let the top
+	// tier spend its revenue (see ROADMAP.md): with 0.6 and 0.4 the lower tiers
+	// were hollowed out and half of promoted clubs went straight back down.
+	tvShareByTier: [4, 2, 1.4],
 
 	// Prize money for winning a Division, as a fraction of the salary cap,
 	// scaled by the Division's TV share

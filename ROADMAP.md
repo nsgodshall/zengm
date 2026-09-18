@@ -377,7 +377,9 @@ Stature's first effects more than doubled how often a Country's big clubs stay i
 
 Decided: the ceiling is 6 times the salary cap, where it rarely binds, so what a club can pay follows its revenue instead of being levelled. That produced real dynasties (Manchester United 6 titles in a row, the New York Yankees 8 in 10 seasons, Real Madrid and Athletic Club 4 each) while giants stopped falling.
 
-**Still to fix:** the lower tiers pay for it. Second-tier average team rating fell to 10–34 (it was 26–44) and third-tier to 14, promoted clubs go straight back down 53% of the time, and relegated clubs come straight back only 23%. Top-tier clubs earn about 3 times a second-tier club's revenue, which is less extreme than real football, so the cause is the top tier absorbing the player pool rather than the money. A run with much bigger lower-tier TV money is measuring whether that brings promotion survival back into range without undoing the concentration.
+**Lower-tier TV money** (another 20-season run at the 6× ceiling, with each lower tier's national TV deal raised from 0.6 and 0.4 of ZenGM's to 2 and 1.4): the concentration held (4.8 distinct champions a decade, big clubs in the top four 80% of seasons and winning 69% of titles) while the lower tiers came back to life. Second-tier average team rating went from 10–34 to 26–39, their wage budgets from 86–111 to 169–186, and promoted clubs going straight back down fell from 53% to 46%, inside the 30–47% range. Decided: the shares are 4 / 2 / 1.4.
+
+**Still to fix:** relegated clubs come straight back up only 18% of the time (target 27–40%), since the second tier they drop into is now stronger. Real leagues answer that with parachute payments, which is the next thing to measure. The third tier is still weak (average rating 13).
 
 ## Suggested build order
 
