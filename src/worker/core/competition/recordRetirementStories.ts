@@ -7,7 +7,9 @@ import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
 import { getScorerValue } from "./recordWorldSeason.ts";
 import { getStoryScore } from "./recordWorldStories.ts";
 import {
+	couldBeALegend,
 	describeRetirement,
+	getMainClub,
 	getRetirementStory,
 	type RetiringPlayer,
 } from "./retirementStories.ts";
@@ -106,13 +108,6 @@ export const recordRetirementStories = async (
 		if (byTid.length === 0) {
 			continue;
 		}
-		const main = [...byTid].sort((a, b) => b.gp - a.gp || a.tid - b.tid)[0]!;
-		const t = teamsByTid.get(main.tid);
-		const division =
-			t?.divisionId === undefined ? undefined : divisionsById.get(t.divisionId);
-		if (!t || !division) {
-			continue;
-		}
 
 		const player: RetiringPlayer = {
 			pid: p.pid,
@@ -124,6 +119,17 @@ export const recordRetirementStories = async (
 				.filter((transaction) => transaction.type === "academy")
 				.map((transaction) => transaction.tid),
 		};
+		if (!couldBeALegend(player)) {
+			continue;
+		}
+
+		const main = getMainClub(player)!;
+		const t = teamsByTid.get(main.tid);
+		const division =
+			t?.divisionId === undefined ? undefined : divisionsById.get(t.divisionId);
+		if (!t || !division) {
+			continue;
+		}
 
 		const facts = getRetirementStory({
 			player,

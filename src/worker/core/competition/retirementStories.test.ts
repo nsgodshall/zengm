@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
+	couldBeALegend,
 	describeRetirement,
 	getRetirementStory,
 	RETIREMENT_STORY_SETTINGS,
@@ -133,6 +134,21 @@ describe("getRetirementStory", () => {
 		expect(withTitles.significance).toBeLessThanOrEqual(
 			RETIREMENT_STORY_SETTINGS.maxSignificance,
 		);
+	});
+});
+
+describe("couldBeALegend", () => {
+	test("skips the players no club will remember", () => {
+		expect(
+			couldBeALegend(
+				player({
+					byTid: [
+						{ tid: 4, gp: 8, value: 20, firstSeason: 2038, lastSeason: 2038 },
+					],
+				}),
+			),
+		).toBe(false);
+		expect(couldBeALegend(player())).toBe(true);
 	});
 });
 

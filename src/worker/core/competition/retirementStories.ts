@@ -60,13 +60,21 @@ export type RetirementStoryFacts = {
  * The club a retiring player is remembered at: where he played the most, with
  * ties going to where he played longest and then to the lower tid
  */
-const getMainClub = (p: RetiringPlayer) =>
+export const getMainClub = (p: RetiringPlayer) =>
 	[...p.byTid].sort(
 		(a, b) =>
 			b.gp - a.gp ||
 			b.lastSeason - b.firstSeason - (a.lastSeason - a.firstSeason) ||
 			a.tid - b.tid,
 	)[0];
+
+/**
+ * Whether a retiring player is worth looking his club's all-time bests up for.
+ * Most players who retire played nowhere near long enough at one club to be
+ * anybody's legend, and the bests cost a database read.
+ */
+export const couldBeALegend = (player: RetiringPlayer) =>
+	(getMainClub(player)?.gp ?? 0) >= RETIREMENT_STORY_SETTINGS.leaderAppearances;
 
 /**
  * The facts behind a retiring player's story, or undefined if his career
