@@ -10,7 +10,7 @@ import type {
 	LogEventType,
 	PlayoffSeries,
 } from "../../../common/types.ts";
-import { headToHead, season } from "../index.ts";
+import { competition, headToHead, season } from "../index.ts";
 import getWinner from "../../../common/getWinner.ts";
 import formatScoreWithShootout from "../../../common/formatScoreWithShootout.ts";
 import { getBestPlayerBoxScore } from "../../../common/getBestPlayerBoxScore.ts";
@@ -434,6 +434,22 @@ const writeGameStats = async (
 			g.get("season"),
 			results.gid,
 		])}">${formatScoreWithShootout(results.team[tw].stat, results.team[tl].stat)}</a>.`;
+
+		// International Soccer Zen GM mod (storytelling, Phase 5): a World says
+		// when the game was a derby or another rivalry
+		const opponentTid =
+			results.team[0].id === g.get("userTid")
+				? results.team[1].id
+				: results.team[0].id;
+		const rival = await competition.getUserRivalMark(
+			g.get("userTid"),
+			opponentTid,
+		);
+		if (rival) {
+			text += rival.derbyTown
+				? ` The ${rival.derbyTown} derby.`
+				: " A rivalry game.";
+		}
 
 		let type: LogEventType =
 			results.team[tw].id === g.get("userTid") ? "gameWon" : "gameLost";

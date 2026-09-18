@@ -190,6 +190,34 @@ export const getWorldRivalries = async () => {
 	});
 };
 
+// The user club's rivals, worked out once a season: game news asks for them
+// after every one of its games
+let userRivalCache:
+	| { season: number; tid: number; marks: Map<number, { derbyTown?: string }> }
+	| undefined;
+
+/**
+ * International Soccer Zen GM mod (storytelling, Phase 5): what the club the
+ * user is playing as makes of an opponent, or undefined if they're nothing
+ * special to each other. Cached for the season, since game news asks after
+ * every game.
+ */
+export const getUserRivalMark = async (tid: number, opponentTid: number) => {
+	const season = g.get("season");
+	if (
+		userRivalCache === undefined ||
+		userRivalCache.season !== season ||
+		userRivalCache.tid !== tid
+	) {
+		userRivalCache = {
+			season,
+			tid,
+			marks: await getClubRivalMarks(tid),
+		};
+	}
+	return userRivalCache.marks.get(opponentTid);
+};
+
 /**
  * International Soccer Zen GM mod (storytelling, Phase 5): every pair of rival
  * clubs in a World, keyed "lower-higher" by tid, so a day's fixtures can mark

@@ -485,7 +485,7 @@ What landed (`competition/worldStories.ts`, pure, and
 **Status: the World Chronicle page, the World Season Preview, club legends,
 each Country's records, the dashboard's Around the World, the club history
 page's eras and marked chart, the fans' expectations, and derbies on the
-schedules implemented; box scores and game news naming derbies still to do.**
+schedules and in game news implemented; box scores naming them still to do.**
 
 What landed: the **Chronicle** (League → Chronicle, World only;
 `competition/worldChronicle.ts`, `ui/views/WorldChronicle.tsx`): pick a
@@ -550,8 +550,9 @@ below it.
   flight.
 - **Rivalries:** a club's rivals with their all-time record and recent
   meetings (landed), and its schedule and the World's daily schedule say which
-  fixtures are derbies or other rivalries (landed). Box scores and game news
-  naming them is still to do.
+  fixtures are derbies or other rivalries, and the news for one of the user's
+  games says when it was a derby (landed). Box scores naming them is still to
+  do.
 - **Club legends:** on the team page, most appearances and points, one-club
   players, academy graduates, and retired numbers.
 - **The user's club:** notifications when a story involves it, and board and fan

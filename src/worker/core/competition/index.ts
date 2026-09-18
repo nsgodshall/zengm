@@ -81,6 +81,7 @@ import {
 	getClubRecordsHonours,
 	getClubRivalMarks,
 	getClubRivalsInfo,
+	getUserRivalMark,
 	getWorldRivalPairs,
 } from "./clubHonoursInfo.ts";
 import { getWorldRollOfHonour } from "./worldLeagueHistory.ts";
@@ -136,6 +137,7 @@ export default {
 	getClubRecordsHonours,
 	getClubRivalMarks,
 	getClubRivalsInfo,
+	getUserRivalMark,
 	getWorldRivalPairs,
 	getClubLegends,
 	getScorerValue,
