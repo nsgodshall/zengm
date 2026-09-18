@@ -11,6 +11,7 @@ import { competition, league, team } from "../worker/core/index.ts";
 import { getWageBudgets } from "../worker/core/competition/wageBudgets.ts";
 import { WORLD_REVENUE_SETTINGS } from "../worker/core/competition/worldRevenue.ts";
 import { RELEGATION_CLAUSE_SETTINGS } from "../worker/core/competition/relegationClauses.ts";
+import { CLUB_OWNER_SETTINGS } from "../worker/core/competition/clubOwners.ts";
 import { STATURE_EFFECT_SETTINGS } from "../worker/core/competition/statureEffects.ts";
 import createStreamFromLeagueObject from "../worker/core/league/create/createStreamFromLeagueObject.ts";
 import {
@@ -68,6 +69,12 @@ if (env.WORLD_LONG_RUN_STATURE) {
 		STATURE_EFFECT_SETTINGS,
 		JSON.parse(env.WORLD_LONG_RUN_STATURE),
 	);
+}
+
+// WORLD_LONG_RUN_OWNERS does the same for CLUB_OWNER_SETTINGS (takeovers,
+// benefactors' money, and administration, see competition/clubOwners.ts)
+if (env.WORLD_LONG_RUN_OWNERS) {
+	Object.assign(CLUB_OWNER_SETTINGS, JSON.parse(env.WORLD_LONG_RUN_OWNERS));
 }
 
 const errors: unknown[] = [];
