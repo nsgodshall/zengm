@@ -22,7 +22,10 @@ import {
 	getLoanEndSeason,
 	LOAN_MAX_AGE,
 } from "../worker/core/competition/loans.ts";
-import { getTvShare } from "../worker/core/competition/worldRevenue.ts";
+import {
+	getTvShare,
+	getTvShareWithParachute,
+} from "../worker/core/competition/worldRevenue.ts";
 import {
 	describeClubStature,
 	getLegacyForStature,
@@ -1162,12 +1165,12 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			(row) => row.season === season + 1,
 		);
 		assert(deduction && deduction.points > 0, "No points deducted");
-		assert.strictEqual(
+		// Zero, or whatever the owner who took the club on has put in
+		assert(
 			(await idb.cache.teamSeasons.indexGet("teamSeasonsByTidSeason", [
 				t.tid,
 				season,
-			]))!.cash,
-			0,
+			]))!.cash >= 0,
 			"Debts weren't written off",
 		);
 		const events = await idb.getCopies.events(
@@ -1581,27 +1584,56 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			]),
 		);
 
+		const getTier = (row: TeamSeason) => tierByDivisionId.get(row.divisionId!)!;
+		const historyByTid = new Map<number, { season: number; tier: number }[]>();
+		for (const row of teamSeasons) {
+			if (row.divisionId === undefined) {
+				continue;
+			}
+			const history = historyByTid.get(row.tid) ?? [];
+			history.push({ season: row.season, tier: getTier(row) });
+			historyByTid.set(row.tid, history);
+		}
+		const getShare = (row: TeamSeason) =>
+			getTvShareWithParachute({
+				tier: getTier(row),
+				season: row.season,
+				history: historyByTid.get(row.tid),
+			});
+
+		let numParachutes = 0;
 		for (const season of completedSeasons) {
 			// The user's revenue is adjusted for difficulty
 			const rows = teamSeasons.filter(
 				(row) => row.season === season && !userTids.includes(row.tid),
 			);
+
+			// Every club plays the same number of regular-season games, so they all
+			// get the same TV money once each one's share is divided out
+			const shares = rows.map((row) => row.revenues.nationalTv / getShare(row));
+			assert(Math.max(...shares) - Math.min(...shares) < 1, `${season}`);
+
 			const tvByTier = (tier: number) =>
 				rows
-					.filter((row) => tierByDivisionId.get(row.divisionId!) === tier)
+					.filter(
+						(row) =>
+							getTier(row) === tier && getShare(row) === getTvShare(tier),
+					)
 					.map((row) => row.revenues.nationalTv);
-
-			// Every club plays the same number of regular-season games, so each
-			// tier's clubs get the same TV money.
-			const top = tvByTier(1);
-			const second = tvByTier(2);
-			assert(Math.max(...top) - Math.min(...top) < 1, `${season}`);
-			assert(Math.max(...second) - Math.min(...second) < 1, `${season}`);
 			assert(
-				Math.abs(top[0]! / second[0]! - getTvShare(1) / getTvShare(2)) < 0.001,
+				Math.abs(
+					tvByTier(1)[0]! / tvByTier(2)[0]! - getTvShare(1) / getTvShare(2),
+				) < 0.001,
 				`${season}`,
 			);
+
+			numParachutes += rows.filter(
+				(row) => getShare(row) > getTvShare(getTier(row)),
+			).length;
 		}
+
+		// Relegated clubs keep part of the TV money they lost
+		assert(numParachutes > 0);
 
 		const events: EventBBGM[] = await idb.league.getAll("events");
 		for (const season of completedSeasons) {

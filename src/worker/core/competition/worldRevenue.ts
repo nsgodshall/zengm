@@ -18,6 +18,13 @@ export const WORLD_REVENUE_SETTINGS = {
 	// were hollowed out and half of promoted clubs went straight back down.
 	tvShareByTier: [4, 2, 1.4],
 
+	// International Soccer Zen GM mod (storytelling, Phase 6a): a relegated club
+	// keeps this fraction of the national TV money it lost, for one season per
+	// entry. Real leagues pay these so a relegated club can hold a squad good
+	// enough to come back up; without them, once the lower tiers had real TV
+	// money of their own, relegated clubs almost never returned (see ROADMAP.md).
+	parachuteBySeason: [0.5, 0.25],
+
 	// Prize money for winning a Division, as a fraction of the salary cap,
 	// scaled by the Division's TV share
 	championPrize: 0.25,
@@ -77,6 +84,42 @@ export const getCapitalInvestment = ({
 export const getTvShare = (tier: number) => {
 	const shares = WORLD_REVENUE_SETTINGS.tvShareByTier;
 	return shares[Math.max(0, Math.min(tier, shares.length) - 1)]!;
+};
+
+type TierSeason = { season: number; tier: number };
+
+/**
+ * A club's national TV revenue as a multiple of ZenGM's for the tier it plays in
+ * this season, plus any parachute payment left over from playing higher up (see
+ * parachuteBySeason). Payments stop as soon as the club is back where it fell
+ * from.
+ */
+export const getTvShareWithParachute = ({
+	tier,
+	season,
+	history,
+}: {
+	tier: number;
+	season: number;
+	history: TierSeason[] | undefined;
+}) => {
+	const share = getTvShare(tier);
+	if (!history) {
+		return share;
+	}
+
+	let best = share;
+	for (const [
+		i,
+		fraction,
+	] of WORLD_REVENUE_SETTINGS.parachuteBySeason.entries()) {
+		const past = history.find((entry) => entry.season === season - 1 - i);
+		if (past === undefined || past.tier >= tier) {
+			continue;
+		}
+		best = Math.max(best, share + fraction * (getTvShare(past.tier) - share));
+	}
+	return best;
 };
 
 /** Prize money for winning a Division in `tier`, in thousands of dollars */
@@ -156,10 +199,27 @@ export const getProjectedRevenue = ({
 	nationalTv,
 	lastTier,
 	tier,
+	season,
+	history,
 }: {
 	revenue: number;
 	nationalTv: number;
 	lastTier: number;
 	tier: number;
-}) =>
-	revenue - nationalTv + (nationalTv * getTvShare(tier)) / getTvShare(lastTier);
+	// The season being budgeted for; `lastTier` is the season before it
+	season?: number;
+	history?: TierSeason[];
+}) => {
+	const shares =
+		season === undefined
+			? { last: getTvShare(lastTier), next: getTvShare(tier) }
+			: {
+					last: getTvShareWithParachute({
+						tier: lastTier,
+						season: season - 1,
+						history,
+					}),
+					next: getTvShareWithParachute({ tier, season, history }),
+				};
+	return revenue - nationalTv + (nationalTv * shares.next) / shares.last;
+};

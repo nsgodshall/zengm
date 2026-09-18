@@ -14,7 +14,7 @@ import { getAdjustedTicketPrice } from "../../../common/getAdjustedTicketPrice.t
 import { bySport, isSport } from "../../../common/sportFunctions.ts";
 import { isSingleDivision } from "../competition/competitionStructure.ts";
 import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
-import { getTvShare } from "../competition/worldRevenue.ts";
+import { getTvShareWithParachute } from "../competition/worldRevenue.ts";
 import { updateWorldSeasonRuns } from "../competition/clubSeasonRecords.ts";
 import { getStatureCommercialMultiplier } from "../competition/statureEffects.ts";
 
@@ -185,7 +185,13 @@ const writeTeamStats = async (results: GameResults) => {
 					structure.competitionDivisions.find(
 						(division) => division.divisionId === teamSeason.divisionId,
 					)?.tier ?? 1;
-				nationalTvRevenue *= getTvShare(tier);
+				// Storytelling (Phase 6a): a relegated club keeps some of the TV money
+				// it lost for a couple of seasons
+				nationalTvRevenue *= getTvShareWithParachute({
+					tier,
+					season: teamSeason.season,
+					history: t.worldHistory,
+				});
 			}
 		}
 

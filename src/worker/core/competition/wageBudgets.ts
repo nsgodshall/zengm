@@ -87,6 +87,10 @@ export const getWageBudgets = async () => {
 							nationalTv: finances.nationalTv,
 							lastTier: finances.lastTier,
 							tier: getTier(t.divisionId) ?? finances.lastTier,
+							// Storytelling (Phase 6a): so does any parachute payment it has
+							// left (see getTvShareWithParachute)
+							season: revenueSeason + 1,
+							history: t.worldHistory,
 						})
 					: undefined,
 				// Storytelling (Phase 6c): a benefactor's money counts as income for

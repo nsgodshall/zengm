@@ -5,6 +5,7 @@ import {
 	getCapitalInvestment,
 	getChampionPrize,
 	getProjectedRevenue,
+	getTvShareWithParachute,
 	getPromotionPrize,
 	getReinvestedBudgetLevel,
 	getTvShare,
@@ -114,5 +115,97 @@ describe("getProjectedRevenue", () => {
 				tier: 2,
 			}),
 		).toBe(200000);
+	});
+});
+
+describe("getTvShareWithParachute", () => {
+	const history = (tiers: Record<number, number>) =>
+		Object.entries(tiers).map(([season, tier]) => ({
+			season: Number(season),
+			tier,
+		}));
+
+	test("pays a relegated club part of what it lost, fading out", () => {
+		const relegated = history({ 2026: 1, 2027: 1 });
+		const first = getTvShareWithParachute({
+			tier: 2,
+			season: 2028,
+			history: relegated,
+		});
+		const second = getTvShareWithParachute({
+			tier: 2,
+			season: 2029,
+			history: relegated,
+		});
+		const third = getTvShareWithParachute({
+			tier: 2,
+			season: 2030,
+			history: relegated,
+		});
+
+		expect(first).toBeGreaterThan(second);
+		expect(second).toBeGreaterThan(third);
+		expect(third).toBe(getTvShare(2));
+		expect(first).toBeLessThan(getTvShare(1));
+	});
+
+	test("stops as soon as the club is back up", () => {
+		expect(
+			getTvShareWithParachute({
+				tier: 1,
+				season: 2029,
+				history: history({ 2027: 1, 2028: 2 }),
+			}),
+		).toBe(getTvShare(1));
+	});
+
+	test("pays nothing to a club that has always been in its tier", () => {
+		expect(
+			getTvShareWithParachute({
+				tier: 2,
+				season: 2029,
+				history: history({ 2027: 2, 2028: 2 }),
+			}),
+		).toBe(getTvShare(2));
+		expect(
+			getTvShareWithParachute({ tier: 1, season: 2029, history: undefined }),
+		).toBe(getTvShare(1));
+	});
+
+	test("counts the tier a club last played in, after two relegations", () => {
+		expect(
+			getTvShareWithParachute({
+				tier: 3,
+				season: 2029,
+				history: history({ 2027: 1, 2028: 2 }),
+			}),
+		).toBeGreaterThan(
+			getTvShareWithParachute({
+				tier: 3,
+				season: 2029,
+				history: history({ 2027: 2, 2028: 2 }),
+			}),
+		);
+	});
+
+	test("carries into the wage budget a relegated club plans on", () => {
+		const relegated = history({ 2026: 1, 2027: 1 });
+		const withParachute = getProjectedRevenue({
+			revenue: 200000,
+			nationalTv: 30000,
+			lastTier: 1,
+			tier: 2,
+			season: 2028,
+			history: relegated,
+		});
+		const without = getProjectedRevenue({
+			revenue: 200000,
+			nationalTv: 30000,
+			lastTier: 1,
+			tier: 2,
+		});
+
+		expect(withParachute).toBeGreaterThan(without);
+		expect(withParachute).toBeLessThan(200000);
 	});
 });
