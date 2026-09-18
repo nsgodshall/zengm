@@ -699,6 +699,13 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 					(row.tier - 1) * CLUBS_PER_DIVISION + row.position,
 				);
 				assert.strictEqual(row.inProgress, false);
+
+				// Storytelling (Phase 5): the chart marks titles and moves
+				const entry = t.worldHistory!.find(
+					(entry) => entry.season === row.season,
+				)!;
+				assert.strictEqual(row.champion, entry.champion);
+				assert.strictEqual(row.moved, entry.moved);
 			}
 
 			const info = (await competition.getClubDivisionInfo(

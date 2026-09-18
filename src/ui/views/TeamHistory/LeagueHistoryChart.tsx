@@ -74,6 +74,13 @@ export const LeagueHistoryChart = ({
 	const x = (row: Season) => xScale(String(row.season)) ?? 0;
 	const y = (row: Season) => yScale(row.pyramidPosition);
 
+	// A little triangle above a promotion or below a relegation
+	const arrow = (x: number, y: number, moved: "promoted" | "relegated") => {
+		const point = moved === "promoted" ? y - 8 : y + 8;
+		const base = moved === "promoted" ? y - 14 : y + 14;
+		return `M ${x} ${point} L ${x - 4} ${base} L ${x + 4} ${base} Z`;
+	};
+
 	return (
 		<div className="position-relative" ref={parentRef}>
 			<svg width={parent.width} height={HEIGHT + MARGIN.top + MARGIN.bottom}>
@@ -111,20 +118,43 @@ export const LeagueHistoryChart = ({
 						x={x}
 						y={y}
 					/>
+					{/* International Soccer Zen GM mod (storytelling, Phase 5): the
+					seasons a club won its Division or went up or down are marked */}
 					{seasons.map((row) => (
-						<circle
-							cx={x(row)}
-							cy={y(row)}
-							fill={row.inProgress ? "var(--bs-body-bg)" : "var(--bs-primary)"}
+						<g
 							key={row.season}
 							onMouseOut={hideTooltip}
 							onMouseOver={(event) => {
 								handleMouseOver(event, row);
 							}}
-							r={4}
-							stroke="var(--bs-primary)"
-							strokeWidth={2}
-						/>
+						>
+							{row.moved ? (
+								<path
+									d={arrow(x(row), y(row), row.moved)}
+									fill={
+										row.moved === "promoted"
+											? "var(--bs-success)"
+											: "var(--bs-danger)"
+									}
+								/>
+							) : null}
+							<circle
+								cx={x(row)}
+								cy={y(row)}
+								fill={
+									row.inProgress
+										? "var(--bs-body-bg)"
+										: row.champion
+											? "var(--bs-warning)"
+											: "var(--bs-primary)"
+								}
+								r={row.champion ? 5 : 4}
+								stroke={
+									row.champion ? "var(--bs-warning)" : "var(--bs-primary)"
+								}
+								strokeWidth={2}
+							/>
+						</g>
 					))}
 					<AxisLeft
 						axisClassName="chart-axis"
@@ -153,11 +183,14 @@ export const LeagueHistoryChart = ({
 					<br />
 					{helpers.ordinal(tooltipData.position)} of {tooltipData.numClubs} in
 					the {tooltipData.divisionName}
+					{tooltipData.champion ? " (champions)" : null}
+					{tooltipData.moved ? `, ${tooltipData.moved}` : null}
 				</TooltipWithBounds>
 			) : null}
 			<div className="text-body-secondary small">
 				The club's place in its country's league pyramid each season, where 1 is
-				the top of the top tier.
+				the top of the top tier. Gold marks a title, an arrow a promotion or a
+				relegation.
 			</div>
 		</div>
 	);

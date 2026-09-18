@@ -133,6 +133,10 @@ export const getLeagueHistory = async (tid: number) => {
 		numClubs: number;
 		pyramidPosition: number;
 		inProgress: boolean;
+		// Storytelling (Phase 5): what the season is remembered for, so the chart
+		// can mark it
+		champion?: boolean;
+		moved?: "promoted" | "relegated";
 	}[] = [];
 	let latestCountryId: number | undefined;
 	const seasonNumbers = new Set([
@@ -155,6 +159,8 @@ export const getLeagueHistory = async (tid: number) => {
 				numClubs: entry.numClubs,
 				pyramidPosition: entry.pyramidPosition,
 				inProgress: false,
+				...(entry.champion ? { champion: true } : {}),
+				...(entry.moved ? { moved: entry.moved } : {}),
 			});
 			continue;
 		}
