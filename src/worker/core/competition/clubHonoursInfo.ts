@@ -193,7 +193,12 @@ export const getWorldRivalries = async () => {
 // The user club's rivals, worked out once a season: game news asks for them
 // after every one of its games
 let userRivalCache:
-	| { season: number; tid: number; marks: Map<number, { derbyTown?: string }> }
+	| {
+			lid: number;
+			season: number;
+			tid: number;
+			marks: Map<number, { derbyTown?: string }>;
+	  }
 	| undefined;
 
 /**
@@ -203,13 +208,16 @@ let userRivalCache:
  * every game.
  */
 export const getUserRivalMark = async (tid: number, opponentTid: number) => {
+	const lid = g.get("lid");
 	const season = g.get("season");
 	if (
 		userRivalCache === undefined ||
+		userRivalCache.lid !== lid ||
 		userRivalCache.season !== season ||
 		userRivalCache.tid !== tid
 	) {
 		userRivalCache = {
+			lid,
 			season,
 			tid,
 			marks: await getClubRivalMarks(tid),
