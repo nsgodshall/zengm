@@ -483,8 +483,9 @@ What landed (`competition/worldStories.ts`, pure, and
 ### Phase 5: tell (presentation)
 
 **Status: the World Chronicle page, the World Season Preview, club legends,
-each Country's records, and the dashboard's Around the World implemented; the
-rest still to do.**
+each Country's records, the dashboard's Around the World, the club history
+page's eras and marked chart, the fans' expectations, and derbies on the
+schedules implemented; box scores and game news naming derbies still to do.**
 
 What landed: the **Chronicle** (League → Chronicle, World only;
 `competition/worldChronicle.ts`, `ui/views/WorldChronicle.tsx`): pick a
@@ -532,15 +533,25 @@ below it.
   the champion going for another title, promoted clubs and how clubs like them
   have fared, a fallen giant trying to come back, the biggest derbies, the
   strongest squads, and the big clubs' board objectives.
-- **Club history page:** the pyramid chart marked with titles, promotions,
-  relegations, dynasties, and the club's biggest signings and legends; a
-  stature line; an "eras" list.
+- **Club history page** (landed): the pyramid chart marks titles in gold and
+  promotions and relegations with arrows, and the tooltip says which; a stature
+  line with what kind of club it is; the club's record signing and legends; and
+  an **Eras** list (`competition/clubEras.ts`, pure), each unbroken spell in one
+  tier with how long it lasted, what it won or its best finish, and whether it
+  ended going up or down.
+- **The fans' expectations** (landed, `competition/fanExpectations.ts`, pure):
+  under the board objective, one line drawn from the club's own history —
+  defend the title, go straight back up, back in the top flight after eight
+  seasons away, no title since 2031 — and nothing at all when its history says
+  nothing pointed.
 - **Records** for each Country: most points, fewest points, longest unbeaten
   run, biggest win, most titles, longest top-flight run, and record transfers.
 - **All-time tables:** each top tier's all-time table and seasons in the top
   flight.
 - **Rivalries:** a club's rivals with their all-time record and recent
-  meetings; the schedule, box scores, and game news name derbies.
+  meetings (landed), and its schedule and the World's daily schedule say which
+  fixtures are derbies or other rivalries (landed). Box scores and game news
+  naming them is still to do.
 - **Club legends:** on the team page, most appearances and points, one-club
   players, academy graduates, and retired numbers.
 - **The user's club:** notifications when a story involves it, and board and fan
