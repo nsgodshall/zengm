@@ -14,8 +14,13 @@ export const RETIREMENT_STORY_SETTINGS = {
 	// Or for one who came through the club's academy
 	academySeasons: 3.5,
 	// However few he played, a club's all-time leader in appearances or scoring
-	// gets his story, as long as he played this much
-	leaderSeasons: 1.5,
+	// gets his story, as long as he played this much. It's most of a legend's
+	// service because a young World's records are cheap: at 1.5 seasons, a
+	// 20-season run told 897 of these, half of all its stories.
+	leaderSeasons: 3,
+	// At most this many a summer in a Country, the biggest first, so a good
+	// year for retirements doesn't bury everything else
+	maxPerCountry: 3,
 	// Significance: a legend's floor, plus this much for each title he won at
 	// the club and for each season's worth of games he played, capped
 	baseSignificance: 35,

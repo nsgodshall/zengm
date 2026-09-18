@@ -9,6 +9,7 @@ import { getStoryScore } from "./recordWorldStories.ts";
 import {
 	couldBeALegend,
 	describeRetirement,
+	RETIREMENT_STORY_SETTINGS,
 	getMainClub,
 	getRetirementStory,
 	type RetiringPlayer,
@@ -103,6 +104,14 @@ export const recordRetirementStories = async (
 		return bests;
 	};
 
+	const told: {
+		pid: number;
+		tid: number;
+		countryId: number;
+		divisionId: number;
+		facts: NonNullable<ReturnType<typeof getRetirementStory>>;
+	}[] = [];
+
 	for (const p of retired) {
 		const byTid = getByTid(p.stats);
 		if (byTid.length === 0) {
@@ -143,14 +152,40 @@ export const recordRetirementStories = async (
 			},
 			gamesPerSeason,
 		});
-		if (!facts) {
+		if (facts) {
+			told.push({
+				pid: p.pid,
+				tid: t.tid,
+				countryId: division.countryId,
+				divisionId: division.divisionId,
+				facts,
+			});
+		}
+	}
+
+	// Only the biggest few in each Country, so a summer of retirements doesn't
+	// bury everything else (a legend of the user's own club always counts)
+	const numByCountry = new Map<number, number>();
+	for (const row of told.sort(
+		(a, b) =>
+			b.facts.significance - a.facts.significance ||
+			Number(b.tid === userTid) - Number(a.tid === userTid) ||
+			a.pid - b.pid,
+	)) {
+		const already = numByCountry.get(row.countryId) ?? 0;
+		if (
+			already >= RETIREMENT_STORY_SETTINGS.maxPerCountry &&
+			row.tid !== userTid
+		) {
 			continue;
 		}
+		numByCountry.set(row.countryId, already + 1);
 
+		const { facts } = row;
 		const story = {
 			kind: "legendRetires" as const,
-			countryId: division.countryId,
-			divisionId: division.divisionId,
+			countryId: row.countryId,
+			divisionId: row.divisionId,
 			significance: facts.significance,
 			facts: {
 				pid: facts.pid,
@@ -167,13 +202,13 @@ export const recordRetirementStories = async (
 				type: "story",
 				text: describeRetirement({
 					facts,
-					club: `the ${teamLink(t.tid)}`,
+					club: `the ${teamLink(row.tid)}`,
 					scoring: SCORING_NAME,
 				}),
-				pids: [p.pid],
-				tids: [t.tid],
+				pids: [row.pid],
+				tids: [row.tid],
 				score: getStoryScore(story, userCountryId),
-				showNotification: t.tid === userTid,
+				showNotification: row.tid === userTid,
 				hideInLiveGame: true,
 				story,
 			},

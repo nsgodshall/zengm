@@ -99,19 +99,21 @@ describe("getRetirementStory", () => {
 		).toBe(true);
 	});
 
-	test("tells the story of a club's all-time leader however long he stayed", () => {
+	test("tells the story of a club's all-time leader, short of a full legend's service", () => {
+		const gp = RETIREMENT_STORY_SETTINGS.leaderSeasons * GAMES;
 		const facts = getRetirementStory({
 			player: player({
 				byTid: [
-					{ tid: 4, gp: 90, value: 700, firstSeason: 2034, lastSeason: 2038 },
+					{ tid: 4, gp, value: 700, firstSeason: 2034, lastSeason: 2038 },
 				],
 				statsTids: [4, 9],
 			}),
-			club: club({ mostAppearances: 90, mostScoring: 700 }),
+			club: club({ mostAppearances: gp, mostScoring: 700 }),
 			gamesPerSeason: GAMES,
 		});
 
 		expect(facts?.leader).toEqual(["appearances", "scoring"]);
+		expect(gp).toBeLessThan(RETIREMENT_STORY_SETTINGS.seasons * GAMES);
 	});
 
 	test("doesn't crown a leader on a handful of games", () => {
