@@ -390,8 +390,8 @@ cheapest big improvement, and the first use of the saved records.
 
 ### Phase 4: recognize (the story engine)
 
-**Status: season-end stories, in-season stories, and rivalries implemented;
-player stories (legends, golden generations) still to do.**
+**Status: season-end stories, in-season stories, rivalries, golden generations,
+and legends' retirements implemented.**
 
 What landed (`competition/worldStories.ts`, pure, and
 `competition/recordWorldStories.ts`):
@@ -432,6 +432,17 @@ What landed (`competition/worldStories.ts`, pure, and
   head-to-head. A title race between clubs from the same town reads "from their
   Madrid rivals". Rivalries are worked out from the saved histories when shown,
   so nothing new is stored.
+- **A legend retires** (`competition/retirementStories.ts`, pure, and
+  `competition/recordRetirementStories.ts`), told in the summer when the
+  season's retirements are worked out: a player who ends up his club's
+  all-time leader in appearances or scoring, a one-club player with 100 games,
+  an academy graduate with 120, or anyone with 150 for one club. The story
+  says how long he stayed, his appearances and scoring, the titles he won
+  there, and what he ends up top of, and it counts for more the more he won
+  (`RETIREMENT_STORY_SETTINGS`). Every other retirement stays as quiet as it is
+  upstream, so a summer's worth doesn't flood the news. Only seasons played
+  since the feature landed have them: unlike the season-end stories, they're
+  not found again for older Worlds.
 - **In-season stories** (`competition/inSeasonStories.ts`, pure, and
   `competition/recordInSeasonStories.ts`), checked after each regular season
   day: a Division title or automatic promotion clinched, or relegation
@@ -538,7 +549,9 @@ below it.
 
 ### Phase 6: a World that makes its own history
 
-**Status: decided with the user (2026-09-17), not started.** Top tiers should
+**Status: decided with the user (2026-09-17); stature, owners, real clubs, and
+the money that makes titles concentrate implemented (6b's transfers and talent
+pool and 6c's embargoes are what's left).** Top tiers should
 look like real leagues: a dominant few clubs, challenged once in a while.
 Stature affects revenue, hype, and which clubs players want to join. Owners
 bring takeovers, owners pulling out, and administration with points deductions.
@@ -570,8 +583,18 @@ single run varies:
   back down, 27–40% of relegated clubs come straight back, every roster has 14
   or more players, ratings stay flat, and lower-tier finances get no worse.
 
-Today's tuning works against this: hype is pulled toward a flat 0.5 for every
-club, and an even spread of titles was counted as a success.
+**What the money does** (measured in 20-season runs, the numbers in
+ROADMAP.md): the wage budget ceiling is a safety valve at 6× the salary cap
+rather than the 2× that had every top-tier club sitting on it, so what a club
+can pay follows its revenue and stature can reach the pitch. The national TV
+deal is worth 4× ZenGM's in a top tier, 2× in a second and 1.4× below, which
+keeps the lower tiers alive under the top tier's new spending. Relegated clubs
+keep half of the TV money they lost for a season and a quarter for a second
+(`parachuteBySeason`), the way real leagues let a relegated club hold a squad
+good enough to come back up.
+
+Before this, hype was pulled toward a flat 0.5 for every club and an even
+spread of titles was counted as a success.
 
 #### 6b. Stature in play
 
