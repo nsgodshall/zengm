@@ -5,6 +5,7 @@ import { bySport } from "../../common/sportFunctions.ts";
 import useClickable from "../hooks/useClickable.tsx";
 import { helpers } from "../util/helpers.ts";
 import { CountryFlag } from "./CountryFlag.tsx";
+import { MovOrDiff } from "./MovOrDiff.tsx";
 import { ResponsiveTableWrapper } from "./ResponsiveTableWrapper.tsx";
 import { TeamLogoInline } from "./TeamLogoInline.tsx";
 
@@ -110,9 +111,6 @@ const Club = ({
 	</div>
 );
 
-const diff = (pointDiff: number) =>
-	pointDiff > 0 ? `+${pointDiff}` : String(pointDiff);
-
 const scoredCols = bySport({
 	baseball: {
 		for: "RS",
@@ -174,7 +172,18 @@ const Row = ({
 			<td>{row.lost}</td>
 			<td>{row.scored}</td>
 			<td>{row.conceded}</td>
-			<td>{diff(row.pointDiff)}</td>
+			{/* International Soccer Zen GM mod: an average margin reads better than
+			a cumulative one when clubs have played different numbers of games */}
+			<td>
+				<MovOrDiff
+					stats={{
+						pts: row.scored,
+						oppPts: row.conceded,
+						gp: row.played,
+					}}
+					type="mov"
+				/>
+			</td>
 			<td className="fw-bold">
 				{row.points}
 				{/* International Soccer Zen GM mod (storytelling): points taken off a
@@ -222,7 +231,7 @@ const DivisionTableFull = ({
 					<th title="Lost">L</th>
 					<th title={scoredCols.forTitle}>{scoredCols.for}</th>
 					<th title={scoredCols.againstTitle}>{scoredCols.against}</th>
-					<th title="Difference">Diff</th>
+					<th title="Average margin of victory">MOV</th>
 					<th title="Points">Pts</th>
 					<th title="Last 5 games, oldest first">Form</th>
 				</tr>
