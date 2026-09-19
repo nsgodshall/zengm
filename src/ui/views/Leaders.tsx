@@ -7,6 +7,7 @@ import type { View } from "../../common/types.ts";
 import { bySport, isSport } from "../../common/sportFunctions.ts";
 import type { DataTableRow } from "../components/DataTable/index.tsx";
 import { PlayerNameLabels } from "../components/PlayerNameLabels.tsx";
+import { useTeamNames } from "../components/TeamAbbrevLink.tsx";
 
 export const LeadersTopText = ({
 	includeHighlight,
@@ -69,6 +70,9 @@ const Leaders = ({
 			playoffsCombined: playoffs,
 		},
 	});
+
+	// International Soccer Zen GM mod: name the team in full on hover
+	const teamName = useTeamNames();
 
 	// When season is "all", the season is displayed inline, so columns need to be a bit wider
 	const colClassName =
@@ -153,7 +157,11 @@ const Leaders = ({
 											firstNameShort={p.firstNameShort}
 											lastName={p.lastName}
 										/>
-										<a href={helpers.leagueUrl(teamUrlParts)} className="mx-2">
+										<a
+											href={helpers.leagueUrl(teamUrlParts)}
+											className="mx-2"
+											title={teamName(p.tid)}
+										>
 											{p.abbrev}
 											{seasonText}
 										</a>

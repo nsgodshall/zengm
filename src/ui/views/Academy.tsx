@@ -1,4 +1,5 @@
 import { PHASE } from "../../common/constants.ts";
+import { TeamAbbrevLink } from "../components/TeamAbbrevLink.tsx";
 import { getCols } from "../../common/getCols.ts";
 import type { View } from "../../common/types.ts";
 import {
@@ -297,11 +298,7 @@ const Academy = ({
 			!challengeNoRatings ? p.ovr : null,
 			!challengeNoRatings ? p.pot : null,
 			{
-				value: (
-					<a href={helpers.leagueUrl(["roster", `${p.abbrev}_${p.tid}`])}>
-						{p.abbrev}
-					</a>
-				),
+				value: <TeamAbbrevLink abbrev={p.abbrev} tid={p.tid} />,
 				sortValue: p.abbrev,
 				searchValue: p.abbrev,
 			},

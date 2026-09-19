@@ -1,4 +1,5 @@
 import { DataTable } from "../components/DataTable/index.tsx";
+import { TeamAbbrevLink } from "../components/TeamAbbrevLink.tsx";
 import { MoreLinks } from "../components/MoreLinks.tsx";
 import useTitleBar from "../hooks/useTitleBar.tsx";
 import { helpers } from "../util/helpers.ts";
@@ -202,15 +203,11 @@ const PlayerStats = ({
 					? wrappedAgeAtDeath(p.age, p.ageAtDeath)
 					: p.stats.season - p.born.year,
 
-				<a
-					href={helpers.leagueUrl([
-						"roster",
-						`${actualAbbrev}_${actualTid}`,
-						...(season === "career" ? [] : [p.stats.season]),
-					])}
-				>
-					{actualAbbrev}
-				</a>,
+				<TeamAbbrevLink
+					abbrev={actualAbbrev}
+					tid={actualTid}
+					season={season === "career" ? undefined : p.stats.season}
+				/>,
 
 				...(season === "all" ? [p.stats.season] : []),
 

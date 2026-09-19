@@ -1,4 +1,5 @@
 import { getCols } from "../../common/getCols.ts";
+import { TeamAbbrevLink, useTeamNames } from "../components/TeamAbbrevLink.tsx";
 import type { View } from "../../common/types.ts";
 import {
 	wrappedContractAmount,
@@ -50,6 +51,7 @@ const TransferMarket = ({
 	useTitleBar({ title: "Transfer Market" });
 
 	const { challengeNoRatings } = useLocal(["challengeNoRatings"]);
+	const teamName = useTeamNames();
 
 	const canAct = transferWindow !== undefined && !spectator;
 
@@ -103,11 +105,7 @@ const TransferMarket = ({
 	];
 
 	const teamCell = (abbrev: string, tid: number) => ({
-		value: (
-			<a href={helpers.leagueUrl(["roster", `${abbrev}_${tid}`, season])}>
-				{abbrev}
-			</a>
-		),
+		value: <TeamAbbrevLink abbrev={abbrev} tid={tid} season={season} />,
 		sortValue: abbrev,
 		searchValue: abbrev,
 	});
@@ -440,7 +438,10 @@ const TransferMarket = ({
 			...playerCells(p),
 			{
 				value: (
-					<a href={helpers.leagueUrl(["academy", `${p.abbrev}_${p.tid}`])}>
+					<a
+						href={helpers.leagueUrl(["academy", `${p.abbrev}_${p.tid}`])}
+						title={teamName(p.tid)}
+					>
 						{p.abbrev}
 					</a>
 				),

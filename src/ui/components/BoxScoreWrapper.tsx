@@ -918,7 +918,9 @@ const DetailedScore = ({
 						<tbody>
 							{boxScore.teams.map((t: any) => (
 								<tr key={t.abbrev}>
-									<th>
+									{/* International Soccer Zen GM mod: name the team in full on
+									hover, since only the abbreviation fits */}
+									<th title={t.region ? `${t.region} ${t.name}` : undefined}>
 										{t.tid >= 0 ? (
 											<a
 												href={helpers.leagueUrl([

@@ -93,7 +93,12 @@ export const TeamColumn = ({
 							{t.seasonAttrs.region}
 							{includeName ? ` ${t.seasonAttrs.name}` : null}
 						</span>
-						<span className="d-sm-none">{t.seasonAttrs.abbrev}</span>
+						<span
+							className="d-sm-none"
+							title={`${t.seasonAttrs.region} ${t.seasonAttrs.name}`}
+						>
+							{t.seasonAttrs.abbrev}
+						</span>
 					</a>
 					{t.seasonAttrs.clinchedPlayoffs
 						? ` ${t.seasonAttrs.clinchedPlayoffs}`

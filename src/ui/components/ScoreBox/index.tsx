@@ -304,6 +304,9 @@ export const ScoreBox = memo(
 							let imgURL;
 							let teamName;
 							let rosterURL;
+							// International Soccer Zen GM mod: when only the abbreviation
+							// fits, name the team in full on hover
+							let teamTitle;
 							if (allStarGame) {
 								imgURL = `https://zengm.com/files/logo-${__SPORT}.svg`;
 								teamName = small
@@ -317,6 +320,9 @@ export const ScoreBox = memo(
 									teamName = small
 										? branding.abbrev
 										: `${branding.region} ${branding.name}`;
+									if (small) {
+										teamTitle = `${branding.region} ${branding.name}`;
+									}
 									rosterURL = helpers.leagueUrl([
 										"roster",
 										`${branding.abbrev}_${t.tid}`,
@@ -427,6 +433,7 @@ export const ScoreBox = memo(
 											<a
 												href={rosterURL}
 												className={!small ? "fw-bold" : undefined}
+												title={teamTitle}
 											>
 												{teamName}
 											</a>

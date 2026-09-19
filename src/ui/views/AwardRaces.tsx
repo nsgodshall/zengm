@@ -1,4 +1,5 @@
 import useTitleBar from "../hooks/useTitleBar.tsx";
+import { TeamAbbrevLink } from "../components/TeamAbbrevLink.tsx";
 import { helpers } from "../util/helpers.ts";
 import { getCols } from "../../common/getCols.ts";
 import { DataTable } from "../components/DataTable/index.tsx";
@@ -106,11 +107,7 @@ const getRows = ({
 			}),
 			p.pos,
 			p.age,
-			<>
-				<a href={helpers.leagueUrl(["roster", `${abbrev}_${tid}`, season])}>
-					{abbrev}
-				</a>
-			</>,
+			<TeamAbbrevLink abbrev={abbrev} tid={tid} season={season} />,
 			recordOrPick,
 		];
 

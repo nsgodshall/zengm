@@ -86,7 +86,9 @@ const Club = ({
 					{row.region}
 					{includeName ? ` ${row.name}` : null}
 				</span>
-				<span className="d-sm-none">{row.abbrev}</span>
+				<span className="d-sm-none" title={`${row.region} ${row.name}`}>
+					{row.abbrev}
+				</span>
 			</a>
 			{champion ? (
 				<span className="fw-bold" title="Champion">

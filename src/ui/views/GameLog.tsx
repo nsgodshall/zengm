@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import { useTeamNames } from "../components/TeamAbbrevLink.tsx";
 import { MoreLinks } from "../components/MoreLinks.tsx";
 import useTitleBar from "../hooks/useTitleBar.tsx";
 import { helpers } from "../util/helpers.ts";
@@ -75,6 +76,8 @@ const GamesList = ({
 	season: number;
 	tid: number;
 }) => {
+	const teamName = useTeamNames();
+
 	if (season < currentSeason && gamesList.games.length === 0) {
 		return <NoGamesMessage warnAboutDelete />;
 	}
@@ -128,7 +131,9 @@ const GamesList = ({
 								className={gm.gid === gid ? "table-info" : undefined}
 							>
 								<td className="game-log-cell">
-									<a href={url}>
+									{/* International Soccer Zen GM mod: name the opponent in
+									full on hover */}
+									<a href={url} title={teamName(gm.teams[other].tid)}>
 										{gm.neutralSite || home ? "" : "@"}
 										{oppAbbrev}
 									</a>

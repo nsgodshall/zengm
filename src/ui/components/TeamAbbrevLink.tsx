@@ -1,5 +1,6 @@
 import { PLAYER } from "../../common/constants.ts";
 import { helpers } from "../util/helpers.ts";
+import { useLocal } from "../util/local.ts";
 
 type Props = {
 	tid: number;
@@ -8,7 +9,23 @@ type Props = {
 	season?: number;
 };
 
-const TeamAbbrevLink = ({ tid, abbrev, className, season }: Props) => {
+/**
+ * International Soccer Zen GM mod: a team's full name by tid, for the `title`
+ * of anywhere that shows only its abbreviation
+ */
+export const useTeamNames = () => {
+	const { teamInfoCache } = useLocal(["teamInfoCache"]);
+	return (tid: number) => {
+		const t = teamInfoCache[tid];
+		return t ? `${t.region} ${t.name}` : undefined;
+	};
+};
+
+export const TeamAbbrevLink = ({ tid, abbrev, className, season }: Props) => {
+	// International Soccer Zen GM mod: name the team in full on hover, since the
+	// abbreviation is all there's room for
+	const title = useTeamNames()(tid);
+
 	if (!abbrev) {
 		return null;
 	}
@@ -46,7 +63,11 @@ const TeamAbbrevLink = ({ tid, abbrev, className, season }: Props) => {
 	}
 
 	return (
-		<a className={className} href={helpers.leagueUrl(leagueUrlParam)}>
+		<a
+			className={className}
+			href={helpers.leagueUrl(leagueUrlParam)}
+			title={title}
+		>
 			{abbrev}
 		</a>
 	);
