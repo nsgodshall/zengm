@@ -132,6 +132,22 @@ const ensureCompetitionStructure = async () => {
 		g.setWithoutSavingToDB("worldPayrollRulesOff", true);
 	}
 
+	// International Soccer Zen GM mod: a World made before the All-Star game was
+	// dropped still plays one. Turn it off once, so it stays off unless the user
+	// turns it back on in the settings.
+	if (
+		!isSingleDivision(structure) &&
+		!(g as unknown as { worldAllStarGameOff?: true }).worldAllStarGameOff
+	) {
+		await idb.cache.gameAttributes.put({ key: "allStarGame", value: null });
+		await idb.cache.gameAttributes.put({
+			key: "worldAllStarGameOff",
+			value: true,
+		});
+		g.setWithoutSavingToDB("allStarGame", null);
+		g.setWithoutSavingToDB("worldAllStarGameOff", true);
+	}
+
 	// International Soccer Zen GM mod (Epic 6): a World made before its awards
 	// were soccer-style still has ZenGM's awards, or its earlier World awards.
 	// Switch them once, unless the user has changed the award settings.

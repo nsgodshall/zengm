@@ -5,6 +5,7 @@ import { LEAGUE_DATABASE_VERSION, PHASE, PLAYER } from "../common/constants.ts";
 import { defaultGameAttributes } from "../common/defaultGameAttributes.ts";
 import type {
 	EventBBGM,
+	Game,
 	GameAttributesLeague,
 	HeadToHead,
 	Player,
@@ -668,6 +669,27 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		assert.strictEqual(g.get("luxuryTax"), 0);
 		assert.strictEqual(g.get("minPayroll"), 0);
 		assert.strictEqual(g.get("worldPayrollRulesOff"), true);
+	});
+
+	test("a World plays no All-Star game, even one made before that was decided", async () => {
+		assert.strictEqual(g.get("allStarGame"), null);
+
+		// Every game played was between two clubs
+		const games: Game[] = await idb.league.getAll("games");
+		assert(games.length > 0);
+		for (const game of games) {
+			for (const t of game.teams) {
+				assert(t.tid >= 0, `All-Star game in ${game.season}`);
+			}
+		}
+		assert.strictEqual((await idb.league.getAll("allStars")).length, 0);
+
+		// An older World still has one scheduled until it's loaded
+		g.setWithoutSavingToDB("allStarGame", 0.7);
+		delete (g as unknown as { worldAllStarGameOff?: true }).worldAllStarGameOff;
+		await competition.ensureCompetitionStructure();
+		assert.strictEqual(g.get("allStarGame"), null);
+		assert.strictEqual(g.get("worldAllStarGameOff"), true);
 	});
 
 	test("a club's league history follows its Divisions and table positions", async () => {

@@ -339,6 +339,11 @@ const createGameAttributes = async (
 			gameAttributes.draftType = "freeAgents";
 			gameAttributes.salaryCapType = "none";
 
+			// Decided: no All-Star game. World football has no equivalent, and the
+			// break in the middle of a season it doesn't belong in showed up in the
+			// schedule and the news (see also ensureCompetitionStructure).
+			gameAttributes.allStarGame = null;
+
 			// Decided: a club's wage budget is its only payroll limit, so there's no
 			// minimum payroll fine or luxury tax (see also ensureCompetitionStructure)
 			gameAttributes.luxuryTax = 0;

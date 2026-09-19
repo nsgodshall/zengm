@@ -689,6 +689,9 @@ export type GameAttributesLeague = {
 	// International Soccer Zen GM mod (Epic 6): set once a World's awards have been
 	// switched to soccer-style awards (see ensureCompetitionStructure)
 	worldSoccerAwards?: true;
+	// International Soccer Zen GM mod: set once a World's All-Star game has been
+	// turned off (see ensureCompetitionStructure)
+	worldAllStarGameOff?: true;
 	// International Soccer Zen GM mod (Epic 8): set once a World made before
 	// crests, bigger rosters, and stadiums by market has been given them (see
 	// ensureCompetitionStructure)
