@@ -1,7 +1,7 @@
 import { PHASE, PLAYER } from "../../../common/constants.ts";
 import { g, helpers } from "../../util/index.ts";
 import { idb } from "../../db/index.ts";
-import moodComponents from "./moodComponents.ts";
+import moodComponents, { type MoodCache } from "./moodComponents.ts";
 import type { Player } from "../../../common/types.ts";
 import { bySport, isSport } from "../../../common/sportFunctions.ts";
 import { last } from "../../../common/utils.ts";
@@ -20,8 +20,10 @@ const moodInfo = async (
 	overrides: {
 		contractAmount?: number;
 	} = {},
+	// International Soccer Zen GM mod: shared between players at the same club
+	cache?: MoodCache,
 ) => {
-	const components = await moodComponents(p, tid);
+	const components = await moodComponents(p, tid, cache);
 	let probWilling = 0;
 
 	const phase = g.get("phase");

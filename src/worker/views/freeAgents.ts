@@ -8,6 +8,7 @@ import type {
 import { orderBy } from "../../common/utils.ts";
 import { competition, player, team } from "../core/index.ts";
 import { getWageBudgets } from "../core/competition/wageBudgets.ts";
+import type { MoodCache } from "../core/player/moodComponents.ts";
 import { idb } from "../db/index.ts";
 import { g } from "../util/index.ts";
 import addFirstNameShort from "../util/addFirstNameShort.ts";
@@ -15,9 +16,14 @@ import { loadAbbrevs } from "./gameLog.ts";
 import { bySport } from "../../common/sportFunctions.ts";
 
 export const addMood = async (players: Player[]) => {
+	// International Soccer Zen GM mod: a World has hundreds of free agents and
+	// dozens of clubs, so what each club's mood depends on is worked out once
+	// for the batch instead of once for every player (see moodComponents.ts)
+	const cache: MoodCache = new Map();
+
 	const moods: Awaited<ReturnType<(typeof player)["moodInfos"]>>[] = [];
 	for (const p of players) {
-		moods.push(await player.moodInfos(p));
+		moods.push(await player.moodInfos(p, {}, cache));
 	}
 
 	return players.map((p, i) => ({

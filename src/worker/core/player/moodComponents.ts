@@ -80,12 +80,16 @@ const getMinFractionDiff = async (pid: number, tid: number) => {
 };
 
 // Make components -2 to 2, then scale with traits to -5 to 5
-const moodComponents = async (
-	p: Player,
-	tid: number,
-): Promise<MoodComponents> => {
+/**
+ * International Soccer Zen GM mod: everything a club's mood depends on that a
+ * player doesn't, worked out once for a batch of players at the same club (see
+ * getTeamMood). Without it, a World's Free Agents page ranked all of its clubs
+ * by market size once for each of a thousand free agents.
+ */
+export type MoodCache = Map<number, Awaited<ReturnType<typeof getTeamMood>>>;
+
+const getTeamMood = async (tid: number) => {
 	const season = g.get("season");
-	const phase = g.get("phase");
 
 	const teamSeasons = await idb.cache.teamSeasons.indexGetAll(
 		"teamSeasonsByTidSeason",
@@ -94,13 +98,40 @@ const moodComponents = async (
 			[tid, season],
 		],
 	);
-	const currentTeamSeason = teamSeasons.findLast((ts) => ts.season === season);
 
 	const teams = helpers.addPopRank(await idb.cache.teams.getAll());
 	const t = teams.find((t) => t.tid === tid);
 	if (!t) {
 		throw new Error(`tid ${tid} not found`);
 	}
+
+	return {
+		numTeams: teams.length,
+		t,
+		teamSeasons,
+		facilitiesLevel: await finances.getLevelLastThree("facilities", {
+			t,
+			teamSeasons,
+		}),
+	};
+};
+
+const moodComponents = async (
+	p: Player,
+	tid: number,
+	cache?: MoodCache,
+): Promise<MoodComponents> => {
+	const season = g.get("season");
+	const phase = g.get("phase");
+
+	let team = cache?.get(tid);
+	if (!team) {
+		team = await getTeamMood(tid);
+		cache?.set(tid, team);
+	}
+	const { numTeams, t, teamSeasons } = team;
+
+	const currentTeamSeason = teamSeasons.findLast((ts) => ts.season === season);
 
 	const components: MoodComponents = {
 		marketSize: 0,
@@ -143,17 +174,13 @@ const moodComponents = async (
 
 	{
 		// MARKET SIZE: -2 to 2, based on population rank
-		const marketSize0to1 = (teams.length - t.popRank) / (teams.length - 1);
+		const marketSize0to1 = (numTeams - t.popRank) / (numTeams - 1);
 		components.marketSize = -2 + marketSize0to1 * 4;
 	}
 
 	{
 		// FACILITIES: -2 to 2, based on facilities level
-		const facilitiesLevel = await finances.getLevelLastThree("facilities", {
-			t,
-			teamSeasons,
-		});
-		components.facilities = facilitiesEffectMood(facilitiesLevel);
+		components.facilities = facilitiesEffectMood(team.facilitiesLevel);
 	}
 
 	{
