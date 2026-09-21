@@ -155,6 +155,7 @@ describe("real clubs", () => {
 			"spain",
 			"usa",
 			"mexico",
+			"italy",
 			"germany",
 			"japan",
 		]);

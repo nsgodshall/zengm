@@ -13,7 +13,7 @@ describe("real clubs' history", () => {
 	);
 
 	test("every real club has a starting stature, and nothing else does", () => {
-		expect(realClubs.length).toBe(260);
+		expect(realClubs.length).toBe(300);
 		for (const club of realClubs) {
 			const history = getRealClubHistory(club);
 			expect(history, `${club.region} ${club.name}`).toBeDefined();

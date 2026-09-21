@@ -19,6 +19,7 @@ import {
 } from "./worldTowns.ts";
 import { AMERICAN_CLUBS_BY_TIER } from "./americanClubs.ts";
 import { GERMAN_CLUBS_BY_TIER } from "./germanClubs.ts";
+import { ITALIAN_CLUBS_BY_TIER } from "./italianClubs.ts";
 import { JAPANESE_CLUBS_BY_TIER } from "./japaneseClubs.ts";
 import { MEXICAN_CLUBS_BY_TIER } from "./mexicanClubs.ts";
 import { BRITISH_CLUBS_BY_TIER } from "./britishClubs.ts";
@@ -184,6 +185,8 @@ export const WORLD_COUNTRIES: WorldCountry[] = [
 		numTiers: 2,
 		towns: ITALIAN_TOWNS,
 		realClubNames: REAL_ITALIAN_CLUB_NAMES,
+		realClubsByTier: ITALIAN_CLUBS_BY_TIER,
+		realClubsInOrder: true,
 		namePatterns: [
 			...withPrefixes([
 				"AC",

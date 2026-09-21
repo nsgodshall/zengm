@@ -272,6 +272,19 @@ export const ITALIAN_TOWNS: PilotTown[] = [
 	{ name: "Catanzaro", pop: 85, wikipedia: "Catanzaro" },
 	{ name: "Cosenza", pop: 65, wikipedia: "Cosenza" },
 	{ name: "Avellino", pop: 53, wikipedia: "Avellino" },
+	{ name: "Cremona", pop: 72, wikipedia: "Cremona" },
+	{ name: "Carrara", pop: 62, wikipedia: "Carrara" },
+	{
+		name: "Castellammare di Stabia",
+		clubName: "Castellammare",
+		pop: 65,
+		wikipedia: "Castellammare_di_Stabia",
+	},
+	{ name: "Mantua", clubName: "Mantova", pop: 49, wikipedia: "Mantua" },
+	{ name: "Empoli", pop: 48, wikipedia: "Empoli" },
+	{ name: "Frosinone", pop: 45, wikipedia: "Frosinone" },
+	{ name: "Sassuolo", pop: 41, wikipedia: "Sassuolo" },
+	{ name: "Chiavari", pop: 27, wikipedia: "Chiavari" },
 ];
 
 export const GERMAN_TOWNS: PilotTown[] = [
