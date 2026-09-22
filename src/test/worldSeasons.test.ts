@@ -1399,12 +1399,17 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			}
 			numRivals += data.worldRivals.length;
 
-			// The schedule marks the same rivals (see getClubRivalMarks)
+			// The schedule marks the rivals the club is coming back to, which is
+			// some of them (see getClubRivalMarks)
 			const marks = await competition.getClubRivalMarks(t.tid);
-			assert.deepStrictEqual(
-				[...marks.keys()].sort((a, b) => a - b),
-				data.worldRivals.map((rival) => rival.tid).sort((a, b) => a - b),
-			);
+			const rivalTids = new Set(data.worldRivals.map((rival) => rival.tid));
+			for (const [rivalTid, mark] of marks) {
+				assert(rivalTids.has(rivalTid), `${t.tid} vs ${rivalTid}`);
+				assert(
+					mark.lastMet === undefined || mark.lastMet < g.get("season") - 1,
+					`${t.tid} vs ${rivalTid} met in ${mark.lastMet}`,
+				);
+			}
 		}
 		assert(numRivals > 0);
 		assert(numLegends > 0);

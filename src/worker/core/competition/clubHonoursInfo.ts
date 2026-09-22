@@ -5,7 +5,14 @@ import { describeClubEra, getClubEras } from "./clubEras.ts";
 import { getClubHonours } from "./clubHonours.ts";
 import { describeClubStature } from "./clubStature.ts";
 import { isSingleDivision } from "./competitionStructure.ts";
-import { getDerbyTown, getRivalries, type RivalryReason } from "./rivalries.ts";
+import {
+	getDerbyTown,
+	getLastMeeting,
+	getRivalries,
+	isRivalryRenewed,
+	type Rival,
+	type RivalryReason,
+} from "./rivalries.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
 
 // A club's stature after its latest finished season, with this season's market
@@ -231,16 +238,68 @@ export const getUserRivalMark = async (tid: number, opponentTid: number) => {
  * clubs in a World, keyed "lower-higher" by tid, so a day's fixtures can mark
  * the derbies. Empty outside a World.
  */
+export type RivalryMark = { derbyTown?: string; lastMet?: number };
+
+// Decided with the user: only a rivalry the clubs are coming back to, not every
+// time they play (see isRivalryRenewed)
+const getRenewedMark = ({
+	rival,
+	history,
+	historyByTid,
+	season,
+}: {
+	rival: Rival;
+	history: { season: number; divisionId: number }[];
+	historyByTid: Map<number, { season: number; divisionId: number }[]>;
+	season: number;
+}): RivalryMark | undefined => {
+	const lastMet = getLastMeeting({
+		history,
+		otherHistory: historyByTid.get(rival.tid) ?? [],
+		season,
+	});
+	if (!isRivalryRenewed({ lastMet, season })) {
+		return;
+	}
+
+	const derbyTown = getDerbyTown(rival);
+	return {
+		...(derbyTown === undefined ? {} : { derbyTown }),
+		...(lastMet === undefined ? {} : { lastMet }),
+	};
+};
+
+const getHistoryByTid = async () =>
+	new Map(
+		(await idb.cache.teams.getAll()).map((t) => [
+			t.tid,
+			(t.worldHistory ?? []).map((entry) => ({
+				season: entry.season,
+				divisionId: entry.divisionId,
+			})),
+		]),
+	);
+
 export const getWorldRivalPairs = async () => {
-	const pairs = new Map<string, { derbyTown?: string }>();
+	const pairs = new Map<string, RivalryMark>();
 	if (isSingleDivision(getCompetitionStructure())) {
 		return pairs;
 	}
+
+	const season = g.get("season");
+	const historyByTid = await getHistoryByTid();
 	for (const [tid, rivals] of await getWorldRivalries()) {
 		for (const rival of rivals) {
-			const key = `${Math.min(tid, rival.tid)}-${Math.max(tid, rival.tid)}`;
-			const derbyTown = getDerbyTown(rival);
-			pairs.set(key, derbyTown === undefined ? {} : { derbyTown });
+			const mark = getRenewedMark({
+				rival,
+				history: historyByTid.get(tid) ?? [],
+				historyByTid,
+				season,
+			});
+			if (mark) {
+				const key = `${Math.min(tid, rival.tid)}-${Math.max(tid, rival.tid)}`;
+				pairs.set(key, mark);
+			}
 		}
 	}
 	return pairs;
@@ -252,13 +311,23 @@ export const getWorldRivalPairs = async () => {
  * mark the derbies. Empty outside a World.
  */
 export const getClubRivalMarks = async (tid: number) => {
-	const marks = new Map<number, { derbyTown?: string }>();
+	const marks = new Map<number, RivalryMark>();
 	if (isSingleDivision(getCompetitionStructure())) {
 		return marks;
 	}
+
+	const season = g.get("season");
+	const historyByTid = await getHistoryByTid();
 	for (const rival of (await getWorldRivalries()).get(tid) ?? []) {
-		const derbyTown = getDerbyTown(rival);
-		marks.set(rival.tid, derbyTown === undefined ? {} : { derbyTown });
+		const mark = getRenewedMark({
+			rival,
+			history: historyByTid.get(tid) ?? [],
+			historyByTid,
+			season,
+		});
+		if (mark) {
+			marks.set(rival.tid, mark);
+		}
 	}
 	return marks;
 };

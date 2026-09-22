@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import { describeRivalryMeeting } from "../../worker/core/competition/rivalries.ts";
 import { MoreLinks } from "../components/MoreLinks.tsx";
 import useTitleBar from "../hooks/useTitleBar.tsx";
 import type { View } from "../../common/types.ts";
@@ -74,7 +75,7 @@ const DailySchedule = ({
 		}
 		return (
 			<div className="text-body-secondary small">
-				{pair.derbyTown ? `${pair.derbyTown} derby` : "Rivalry"}
+				{describeRivalryMeeting(pair)}
 			</div>
 		);
 	};

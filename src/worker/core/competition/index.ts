@@ -85,6 +85,7 @@ import {
 	getWorldRivalPairs,
 } from "./clubHonoursInfo.ts";
 import { getWorldRollOfHonour } from "./worldLeagueHistory.ts";
+import { describeRivalryMeeting } from "./rivalries.ts";
 import { recordRetirementStories } from "./recordRetirementStories.ts";
 import { getWorldChronicle, getWorldStorylines } from "./worldChronicle.ts";
 import {
@@ -137,6 +138,7 @@ export default {
 	getClubRecordsHonours,
 	getClubRivalMarks,
 	getClubRivalsInfo,
+	describeRivalryMeeting,
 	getUserRivalMark,
 	getWorldRivalPairs,
 	getClubLegends,

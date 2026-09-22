@@ -163,3 +163,63 @@ export const getDerbyTown = (rival: Rival) =>
 		(reason): reason is { kind: "derby"; town: string } =>
 			reason.kind === "derby",
 	)?.town;
+
+/**
+ * International Soccer Zen GM mod (storytelling, Phase 5): the last season two
+ * clubs shared a Division, before `season`, or undefined if they never have.
+ * Histories are their saved seasons (see recordWorldSeason).
+ */
+export const getLastMeeting = ({
+	history,
+	otherHistory,
+	season,
+}: {
+	history: { season: number; divisionId: number }[];
+	otherHistory: { season: number; divisionId: number }[];
+	season: number;
+}) => {
+	const divisionBySeason = new Map(
+		otherHistory.map((entry) => [entry.season, entry.divisionId]),
+	);
+	let last: number | undefined;
+	for (const entry of history) {
+		if (
+			entry.season < season &&
+			divisionBySeason.get(entry.season) === entry.divisionId &&
+			(last === undefined || entry.season > last)
+		) {
+			last = entry.season;
+		}
+	}
+	return last;
+};
+
+/**
+ * Whether a meeting is worth marking: decided with the user, a derby is news
+ * when it comes back, not every time it's played, so two clubs that met last
+ * season are just playing each other again.
+ */
+export const isRivalryRenewed = ({
+	lastMet,
+	season,
+}: {
+	lastMet: number | undefined;
+	season: number;
+}) => lastMet === undefined || lastMet < season - 1;
+
+/**
+ * How a renewed rivalry reads: the derby's town when they share one, and how
+ * long it's been.
+ */
+export const describeRivalryMeeting = ({
+	derbyTown,
+	lastMet,
+}: {
+	derbyTown?: string;
+	lastMet?: number;
+}) => {
+	const what = derbyTown ? `${derbyTown} derby` : "rivalry";
+	return lastMet === undefined
+		? `The first ${what}`
+		: `The ${what} is back, first since ${lastMet}`;
+};

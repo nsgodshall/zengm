@@ -555,8 +555,11 @@ below it.
   flight.
 - **Rivalries:** a club's rivals with their all-time record and recent
   meetings (landed), and its schedule and the World's daily schedule say which
-  fixtures are derbies or other rivalries, and the news for one of the user's
-  games says when it was a derby (landed). Box scores naming them is still to
+  fixtures are a rivalry the clubs are coming back to, and the news for one of
+  the user's games says so (landed). Decided with the user: a derby is only
+  marked when it's renewed, not every time it's played, so it reads "The Madrid
+  derby is back, first since 2031" and says nothing when they met last season
+  (`isRivalryRenewed`). Box scores naming them is still to
   do.
 - **Club legends:** on the team page, most appearances and points, one-club
   players, academy graduates, and retired numbers.

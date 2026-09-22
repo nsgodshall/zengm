@@ -1,6 +1,13 @@
 import { describe, expect, test } from "vitest";
 import type { WorldHistoryEntry } from "../../../common/types.ts";
-import { getDerbyTown, getRivalries, RIVALRY_SETTINGS } from "./rivalries.ts";
+import {
+	isRivalryRenewed,
+	getLastMeeting,
+	describeRivalryMeeting,
+	getDerbyTown,
+	getRivalries,
+	RIVALRY_SETTINGS,
+} from "./rivalries.ts";
 
 const entry = (
 	season: number,
@@ -93,6 +100,75 @@ describe("getRivalries", () => {
 		expect(getRivalries({ season: 2029, clubs }).get(0)).toBe(undefined);
 		expect(getRivalries({ season: 2030, clubs }).get(0)![0]!.score).toBe(
 			RIVALRY_SETTINGS.titleRace,
+		);
+	});
+});
+
+describe("renewed rivalries", () => {
+	const seasons = (entries: [number, number][]) =>
+		entries.map(([season, divisionId]) => ({ season, divisionId }));
+
+	test("finds the last season two clubs shared a Division", () => {
+		expect(
+			getLastMeeting({
+				history: seasons([
+					[2026, 1],
+					[2027, 1],
+					[2028, 2],
+					[2029, 2],
+				]),
+				otherHistory: seasons([
+					[2026, 1],
+					[2027, 2],
+					[2028, 2],
+					[2029, 1],
+				]),
+				season: 2030,
+			}),
+		).toBe(2028);
+	});
+
+	test("has no last meeting for clubs that have never shared one", () => {
+		expect(
+			getLastMeeting({
+				history: seasons([[2026, 1]]),
+				otherHistory: seasons([[2026, 2]]),
+				season: 2027,
+			}),
+		).toBeUndefined();
+	});
+
+	test("ignores this season and later", () => {
+		expect(
+			getLastMeeting({
+				history: seasons([
+					[2029, 1],
+					[2030, 1],
+				]),
+				otherHistory: seasons([
+					[2029, 2],
+					[2030, 1],
+				]),
+				season: 2030,
+			}),
+		).toBeUndefined();
+	});
+
+	test("counts it renewed only when they didn't meet last season", () => {
+		expect(isRivalryRenewed({ lastMet: 2029, season: 2030 })).toBe(false);
+		expect(isRivalryRenewed({ lastMet: 2028, season: 2030 })).toBe(true);
+		expect(isRivalryRenewed({ lastMet: undefined, season: 2030 })).toBe(true);
+	});
+
+	test("says how long it's been, or that it's the first", () => {
+		expect(describeRivalryMeeting({ derbyTown: "Madrid", lastMet: 2028 })).toBe(
+			"The Madrid derby is back, first since 2028",
+		);
+		expect(describeRivalryMeeting({ derbyTown: "Madrid" })).toBe(
+			"The first Madrid derby",
+		);
+		expect(describeRivalryMeeting({ lastMet: 2031 })).toBe(
+			"The rivalry is back, first since 2031",
 		);
 	});
 });

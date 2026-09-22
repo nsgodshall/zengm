@@ -446,9 +446,7 @@ const writeGameStats = async (
 			opponentTid,
 		);
 		if (rival) {
-			text += rival.derbyTown
-				? ` The ${rival.derbyTown} derby.`
-				: " A rivalry game.";
+			text += ` ${competition.describeRivalryMeeting(rival)}.`;
 		}
 
 		let type: LogEventType =

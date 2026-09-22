@@ -1,4 +1,5 @@
 import { Fragment, useState } from "react";
+import { describeRivalryMeeting } from "../../worker/core/competition/rivalries.ts";
 import { MoreLinks } from "../components/MoreLinks.tsx";
 import useTitleBar from "../hooks/useTitleBar.tsx";
 import type { View } from "../../common/types.ts";
@@ -151,7 +152,7 @@ const Schedule = ({
 								<Fragment key={game.gid}>
 									{rival ? (
 										<div className="text-body-secondary small mb-1">
-											{rival.derbyTown ? `${rival.derbyTown} derby` : "Rivalry"}
+											{describeRivalryMeeting(rival)}
 										</div>
 									) : null}
 									<ScoreBox
