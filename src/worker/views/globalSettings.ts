@@ -23,6 +23,11 @@ const updateOptions = async (inputs: unknown, updateEvents: UpdateEvents) => {
 			units: options.units,
 			fullNames: !!options.fullNames,
 			phaseChangeRedirects: options.phaseChangeRedirects,
+			// International Soccer Zen GM mod (storytelling, Phase 7): the user's
+			// own key for having season reviews written
+			llmApiKey: options.llmApiKey ?? "",
+			llmBaseUrl: options.llmBaseUrl ?? "",
+			llmModel: options.llmModel ?? "",
 		};
 	}
 };

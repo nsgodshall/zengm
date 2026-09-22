@@ -87,6 +87,13 @@ import {
 import { getWorldRollOfHonour } from "./worldLeagueHistory.ts";
 import { describeRivalryMeeting } from "./rivalries.ts";
 import { recordRetirementStories } from "./recordRetirementStories.ts";
+import {
+	canWriteSeasonReview,
+	deleteSeasonReview,
+	getSeasonReview,
+	getSeasonReviewFacts,
+	writeSeasonReview,
+} from "./writeSeasonReview.ts";
 import { getWorldChronicle, getWorldStorylines } from "./worldChronicle.ts";
 import {
 	fillWorldSeasonRecords,
@@ -138,6 +145,11 @@ export default {
 	getClubRecordsHonours,
 	getClubRivalMarks,
 	getClubRivalsInfo,
+	canWriteSeasonReview,
+	deleteSeasonReview,
+	getSeasonReview,
+	getSeasonReviewFacts,
+	writeSeasonReview,
 	describeRivalryMeeting,
 	getUserRivalMark,
 	getWorldRivalPairs,

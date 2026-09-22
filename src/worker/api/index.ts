@@ -3271,6 +3271,17 @@ const requestLoan = (params: { pid: number }) => {
 	return competition.requestLoan(params);
 };
 
+// International Soccer Zen GM mod (storytelling, Phase 7): the Chronicle's
+// season review, written by the user's own model (see
+// competition/writeSeasonReview.ts)
+const writeSeasonReview = (params: { season: number; countryId: number }) => {
+	return competition.writeSeasonReview(params);
+};
+
+const deleteSeasonReview = (params: { season: number; countryId: number }) => {
+	return competition.deleteSeasonReview(params.season, params.countryId);
+};
+
 const setLoanListed = (params: { pid: number; listed: boolean }) => {
 	return competition.setLoanListed(params);
 };
@@ -4339,6 +4350,10 @@ const updateOptions = async (
 			units: options.units,
 			fullNames: options.fullNames,
 			phaseChangeRedirects: options.phaseChangeRedirects,
+			// International Soccer Zen GM mod (storytelling, Phase 7)
+			llmApiKey: options.llmApiKey,
+			llmBaseUrl: options.llmBaseUrl,
+			llmModel: options.llmModel,
 		},
 		"options",
 	);
@@ -5487,10 +5502,12 @@ export default {
 		acceptTransferOffer,
 		makeTransferOffer,
 		rejectTransferOffer,
+		deleteSeasonReview,
 		requestLoan,
 		getWorldInfo,
 		setLoanListed,
 		setTransferListed,
+		writeSeasonReview,
 		signTalentPoolPlayer,
 		promoteAcademyPlayer,
 		releaseAcademyPlayer,

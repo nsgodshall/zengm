@@ -42,6 +42,9 @@ const GlobalSettings = (props: View<"globalSettings">) => {
 
 		return {
 			fullNames,
+			llmApiKey: props.llmApiKey,
+			llmBaseUrl: props.llmBaseUrl,
+			llmModel: props.llmModel,
 			phaseChangeRedirects: props.phaseChangeRedirects,
 			realPlayerPhotos: props.realPlayerPhotos,
 			realTeamInfo: props.realTeamInfo,
@@ -54,7 +57,11 @@ const GlobalSettings = (props: View<"globalSettings">) => {
 
 	const handleChange =
 		(name: string) =>
-		(event: ChangeEvent<HTMLSelectElement | HTMLTextAreaElement>) => {
+		(
+			event: ChangeEvent<
+				HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+			>,
+		) => {
 			const value = event.target.value;
 			setState((state2) => ({
 				...state2,
@@ -83,6 +90,10 @@ const GlobalSettings = (props: View<"globalSettings">) => {
 				realPlayerPhotos: state.realPlayerPhotos,
 				realTeamInfo: state.realTeamInfo,
 				units,
+				// International Soccer Zen GM mod (storytelling, Phase 7)
+				llmApiKey: state.llmApiKey,
+				llmBaseUrl: state.llmBaseUrl,
+				llmModel: state.llmModel,
 			});
 			showNotification({
 				type: "success",
@@ -246,6 +257,58 @@ const GlobalSettings = (props: View<"globalSettings">) => {
 					<div className="col-sm-3 col-6 mb-3">
 						<label className="form-label">Persistent Storage</label>
 						<Storage />
+					</div>
+				</div>
+
+				{/* International Soccer Zen GM mod (storytelling, Phase 7): the user's
+				own key, for having a World's season reviews written */}
+				<h2>Written Season Reviews</h2>
+				<p className="text-body-secondary">
+					A World's Chronicle can have each season's review written by a
+					language model, from the facts that season saved. It only writes when
+					you ask it to, it's kept once written, and it's checked against the
+					season's own facts before it's kept. Your key is stored with these
+					settings, never in a league, so it isn't carried into a save file or
+					an export.
+				</p>
+				<div className="row">
+					<div className="col-sm-4 mb-3">
+						<label className="form-label" htmlFor="llmApiKey">
+							API key
+						</label>
+						<input
+							className="form-control"
+							id="llmApiKey"
+							onChange={handleChange("llmApiKey")}
+							type="password"
+							value={state.llmApiKey}
+						/>
+					</div>
+					<div className="col-sm-4 mb-3">
+						<label className="form-label" htmlFor="llmModel">
+							Model
+						</label>
+						<input
+							className="form-control"
+							id="llmModel"
+							onChange={handleChange("llmModel")}
+							placeholder="gpt-4o-mini"
+							type="text"
+							value={state.llmModel}
+						/>
+					</div>
+					<div className="col-sm-4 mb-3">
+						<label className="form-label" htmlFor="llmBaseUrl">
+							API base URL
+						</label>
+						<input
+							className="form-control"
+							id="llmBaseUrl"
+							onChange={handleChange("llmBaseUrl")}
+							placeholder="https://api.openai.com/v1"
+							type="text"
+							value={state.llmBaseUrl}
+						/>
 					</div>
 				</div>
 

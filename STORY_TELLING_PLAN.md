@@ -742,9 +742,31 @@ deductions implemented; transfer embargoes and forced sales still to do.**
 
 - More variety in story wording from templates, with a club's nickname, derby
   names, and seasons spelled out naturally.
-- Planned (decided): season reviews written by a language model from the saved
-  story facts. Templates stay the default and the fallback, and the model is
-  never the source of any fact.
+- **Season reviews written by a language model** (landed;
+  `competition/seasonReview.ts`, pure, and `competition/writeSeasonReview.ts`):
+  on the Chronicle, each Country's season can be written up from the facts that
+  season saved. The seam it uses is the one the story engine was built on: every
+  story event already carries `{kind, countryId, significance, facts}` apart
+  from its rendered text, so the model is handed facts and asked only for prose.
+  - **Never the source of a fact.** The prompt carries the Country, the season,
+    every Division's champion, who went up and down, and the season's stories
+    biggest first (at most `maxStories`), and says to use nothing else.
+  - **Checked before it's kept** (`checkSeasonReview`): it has to name every
+    Division's champion, every year in it has to be a season the World has
+    played, and it has to keep to the length brief. A review that fails is
+    shown to the user as the reason it wasn't kept, and nothing is stored - a
+    made-up review is worse than none, since the Chronicle is the record.
+  - **Written once, kept in the save**, as an event with the story kind
+    `seasonReview`, so a season doesn't read differently each time it's opened.
+    There's a "Write it again" for when the user wants another go.
+  - **The user's own key**, under Tools > Global Settings with the other global
+    settings, never in a league, so it isn't written into a save file or carried
+    out in an export. Any OpenAI-compatible base URL and model works. Nothing is
+    ever generated without the user asking.
+  - **Templates stay the default and the fallback**: a World with no key set
+    reads exactly as it does now, and the Chronicle shows no button.
+- Still to do: the user's club's own season review, long-form on demand (a
+  club's history, a legend's career), and the Season Preview.
 
 ## Data model summary
 

@@ -1222,6 +1222,78 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		assert.deepStrictEqual(story.tids, [t.tid]);
 	});
 
+	test("a season review is written from the season's own facts, kept, and not written twice", async () => {
+		const season = completedSeasons.at(-1)!;
+		const countryId = structure.countries[0]!.countryId;
+
+		const allTeams = await idb.cache.teams.getAll();
+		const facts = (await competition.getSeasonReviewFacts(season, countryId))!;
+		assert(facts, "No facts for the season");
+		assert.strictEqual(facts.season, season);
+		assert(facts.divisions.length > 0);
+		for (const division of facts.divisions) {
+			// Every club it may name is a real club of this World
+			for (const name of [
+				...(division.champion ? [division.champion.name] : []),
+				...division.promoted,
+				...division.relegated,
+			]) {
+				assert(
+					allTeams.some((t) => `${t.region} ${t.name}` === name),
+					name,
+				);
+			}
+		}
+		// The stories go in as plain text, without the links they're shown with
+		for (const story of facts.stories) {
+			assert(!story.text.includes("<"), story.text);
+		}
+
+		const { buildSeasonReviewPrompt, checkSeasonReview } =
+			await import("../worker/core/competition/seasonReview.ts");
+		const { user } = buildSeasonReviewPrompt(facts);
+		assert(user.includes(String(season)));
+
+		// A review written from the facts holds up; one that invents a season doesn't
+		const champion = facts.divisions[0]!.champion!;
+		const good = `${champion.name} took the ${facts.divisions[0]!.name}. ${facts.divisions
+			.slice(1)
+			.map(
+				(division: { champion?: { name: string }; name: string }) =>
+					`${division.champion?.name ?? "Nobody"} won the ${division.name}.`,
+			)
+			.join(" ")}`;
+		assert.deepStrictEqual(
+			checkSeasonReview({
+				text: good,
+				facts,
+				earliestSeason: g.get("startingSeason"),
+			}),
+			[],
+		);
+		assert(
+			checkSeasonReview({
+				text: `${good} Their first since 1998.`,
+				facts,
+				earliestSeason: g.get("startingSeason"),
+			}).some((problem) => problem.kind === "unknownYear"),
+		);
+
+		// Nothing is written without an API key
+		assert.strictEqual(await competition.canWriteSeasonReview(), false);
+		let error;
+		try {
+			await competition.writeSeasonReview({ season, countryId });
+		} catch (error_) {
+			error = error_ as Error;
+		}
+		assert(error?.message.includes("API key"), error?.message);
+		assert.strictEqual(
+			await competition.getSeasonReview(season, countryId),
+			undefined,
+		);
+	});
+
 	test("a club whose debts pass what its owner covers goes into administration and starts next season on negative points", async () => {
 		const season = g.get("season") - 1;
 		const t = (await idb.cache.teams.getAll())[1]!;

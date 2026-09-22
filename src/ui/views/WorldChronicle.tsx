@@ -1,4 +1,5 @@
 import { CountryFlag } from "../components/CountryFlag.tsx";
+import { SeasonReview } from "../components/SeasonReview.tsx";
 import { MoreLinks } from "../components/MoreLinks.tsx";
 import { SafeHtml } from "../components/SafeHtml.tsx";
 import { TeamLogoInline } from "../components/TeamLogoInline.tsx";
@@ -57,6 +58,7 @@ const ClubList = ({
 // 5): a World's Chronicle, the stories and results of a finished season in
 // every Country, the user's first
 const WorldChronicle = ({
+	canWriteReviews,
 	countries,
 	hasSeason,
 	season,
@@ -100,6 +102,13 @@ const WorldChronicle = ({
 										<SafeHtml dirty={headline.text} />
 									</p>
 								) : null}
+								{/* International Soccer Zen GM mod (storytelling, Phase 7) */}
+								<SeasonReview
+									canWrite={canWriteReviews}
+									countryId={country.countryId}
+									review={country.review}
+									season={season}
+								/>
 								<div className="row">
 									<div className="col-md-6">
 										{stories.length > 0 ? (

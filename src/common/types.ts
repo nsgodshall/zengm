@@ -1200,6 +1200,14 @@ export type Options = {
 	fullNames?: boolean;
 	phaseChangeRedirects: Phase[];
 	units?: "metric" | "us";
+	// International Soccer Zen GM mod (storytelling, Phase 7): the user's own
+	// key for having a World's season reviews written (see
+	// competition/writeSeasonReview.ts). It lives here, with the global
+	// settings, and not in a league, so it's never written into a save file or
+	// carried out in an export.
+	llmApiKey?: string;
+	llmBaseUrl?: string;
+	llmModel?: string;
 };
 
 type LocalStateUIGameTeam = {

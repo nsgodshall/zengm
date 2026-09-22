@@ -22,7 +22,18 @@ const updateWorldChronicle = async (
 					"The Chronicle only exists in a World, a league with more than one Division.",
 			};
 		}
-		return chronicle;
+
+		// Storytelling (Phase 7): each Country's season review, where one has
+		// been written (see competition/writeSeasonReview.ts)
+		const canWriteReviews = await competition.canWriteSeasonReview();
+		const countries = await Promise.all(
+			chronicle.countries.map(async (country) => ({
+				...country,
+				review: await competition.getSeasonReview(season, country.countryId),
+			})),
+		);
+
+		return { ...chronicle, countries, canWriteReviews };
 	}
 };
 
