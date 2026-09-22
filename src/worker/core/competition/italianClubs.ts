@@ -1,8 +1,3 @@
-import {
-	type CrestPattern,
-	generateCrestSvg,
-	getCrestDataUrl,
-} from "./crests.ts";
 import type { RealClub } from "./worldCountries.ts";
 
 // International Soccer Zen GM mod (Epic 7): Italy's real clubs, decided with
@@ -10,10 +5,10 @@ import type { RealClub } from "./worldCountries.ts";
 // Serie A on top, Serie B below), in rough order of stature, so a smaller
 // Division keeps the clubs at the top of its list. Towns are from ITALIAN_TOWNS.
 //
-// Unlike the other Countries, no crests are copied from Wikipedia: each club
-// gets a generated crest in its own kit colors and pattern (see
-// generateCrestSvg), so Juventus and Udinese are striped, Sampdoria has its
-// band, and Genoa and Cagliari are halved.
+// Crests are copied from Wikipedia into public/img/world-logos/italy/, each one
+// the crest in its club's infobox. Juventus's is a plain black J, invisible on
+// a dark page, so it was given the club's own white fill and black outline,
+// which reads on both (the same treatment the American logos got).
 //
 // A club's region is the name fans use, which ZenGM's tables show on its own,
 // and its name is the rest of its official name ("Hellas Verona" "FC"), or its
@@ -22,21 +17,16 @@ import type { RealClub } from "./worldCountries.ts";
 // Sassuolo plays in Reggio Emilia, its own town being far too small for one of
 // its own.
 
+const crest = (file: string) => `/img/world-logos/italy/${file}`;
+
 const club = (
 	region: string,
 	name: string,
 	abbrev: string,
 	town: string,
 	colors: RealClub["colors"],
-	pattern: CrestPattern,
-): RealClub => ({
-	region,
-	name,
-	abbrev,
-	town,
-	colors,
-	imgURL: getCrestDataUrl(generateCrestSvg({ abbrev, colors, pattern })),
-});
+	file: string,
+): RealClub => ({ region, name, abbrev, town, colors, imgURL: crest(file) });
 
 export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 	[
@@ -46,7 +36,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"NAP",
 			"Naples",
 			["#12a0d7", "#ffffff", "#003d7c"],
-			"plain",
+			"napoli.svg",
 		),
 		club(
 			"Inter",
@@ -54,7 +44,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"INT",
 			"Milan",
 			["#0068a8", "#000000", "#ffffff"],
-			"stripes",
+			"inter-milan.svg",
 		),
 		club(
 			"Milan",
@@ -62,7 +52,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"ACM",
 			"Milan",
 			["#fb090b", "#000000", "#ffffff"],
-			"stripes",
+			"ac-milan.svg",
 		),
 		club(
 			"Juventus",
@@ -70,7 +60,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"JUV",
 			"Turin",
 			["#000000", "#ffffff", "#d4af37"],
-			"stripes",
+			"juventus.svg",
 		),
 		club(
 			"Atalanta",
@@ -78,7 +68,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"ATA",
 			"Bergamo",
 			["#1d1d1b", "#005ca9", "#ffffff"],
-			"stripes",
+			"atalanta.svg",
 		),
 		club(
 			"Roma",
@@ -86,7 +76,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"ROM",
 			"Rome",
 			["#8e1f2f", "#f0bc42", "#ffffff"],
-			"plain",
+			"roma.svg",
 		),
 		club(
 			"Lazio",
@@ -94,7 +84,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"LAZ",
 			"Rome",
 			["#87d8f7", "#ffffff", "#0d2b52"],
-			"plain",
+			"lazio.svg",
 		),
 		club(
 			"Fiorentina",
@@ -102,7 +92,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"FIO",
 			"Florence",
 			["#482e92", "#ffffff", "#c8102e"],
-			"plain",
+			"fiorentina.svg",
 		),
 		club(
 			"Bologna",
@@ -110,7 +100,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"BOL",
 			"Bologna",
 			["#a81736", "#1a2f48", "#ffffff"],
-			"stripes",
+			"bologna.svg",
 		),
 		club(
 			"Torino",
@@ -118,7 +108,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"TRO",
 			"Turin",
 			["#881600", "#ffffff", "#c8a95c"],
-			"plain",
+			"torino.svg",
 		),
 		club(
 			"Como",
@@ -126,7 +116,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"COM",
 			"Como",
 			["#003d86", "#ffffff", "#c8102e"],
-			"plain",
+			"como.svg",
 		),
 		club(
 			"Udinese",
@@ -134,7 +124,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"UDI",
 			"Udine",
 			["#000000", "#ffffff", "#c8102e"],
-			"stripes",
+			"udinese.svg",
 		),
 		club(
 			"Genoa",
@@ -142,7 +132,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"GEN",
 			"Genoa",
 			["#b3132c", "#00265d", "#ffffff"],
-			"halves",
+			"genoa.svg",
 		),
 		club(
 			"Hellas Verona",
@@ -150,7 +140,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"VER",
 			"Verona",
 			["#002f6c", "#ffd400", "#ffffff"],
-			"plain",
+			"hellas-verona.svg",
 		),
 		club(
 			"Cagliari",
@@ -158,7 +148,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"CAG",
 			"Cagliari",
 			["#af1e2d", "#002454", "#ffffff"],
-			"halves",
+			"cagliari.svg",
 		),
 		club(
 			"Parma",
@@ -166,7 +156,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"PAR",
 			"Parma",
 			["#ffd200", "#004b87", "#ffffff"],
-			"band",
+			"parma.svg",
 		),
 		club(
 			"Lecce",
@@ -174,7 +164,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"LEC",
 			"Lecce",
 			["#ffe500", "#d2001e", "#ffffff"],
-			"stripes",
+			"lecce.svg",
 		),
 		club(
 			"Pisa",
@@ -182,7 +172,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"PIS",
 			"Pisa",
 			["#00529f", "#000000", "#ffffff"],
-			"plain",
+			"pisa.svg",
 		),
 		club(
 			"Sassuolo",
@@ -190,7 +180,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"SSU",
 			"Reggio Emilia",
 			["#00a752", "#000000", "#ffffff"],
-			"stripes",
+			"sassuolo.svg",
 		),
 		club(
 			"Cremonese",
@@ -198,7 +188,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"CRE",
 			"Cremona",
 			["#cd1719", "#ffffff", "#808285"],
-			"stripes",
+			"cremonese.svg",
 		),
 	],
 	[
@@ -208,7 +198,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"SAM",
 			"Genoa",
 			["#1b5497", "#ffffff", "#c8102e"],
-			"band",
+			"sampdoria.svg",
 		),
 		club(
 			"Palermo",
@@ -216,7 +206,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"PAL",
 			"Palermo",
 			["#f5a7c3", "#000000", "#ffffff"],
-			"plain",
+			"palermo.svg",
 		),
 		club(
 			"Venezia",
@@ -224,7 +214,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"VEZ",
 			"Venice",
 			["#000000", "#007a3d", "#f5821f"],
-			"plain",
+			"venezia.svg",
 		),
 		club(
 			"Monza",
@@ -232,7 +222,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"MNZ",
 			"Monza",
 			["#d5122a", "#ffffff", "#000000"],
-			"plain",
+			"monza.svg",
 		),
 		club(
 			"Empoli",
@@ -240,7 +230,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"EMP",
 			"Empoli",
 			["#00579c", "#ffffff", "#000000"],
-			"plain",
+			"empoli.svg",
 		),
 		club(
 			"Spezia",
@@ -248,7 +238,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"SPE",
 			"La Spezia",
 			["#ffffff", "#000000", "#c8102e"],
-			"plain",
+			"spezia.svg",
 		),
 		club(
 			"Bari",
@@ -256,7 +246,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"BRI",
 			"Bari",
 			["#d8112a", "#ffffff", "#000000"],
-			"plain",
+			"bari.svg",
 		),
 		club(
 			"Frosinone",
@@ -264,7 +254,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"FRO",
 			"Frosinone",
 			["#fdd835", "#0e4c92", "#ffffff"],
-			"stripes",
+			"frosinone.svg",
 		),
 		club(
 			"Catanzaro",
@@ -272,7 +262,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"CAT",
 			"Catanzaro",
 			["#ffd500", "#e2001a", "#ffffff"],
-			"stripes",
+			"catanzaro.svg",
 		),
 		club(
 			"Cesena",
@@ -280,7 +270,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"CES",
 			"Cesena",
 			["#ffffff", "#000000", "#c8102e"],
-			"plain",
+			"cesena.svg",
 		),
 		club(
 			"Modena",
@@ -288,7 +278,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"MOD",
 			"Modena",
 			["#ffdd00", "#0033a0", "#ffffff"],
-			"plain",
+			"modena.svg",
 		),
 		club(
 			"Reggiana",
@@ -296,7 +286,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"REG",
 			"Reggio Emilia",
 			["#d20a11", "#ffffff", "#000000"],
-			"plain",
+			"reggiana.svg",
 		),
 		club(
 			"Pescara",
@@ -304,7 +294,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"PES",
 			"Pescara",
 			["#1d3c9c", "#ffffff", "#87ceeb"],
-			"stripes",
+			"pescara.svg",
 		),
 		club(
 			"Padova",
@@ -312,7 +302,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"PAD",
 			"Padua",
 			["#ffffff", "#c8102e", "#000000"],
-			"plain",
+			"padova.svg",
 		),
 		club(
 			"Avellino",
@@ -320,7 +310,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"AVE",
 			"Avellino",
 			["#007a3d", "#ffffff", "#000000"],
-			"plain",
+			"avellino.svg",
 		),
 		club(
 			"Südtirol",
@@ -328,7 +318,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"SUD",
 			"Bolzano",
 			["#ffffff", "#c8102e", "#000000"],
-			"plain",
+			"sudtirol.svg",
 		),
 		club(
 			"Juve Stabia",
@@ -336,7 +326,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"JST",
 			"Castellammare di Stabia",
 			["#ffd500", "#0047ab", "#ffffff"],
-			"stripes",
+			"juve-stabia.svg",
 		),
 		club(
 			"Mantova",
@@ -344,7 +334,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"MAN",
 			"Mantua",
 			["#c8102e", "#ffffff", "#0047ab"],
-			"plain",
+			"mantova.svg",
 		),
 		club(
 			"Carrarese",
@@ -352,7 +342,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"CRR",
 			"Carrara",
 			["#ffd500", "#0047ab", "#ffffff"],
-			"plain",
+			"carrarese.svg",
 		),
 		club(
 			"Virtus Entella",
@@ -360,7 +350,7 @@ export const ITALIAN_CLUBS_BY_TIER: RealClub[][] = [
 			"ENT",
 			"Chiavari",
 			["#0047ab", "#ffffff", "#000000"],
-			"plain",
+			"virtus-entella.svg",
 		),
 	],
 ];
