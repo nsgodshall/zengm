@@ -21,6 +21,47 @@ import { last } from "../../../common/utils.ts";
 
 const NUM_SIMULATIONS = 20; // Higher is more accurate, but slower. Low accuracy is fine, though!
 
+export type DevelopmentModifiers = {
+	positiveFactor: number;
+	negativeFactor: number;
+};
+
+const UNSCALED_RATING_KEYS = new Set([
+	"season",
+	"fuzz",
+	"ovr",
+	"pot",
+	"injuryIndex",
+]);
+
+/** Scale the randomized raw rating changes after a normal development step. */
+export const applyDevelopmentModifiers = (
+	ratings: MinimalPlayerRatings,
+	before: MinimalPlayerRatings,
+	modifiers: DevelopmentModifiers,
+) => {
+	for (const [key, previousValue] of Object.entries(before)) {
+		if (
+			UNSCALED_RATING_KEYS.has(key) ||
+			typeof previousValue !== "number" ||
+			typeof (ratings as any)[key] !== "number"
+		) {
+			continue;
+		}
+		const change = (ratings as any)[key] - previousValue;
+		if (change === 0) {
+			continue;
+		}
+		const factor =
+			change > 0 ? modifiers.positiveFactor : modifiers.negativeFactor;
+		(ratings as any)[key] = helpers.bound(
+			Math.round(previousValue + change * factor),
+			0,
+			100,
+		);
+	}
+};
+
 // Repeatedly simulate aging up to 29, and pick the 75th percentile max
 export const monteCarloPot = async ({
 	ratings,
@@ -125,6 +166,7 @@ const develop = async (
 	newPlayer: boolean = false,
 	coachingLevel: number = DEFAULT_LEVEL,
 	skipPot: boolean = false, // Only for making testing or core/debug faster
+	developmentModifiers?: DevelopmentModifiers,
 ) => {
 	const ratings = last(p.ratings);
 	let age = ratings.season - p.born.year;
@@ -136,7 +178,13 @@ const develop = async (
 		}
 
 		if (!ratings.locked) {
+			const before = developmentModifiers
+				? helpers.deepCopy(ratings)
+				: undefined;
 			await developSeason(ratings, age, p.srID, coachingLevel, false);
+			if (before && developmentModifiers) {
+				applyDevelopmentModifiers(ratings, before, developmentModifiers);
+			}
 		}
 	}
 

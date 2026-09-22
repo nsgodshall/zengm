@@ -13,6 +13,13 @@ import { fillsClubRotationNeed } from "./clubSquadPlan.ts";
 // AI clubs only lend out players this old or younger
 export const LOAN_MAX_AGE = 23;
 
+// A borrower only accepts a player who fills a rotation need. Preserve that
+// intent in AI lineups with the same modest preference as a promised starter.
+export const getLoanPlayingTimeModifier = (
+	loan: { season: number } | undefined,
+	season: number,
+) => (loan && loan.season >= season ? 1.05 : 1);
+
 /**
  * The season a loan made now ends, in whose draft phase the player goes back:
  * this season's for a loan made before the playoffs are over, otherwise next

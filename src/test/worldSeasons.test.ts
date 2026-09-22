@@ -1787,6 +1787,7 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			tid: lenderTid,
 			season: endSeason,
 			academy: true,
+			previousPlayingTimeShare: 0,
 		});
 		assert.strictEqual(p1.academyTid, undefined);
 		assert.strictEqual(p1.contract.amount, minContract);
@@ -1868,6 +1869,7 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			tid: userTid,
 			season: endSeason,
 			academy: true,
+			previousPlayingTimeShare: 0,
 		});
 		assert.strictEqual(p2.contract.amount, minContract);
 		assert.strictEqual(p2.loanListed, undefined);

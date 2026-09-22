@@ -1320,6 +1320,29 @@ export type MinimalPlayerRatings = {
 };
 
 export type PlayerWithoutKey<PlayerRatings = MinimalPlayerRatings> = {
+	// The most recent World development season. This is overwritten every
+	// preseason, keeping the development model observable without accumulating
+	// another season-by-season history table.
+	worldDevelopment?: {
+		season: number;
+		archetype: "standard" | "early" | "late" | "stalled";
+		playingTimeShare: number;
+		positiveFactor: number;
+		negativeFactor: number;
+		tier?: number;
+		onLoan: boolean;
+		previousPlayingTimeShare?: number;
+		playingTimeGain?: number;
+		ovrChange: number;
+	};
+	// A completed loan is returned before preseason development. Retain its
+	// borrower for one phase so development uses the club and Division where the
+	// player actually spent the season.
+	lastDevelopmentLoan?: {
+		season: number;
+		borrowerTid: number;
+		previousPlayingTimeShare?: number;
+	};
 	// International Soccer Zen GM mod (Epic 5): the club whose youth academy
 	// this PLAYER.UNDRAFTED player is in (see competition/academies.ts)
 	academyTid?: number;
@@ -1344,6 +1367,9 @@ export type PlayerWithoutKey<PlayerRatings = MinimalPlayerRatings> = {
 	loan?: {
 		tid: number;
 		season: number;
+		// The player's share of club games immediately before the loan, used to
+		// measure whether the move actually increased his playing time.
+		previousPlayingTimeShare?: number;
 		// Loaned from the club's academy, so he goes back to it
 		academy?: true;
 	};

@@ -152,6 +152,17 @@ migration.
 
 ## 4. Player development
 
+**Status: implemented.** World preseason development now scales ZenGM's normal
+rating changes from the player's actual appearances, competition tier, training
+and medical infrastructure, fulfilled playing-time promise, and loan outcome.
+Every player has a stable standard, early, late, or stalled curve derived from
+his existing identity, so old saves need no migration. A completed loan carries
+its borrower and the player's pre-loan playing-time share into development; the
+latest compact development result records minutes, multiplier, rating change,
+and playing-time gain for the long-run harness without accumulating another
+history table. Academy players receive their club's training benefit without a
+false no-minutes penalty.
+
 - Connect development to playing time, role, coaching, facilities, loans,
   injuries, morale, and competition level.
 - Give prospects distinct development curves, including late bloomers and

@@ -232,6 +232,22 @@ const takeSnapshot = async () => {
 		(p) => p.tid === PLAYER.UNDRAFTED && p.academyTid !== undefined,
 	);
 	const ovrs = onClubs.map((p) => p.ratings.at(-1)!.ovr);
+	const developmentPlayers = players.filter(
+		(p) => p.worldDevelopment?.season === season - 1,
+	);
+	const summarizeDevelopment = (group: Player[]) => ({
+		count: group.length,
+		meanPlayingTime: mean(
+			group.map((p) => p.worldDevelopment!.playingTimeShare),
+		),
+		meanFactor: mean(group.map((p) => p.worldDevelopment!.positiveFactor)),
+		meanOvrChange: mean(group.map((p) => p.worldDevelopment!.ovrChange)),
+		meanPlayingTimeGain: mean(
+			group
+				.map((p) => p.worldDevelopment!.playingTimeGain)
+				.filter((value) => value !== undefined),
+		),
+	});
 	const leagueInfo = {
 		season,
 		numClubPlayers: onClubs.length,
@@ -293,6 +309,30 @@ const takeSnapshot = async () => {
 		},
 		numTransferListed: players.filter((p) => (p as any).transferListed).length,
 		numLoanListed: players.filter((p) => (p as any).loanListed).length,
+		development: {
+			tracked: developmentPlayers.length,
+			loans: summarizeDevelopment(
+				developmentPlayers.filter((p) => p.worldDevelopment!.onLoan),
+			),
+			nonLoans: summarizeDevelopment(
+				developmentPlayers.filter(
+					(p) =>
+						!p.worldDevelopment!.onLoan &&
+						p.academyTid === undefined &&
+						season - p.born.year <= 25,
+				),
+			),
+			byArchetype: (["standard", "early", "late", "stalled"] as const).map(
+				(archetype) => ({
+					archetype,
+					...summarizeDevelopment(
+						developmentPlayers.filter(
+							(p) => p.worldDevelopment!.archetype === archetype,
+						),
+					),
+				}),
+			),
+		},
 	};
 
 	return { season, clubs, league: leagueInfo };
@@ -664,6 +704,41 @@ const formatSummary = (
 			l.numTransferListed,
 			l.numLoanListed,
 		]),
+	);
+
+	lines.push("## Player development", "");
+	table(
+		[
+			"Season",
+			"Group",
+			"Players",
+			"Playing time",
+			"Playing-time gain",
+			"Factor",
+			"Ovr change",
+		],
+		snapshots.flatMap((snapshot) => {
+			const development = snapshot.league.development;
+			const row = (
+				label: string,
+				values: typeof development.loans,
+			): (string | number)[] => [
+				snapshot.season,
+				label,
+				values.count,
+				round(values.meanPlayingTime, 2),
+				round(values.meanPlayingTimeGain, 2),
+				round(values.meanFactor, 2),
+				round(values.meanOvrChange, 2),
+			];
+			return [
+				row("Loans", development.loans),
+				row("Comparable non-loans", development.nonLoans),
+				...development.byArchetype.map((values) =>
+					row(values.archetype, values),
+				),
+			];
+		}),
 	);
 
 	lines.push("## Clubs by Country and tier at each regular season start", "");

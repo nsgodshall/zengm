@@ -33,6 +33,7 @@ import {
 	investInWorldInfrastructure,
 } from "../competition/worldInfrastructure.ts";
 import { getProjectedRevenue } from "../competition/worldRevenue.ts";
+import { getWorldDevelopmentPlan } from "../competition/worldPlayerDevelopment.ts";
 
 const newPhasePreseason = async (
 	conditions: Conditions,
@@ -358,6 +359,18 @@ const newPhasePreseason = async (
 	}
 
 	const coachingLevels: Record<number, number> = {};
+	const developmentInfoByTid = new Map<
+		number,
+		{
+			coachingLevel: number;
+			medicalLevel: number;
+			games: number;
+			tier: number;
+		}
+	>();
+	const numTiers = Math.max(
+		...structure.competitionDivisions.map((division) => division.tier),
+	);
 	for (const t of teams) {
 		const teamSeasons = await idb.getCopies.teamSeasons(
 			{
@@ -366,9 +379,28 @@ const newPhasePreseason = async (
 			},
 			"noCopyCache",
 		);
-		coachingLevels[t.tid] = await finances.getLevelLastThree("coaching", {
+		const coachingLevel = await finances.getLevelLastThree("coaching", {
 			t,
 			teamSeasons,
+		});
+		coachingLevels[t.tid] = coachingLevel;
+		const previousTeamSeason = teamSeasons.find(
+			(teamSeason) => teamSeason.season === newSeason - 1,
+		);
+		const division =
+			previousTeamSeason?.divisionId === undefined
+				? undefined
+				: divisionById.get(previousTeamSeason.divisionId);
+		developmentInfoByTid.set(t.tid, {
+			coachingLevel,
+			medicalLevel: t.worldInfrastructure?.medical.level ?? t.budget.health,
+			games: previousTeamSeason
+				? previousTeamSeason.won +
+					previousTeamSeason.lost +
+					previousTeamSeason.tied +
+					previousTeamSeason.otl
+				: 0,
+			tier: division?.tier ?? 1,
 		});
 	}
 
@@ -528,6 +560,54 @@ const newPhasePreseason = async (
 			p.born.year += 1;
 		} else {
 			// Update ratings
+			const previousOvr = p.ratings.at(-1)!.ovr;
+			const previousSeasonStats = p.stats.filter(
+				(stats) => stats.season === newSeason - 1 && stats.playoffs === false,
+			);
+			const statsRows = previousSeasonStats.filter(
+				(stats) => stats.tid !== PLAYER.TOT,
+			);
+			const totalStats = previousSeasonStats.find(
+				(stats) => stats.tid === PLAYER.TOT,
+			);
+			const gamesPlayed =
+				totalStats?.gp ??
+				statsRows.reduce((total, stats) => total + (stats.gp ?? 0), 0);
+			const lastLoan =
+				p.lastDevelopmentLoan?.season === newSeason - 1
+					? p.lastDevelopmentLoan
+					: undefined;
+			const onLoan = lastLoan !== undefined || p.loan !== undefined;
+			const previousPlayingTimeShare =
+				lastLoan?.previousPlayingTimeShare ?? p.loan?.previousPlayingTimeShare;
+			const developmentTid =
+				lastLoan?.borrowerTid ??
+				maxBy(statsRows, (stats) => stats.gp ?? 0)?.tid ??
+				p.academyTid ??
+				(p.tid >= 0 ? p.tid : undefined);
+			const developmentInfo =
+				developmentTid === undefined
+					? undefined
+					: developmentInfoByTid.get(developmentTid);
+			const developmentPlan =
+				world && developmentInfo
+					? getWorldDevelopmentPlan({
+							pid: p.pid,
+							age: newSeason - p.born.year,
+							gamesPlayed,
+							teamGames: developmentInfo.games,
+							hasPlayingTimeData: p.academyTid === undefined,
+							tier: developmentInfo.tier,
+							numTiers,
+							onLoan,
+							medicalLevel: developmentInfo.medicalLevel,
+							injuryGamesRemaining: p.injury.gamesRemaining,
+							promisedRole:
+								p.playingTimePromise?.season === newSeason - 1
+									? p.playingTimePromise.role
+									: undefined,
+						})
+					: undefined;
 			player.addRatingsRow(p, scoutingLevel);
 			await player.develop(
 				p,
@@ -535,8 +615,33 @@ const newPhasePreseason = async (
 				false,
 				// International Soccer Zen GM mod (Epic 8): an academy player develops
 				// with his club's coaching
-				coachingLevels[p.academyTid ?? p.tid],
+				developmentInfo?.coachingLevel ?? coachingLevels[p.academyTid ?? p.tid],
+				false,
+				developmentPlan,
 			);
+			if (developmentPlan) {
+				p.worldDevelopment = {
+					season: newSeason - 1,
+					archetype: developmentPlan.archetype,
+					playingTimeShare: developmentPlan.playingTimeShare,
+					positiveFactor: developmentPlan.positiveFactor,
+					negativeFactor: developmentPlan.negativeFactor,
+					tier: developmentInfo?.tier,
+					onLoan,
+					previousPlayingTimeShare,
+					playingTimeGain:
+						previousPlayingTimeShare === undefined
+							? undefined
+							: developmentPlan.playingTimeShare - previousPlayingTimeShare,
+					ovrChange: p.ratings.at(-1)!.ovr - previousOvr,
+				};
+			}
+			if (
+				p.lastDevelopmentLoan &&
+				p.lastDevelopmentLoan.season <= newSeason - 1
+			) {
+				delete p.lastDevelopmentLoan;
+			}
 		}
 
 		if (

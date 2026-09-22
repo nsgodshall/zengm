@@ -11,6 +11,7 @@ import playThroughInjuriesFactor from "../../../common/playThroughInjuriesFactor
 import { bySport, isSport } from "../../../common/sportFunctions.ts";
 import { last } from "../../../common/utils.ts";
 import { getWorldPlayingTimePromiseModifier } from "../competition/clubStrategy.ts";
+import { getLoanPlayingTimeModifier } from "../competition/loans.ts";
 
 const MAX_NUM_PLAYERS_PACE = 7;
 
@@ -231,11 +232,15 @@ export const processTeam = async (
 			ovrs: rating.ovrs,
 		};
 
-		// Reset ptModifier for AI teams. This should not be necessary since it should always be 1, but let's be safe.
+		// AI playing-time commitments come from the club plan rather than a
+		// user-controlled rotation setting.
 		if (!g.get("userTids").includes(t.id) || g.get("spectator")) {
-			p2.ptModifier = getWorldPlayingTimePromiseModifier(
-				p.playingTimePromise,
-				g.get("season"),
+			p2.ptModifier = Math.max(
+				getWorldPlayingTimePromiseModifier(
+					p.playingTimePromise,
+					g.get("season"),
+				),
+				getLoanPlayingTimeModifier(p.loan, g.get("season")),
 			);
 		}
 		const seasonStats: Record<string, number> = {};

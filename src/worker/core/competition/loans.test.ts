@@ -8,8 +8,17 @@ import {
 	aiWouldLendAcademyPlayer,
 	canLoanAcademyPlayer,
 	getLoanEndSeason,
+	getLoanPlayingTimeModifier,
 	LOAN_MAX_AGE,
 } from "./loans.ts";
+
+describe("getLoanPlayingTimeModifier", () => {
+	test("honors the borrower's rotation plan only while the loan is active", () => {
+		expect(getLoanPlayingTimeModifier({ season: 2027 }, 2027)).toBe(1.05);
+		expect(getLoanPlayingTimeModifier({ season: 2027 }, 2028)).toBe(1);
+		expect(getLoanPlayingTimeModifier(undefined, 2027)).toBe(1);
+	});
+});
 
 describe("getLoanEndSeason", () => {
 	test("a loan made before the playoffs are over ends this summer", () => {
