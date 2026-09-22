@@ -3282,6 +3282,11 @@ const deleteSeasonReview = (params: { season: number; countryId: number }) => {
 	return competition.deleteSeasonReview(params.season, params.countryId);
 };
 
+// Checks the key, address and model from the settings page
+const testLlm = () => {
+	return competition.testLlm();
+};
+
 const setLoanListed = (params: { pid: number; listed: boolean }) => {
 	return competition.setLoanListed(params);
 };
@@ -4352,6 +4357,7 @@ const updateOptions = async (
 			phaseChangeRedirects: options.phaseChangeRedirects,
 			// International Soccer Zen GM mod (storytelling, Phase 7)
 			llmApiKey: options.llmApiKey,
+			llmProvider: options.llmProvider,
 			llmBaseUrl: options.llmBaseUrl,
 			llmModel: options.llmModel,
 		},
@@ -5507,6 +5513,7 @@ export default {
 		getWorldInfo,
 		setLoanListed,
 		setTransferListed,
+		testLlm,
 		writeSeasonReview,
 		signTalentPoolPlayer,
 		promoteAcademyPlayer,

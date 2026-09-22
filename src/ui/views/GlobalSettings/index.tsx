@@ -1,4 +1,6 @@
 import { useState, type ChangeEvent, type SubmitEvent } from "react";
+import { ActionButton } from "../../components/ActionButton.tsx";
+import { LLM_PROVIDERS, getLlmProvider } from "../../../common/llmProviders.ts";
 import useTitleBar from "../../hooks/useTitleBar.tsx";
 import { helpers } from "../../util/helpers.ts";
 import { showNotification } from "../../util/showNotification.ts";
@@ -43,6 +45,7 @@ const GlobalSettings = (props: View<"globalSettings">) => {
 		return {
 			fullNames,
 			llmApiKey: props.llmApiKey,
+			llmProvider: props.llmProvider,
 			llmBaseUrl: props.llmBaseUrl,
 			llmModel: props.llmModel,
 			phaseChangeRedirects: props.phaseChangeRedirects,
@@ -54,6 +57,26 @@ const GlobalSettings = (props: View<"globalSettings">) => {
 	});
 
 	const { setDirty } = useBlocker();
+
+	// International Soccer Zen GM mod (storytelling, Phase 7)
+	const llmProvider = getLlmProvider(state.llmProvider);
+	const [testing, setTesting] = useState(false);
+	const testLlm = async () => {
+		setTesting(true);
+		try {
+			showNotification({
+				type: "success",
+				text: await toWorker("main", "testLlm", undefined),
+			});
+		} catch (error) {
+			showNotification({
+				type: "error",
+				text: (error as Error).message,
+				persistent: true,
+			});
+		}
+		setTesting(false);
+	};
 
 	const handleChange =
 		(name: string) =>
@@ -92,6 +115,7 @@ const GlobalSettings = (props: View<"globalSettings">) => {
 				units,
 				// International Soccer Zen GM mod (storytelling, Phase 7)
 				llmApiKey: state.llmApiKey,
+				llmProvider: state.llmProvider,
 				llmBaseUrl: state.llmBaseUrl,
 				llmModel: state.llmModel,
 			});
@@ -272,6 +296,34 @@ const GlobalSettings = (props: View<"globalSettings">) => {
 					an export.
 				</p>
 				<div className="row">
+					<div className="col-sm-3 mb-3">
+						<label className="form-label" htmlFor="llmProvider">
+							Provider
+						</label>
+						<select
+							className="form-select"
+							id="llmProvider"
+							onChange={handleChange("llmProvider")}
+							value={state.llmProvider}
+						>
+							{LLM_PROVIDERS.map((provider) => (
+								<option key={provider.key} value={provider.key}>
+									{provider.name}
+								</option>
+							))}
+						</select>
+						{llmProvider.keyUrl ? (
+							<div className="form-text">
+								<a
+									href={llmProvider.keyUrl}
+									rel="noopener noreferrer"
+									target="_blank"
+								>
+									Get a key
+								</a>
+							</div>
+						) : null}
+					</div>
 					<div className="col-sm-4 mb-3">
 						<label className="form-label" htmlFor="llmApiKey">
 							API key
@@ -284,31 +336,67 @@ const GlobalSettings = (props: View<"globalSettings">) => {
 							value={state.llmApiKey}
 						/>
 					</div>
-					<div className="col-sm-4 mb-3">
+					<div className="col-sm-5 mb-3">
 						<label className="form-label" htmlFor="llmModel">
 							Model
 						</label>
 						<input
 							className="form-control"
 							id="llmModel"
+							list="llmModels"
 							onChange={handleChange("llmModel")}
-							placeholder="gpt-4o-mini"
+							placeholder={llmProvider.models[0] ?? "model name"}
 							type="text"
 							value={state.llmModel}
 						/>
+						<datalist id="llmModels">
+							{llmProvider.models.map((model) => (
+								<option key={model} value={model} />
+							))}
+						</datalist>
 					</div>
-					<div className="col-sm-4 mb-3">
-						<label className="form-label" htmlFor="llmBaseUrl">
-							API base URL
-						</label>
-						<input
-							className="form-control"
-							id="llmBaseUrl"
-							onChange={handleChange("llmBaseUrl")}
-							placeholder="https://api.openai.com/v1"
-							type="text"
-							value={state.llmBaseUrl}
-						/>
+					{llmProvider.key === "custom" ? (
+						<div className="col-sm-7 mb-3">
+							<label className="form-label" htmlFor="llmBaseUrl">
+								API base URL
+							</label>
+							<input
+								className="form-control"
+								id="llmBaseUrl"
+								onChange={handleChange("llmBaseUrl")}
+								placeholder="https://api.example.com/v1"
+								type="text"
+								value={state.llmBaseUrl}
+							/>
+							<div className="form-text">
+								Anything that speaks OpenAI's chat completions API, including a
+								local server.
+							</div>
+						</div>
+					) : (
+						<div className="col-sm-7 mb-3">
+							<label className="form-label">API base URL</label>
+							<input
+								className="form-control"
+								disabled
+								type="text"
+								value={llmProvider.baseUrl}
+							/>
+						</div>
+					)}
+					<div className="col-12 mb-3">
+						<ActionButton
+							className="btn-secondary"
+							onClick={testLlm}
+							processing={testing}
+							processingText="Asking"
+							type="button"
+						>
+							Test it
+						</ActionButton>
+						<span className="ms-2 text-body-secondary">
+							Save your settings first.
+						</span>
 					</div>
 				</div>
 

@@ -1206,6 +1206,7 @@ export type Options = {
 	// settings, and not in a league, so it's never written into a save file or
 	// carried out in an export.
 	llmApiKey?: string;
+	llmProvider?: string;
 	llmBaseUrl?: string;
 	llmModel?: string;
 };

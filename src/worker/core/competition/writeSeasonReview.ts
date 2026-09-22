@@ -1,3 +1,4 @@
+import { resolveLlmSettings } from "../../../common/llmProviders.ts";
 import type { Options } from "../../../common/types.ts";
 import { idb } from "../../db/index.ts";
 import { g } from "../../util/index.ts";
@@ -19,9 +20,6 @@ import { getWorldChronicle } from "./worldChronicle.ts";
 // read differently every time it's opened.
 
 export const SEASON_REVIEW_KIND = "seasonReview";
-
-const DEFAULT_BASE_URL = "https://api.openai.com/v1";
-const DEFAULT_MODEL = "gpt-4o-mini";
 
 /** The review already written for a Country's season, if there is one */
 export const getSeasonReview = async (season: number, countryId: number) => {
@@ -78,13 +76,19 @@ export const getSeasonReviewFacts = async (
 	};
 };
 
-const getLlmOptions = async () => {
+export const getLlmOptions = async () => {
 	const store = (await idb.meta.transaction("attributes")).store;
 	const options = ((await store.get("options")) ?? {}) as Options;
+	const { provider, baseUrl, model } = resolveLlmSettings({
+		provider: options.llmProvider,
+		baseUrl: options.llmBaseUrl,
+		model: options.llmModel,
+	});
 	return {
 		apiKey: options.llmApiKey?.trim(),
-		baseUrl: options.llmBaseUrl?.trim() || DEFAULT_BASE_URL,
-		model: options.llmModel?.trim() || DEFAULT_MODEL,
+		provider,
+		baseUrl,
+		model,
 	};
 };
 
@@ -103,13 +107,20 @@ const ask = async ({
 	apiKey,
 	baseUrl,
 	model,
+	maxTokens,
 }: {
 	system: string;
 	user: string;
 	apiKey: string;
 	baseUrl: string;
 	model: string;
+	maxTokens?: number;
 }) => {
+	if (!baseUrl) {
+		throw new Error(
+			"Set the API base URL under Tools > Global Settings, or pick a provider.",
+		);
+	}
 	let response;
 	try {
 		response = await fetch(`${baseUrl}/chat/completions`, {
@@ -119,10 +130,15 @@ const ask = async ({
 			headers: {
 				"Content-Type": "application/json",
 				Authorization: `Bearer ${apiKey}`,
+				// OpenRouter shows these on its activity page, and ignores them
+				// elsewhere
+				"HTTP-Referer": "https://zengm.com/",
+				"X-Title": "International Soccer Zen GM",
 			},
 			body: JSON.stringify({
 				model,
 				temperature: SEASON_REVIEW_SETTINGS.temperature,
+				...(maxTokens === undefined ? {} : { max_tokens: maxTokens }),
 				messages: [
 					{ role: "system", content: system },
 					{ role: "user", content: user },
@@ -150,6 +166,29 @@ const ask = async ({
 		throw new Error("The model's API sent back no text");
 	}
 	return text.trim();
+};
+
+/**
+ * Ask the model for one word, so the user can tell from the settings page
+ * whether their key, address and model work, instead of finding out at the end
+ * of a season.
+ */
+export const testLlm = async () => {
+	const { apiKey, baseUrl, model, provider } = await getLlmOptions();
+	if (!apiKey) {
+		throw new Error("Enter an API key first.");
+	}
+
+	await ask({
+		system: "Reply with the single word: ready.",
+		user: "Are you there?",
+		apiKey,
+		baseUrl,
+		model,
+		maxTokens: 20,
+	});
+
+	return `${provider.name} answered as ${model}.`;
 };
 
 /**

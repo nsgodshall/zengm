@@ -26,6 +26,7 @@ const updateOptions = async (inputs: unknown, updateEvents: UpdateEvents) => {
 			// International Soccer Zen GM mod (storytelling, Phase 7): the user's
 			// own key for having season reviews written
 			llmApiKey: options.llmApiKey ?? "",
+			llmProvider: options.llmProvider ?? "openrouter",
 			llmBaseUrl: options.llmBaseUrl ?? "",
 			llmModel: options.llmModel ?? "",
 		};

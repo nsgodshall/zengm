@@ -761,8 +761,13 @@ deductions implemented; transfer embargoes and forced sales still to do.**
     There's a "Write it again" for when the user wants another go.
   - **The user's own key**, under Tools > Global Settings with the other global
     settings, never in a league, so it isn't written into a save file or carried
-    out in an export. Any OpenAI-compatible base URL and model works. Nothing is
-    ever generated without the user asking.
+    out in an export. Nothing is ever generated without the user asking.
+  - **Providers** (`common/llmProviders.ts`): OpenRouter, DeepSeek and OpenAI
+    come with their own addresses and a list of models to pick from, so a key is
+    all the user has to paste; "Something else" takes any other service that
+    speaks OpenAI's chat completions API, a local llama.cpp or Ollama server
+    included. A "Test it" button asks the model for one word, so a wrong key or
+    model shows up on the settings page instead of at the end of a season.
   - **Templates stay the default and the fallback**: a World with no key set
     reads exactly as it does now, and the Chronicle shows no button.
 - Still to do: the user's club's own season review, long-form on demand (a

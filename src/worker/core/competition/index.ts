@@ -92,6 +92,7 @@ import {
 	deleteSeasonReview,
 	getSeasonReview,
 	getSeasonReviewFacts,
+	testLlm,
 	writeSeasonReview,
 } from "./writeSeasonReview.ts";
 import { getWorldChronicle, getWorldStorylines } from "./worldChronicle.ts";
@@ -149,6 +150,7 @@ export default {
 	deleteSeasonReview,
 	getSeasonReview,
 	getSeasonReviewFacts,
+	testLlm,
 	writeSeasonReview,
 	describeRivalryMeeting,
 	getUserRivalMark,
