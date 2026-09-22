@@ -4,6 +4,12 @@
 //
 // `slug` is the file the crest is saved as, `colors` the club's kit colors, in
 // words the image model understands, and `blazon` the crest itself.
+//
+// Decided with the user: a date on a crest is the year the club was founded,
+// made up but plausible for its city, never the year the city itself was
+// founded. The old clubs of the big eastern and midwestern cities date from the
+// 1880s and 1890s, the western ones from the 1900s to the 1930s, and the sunbelt
+// clubs from the 1940s on.
 
 export const CREST_BLAZONS = [
 	// Top tier
@@ -12,35 +18,35 @@ export const CREST_BLAZONS = [
 		club: "New York Yankees",
 		colors: "azure #0c2340, grey #c4ced3, argent white",
 		blazon:
-			'Azure, an eagle displayed argent, in chief a mullet or; in base a scroll argent inscribed "N.Y. · MDCCCXCVIII" azure.',
+			'Azure, an eagle displayed argent, in chief a mullet or; in base a scroll argent inscribed "N.Y. · MDCCCXCI" azure.',
 	},
 	{
 		slug: "brooklyn-dodgers",
 		club: "Brooklyn Dodgers",
 		colors: "azure #113388, gules #dd1133, or gold",
 		blazon:
-			'Azure, a trolley car or in fess, dodged by a bridge of two towers argent in chief; in base a scroll or inscribed "B.D.F.C. · 1834" azure.',
+			'Azure, a trolley car or in fess, dodged by a bridge of two towers argent in chief; in base a scroll or inscribed "B.D.F.C. · 1894" azure.',
 	},
 	{
 		slug: "new-york-islanders",
 		club: "New York Islanders",
 		colors: "azure #00539b, tenné orange #f47d30, argent white",
 		blazon:
-			'Per pale azure and tenné, a lighthouse argent, its beam issuant bendwise or; in base three barrulets wavy argent and a scroll argent inscribed "N.Y.I. · A.D. 1683" sable; on a chief azure four mullets or.',
+			'Per pale azure and tenné, a lighthouse argent, its beam issuant bendwise or; in base three barrulets wavy argent and a scroll argent inscribed "N.Y.I. · A.D. 1912" sable; on a chief azure four mullets or.',
 	},
 	{
 		slug: "los-angeles-bruins",
 		club: "Los Angeles Bruins",
 		colors: "azure #2774ae, or #ffd100",
 		blazon:
-			'Quarterly azure and paly or and azure, a bear\'s head couped affronté or, laureate vert; in base a scroll or inscribed "L.A.B. · MDCCLXXXI" azure; within a bordure cabled or.',
+			'Quarterly azure and paly or and azure, a bear\'s head couped affronté or, laureate vert; in base a scroll or inscribed "L.A.B. · MCMXIX" azure; within a bordure cabled or.',
 	},
 	{
 		slug: "anaheim-angels",
 		club: "Anaheim Angels",
 		colors: "gules #ba0021, azure #003263, or gold",
 		blazon:
-			'Gules, a wing displayed argent enclosing an annulet or; in the four quarters as many blossoms or; within a bordure engrailed azure inscribed "IN EXCELSIS · 1857" or.',
+			'Gules, a wing displayed argent enclosing an annulet or; in the four quarters as many blossoms or; within a bordure engrailed azure inscribed "IN EXCELSIS · 1924" or.',
 	},
 	{
 		slug: "chicago-bears",
@@ -54,7 +60,7 @@ export const CREST_BLAZONS = [
 		club: "Dallas Cowboys",
 		colors: "azure #002244, argent silver #869397",
 		blazon:
-			'Per pale azure and argent, a mullet of five points argent between two longhorns fesswise or; in base a scroll azure inscribed "D.C.F.C. · 1841" argent; within a bordure argent.',
+			'Per pale azure and argent, a mullet of five points argent between two longhorns fesswise or; in base a scroll azure inscribed "D.C.F.C. · 1901" argent; within a bordure argent.',
 	},
 	{
 		slug: "houston-colt-45s",
@@ -75,35 +81,35 @@ export const CREST_BLAZONS = [
 		club: "Washington Senators",
 		colors: "gules #ab0003, azure #14225a, argent white",
 		blazon:
-			'Paly gules and azure, a domed rotunda argent issuant into the chief, between two branches of laurel vert; in base a scroll argent inscribed "S.P.Q.W. · MDCCXC" sable.',
+			'Paly gules and azure, a domed rotunda argent issuant into the chief, between two branches of laurel vert; in base a scroll argent inscribed "S.P.Q.W. · MDCCCXCIII" sable.',
 	},
 	{
 		slug: "miami-hurricanes",
 		club: "Miami Hurricanes",
 		colors: "tenné orange #f47321, vert #005030, argent white",
 		blazon:
-			'Vert, a spiral of wind tenné, in the eye thereof an ibis argent; in base two palm fronds in saltire vert and a scroll argent inscribed "A.D. 1896" vert.',
+			'Vert, a spiral of wind tenné, in the eye thereof an ibis argent; in base two palm fronds in saltire vert and a scroll argent inscribed "A.D. 1931" vert.',
 	},
 	{
 		slug: "philadelphia-phillies",
 		club: "Philadelphia Phillies",
 		colors: "gules #c81e3b, azure #013b73, argent white",
 		blazon:
-			'Gules, a bell argent cracked bendwise, crowned of a chief azure; in base a scroll argent inscribed "PHILADELPHIA MANETO · MDCLXXXII" gules.',
+			'Gules, a bell argent cracked bendwise, crowned of a chief azure; in base a scroll argent inscribed "PHILADELPHIA MANETO · MDCCCLXXXIII" gules.',
 	},
 	{
 		slug: "phoenix-sun-devils",
 		club: "Phoenix Sun Devils",
 		colors: "purpure maroon #8c1d40, or #ffc627",
 		blazon:
-			'Purpure, a sun in splendour or, thereon a phoenix rising sable, in its claw a trident or; in base a scroll or inscribed "EX CINERIBUS · 1868" purpure.',
+			'Purpure, a sun in splendour or, thereon a phoenix rising sable, in its claw a trident or; in base a scroll or inscribed "EX CINERIBUS · 1946" purpure.',
 	},
 	{
 		slug: "boston-minutemen",
 		club: "Boston Minutemen",
 		colors: "gules #c8102e, azure #0c2340, argent white",
 		blazon:
-			'Azure, two muskets in saltire proper surmounted by a tricorn sable; in base sinister a powder horn or and a scroll argent inscribed "MDCCLXXV"; on a chief gules thirteen roundels argent.',
+			'Azure, two muskets in saltire proper surmounted by a tricorn sable; in base sinister a powder horn or and a scroll argent inscribed "MDCCCLXXXVII"; on a chief gules thirteen roundels argent.',
 	},
 	{
 		slug: "san-bernardino-highlanders",
@@ -117,14 +123,14 @@ export const CREST_BLAZONS = [
 		club: "San Francisco Seals",
 		colors: "sable #222222, grey #999999, argent white",
 		blazon:
-			'Sable, a sea lion sejant argent upon a rock, behind it an arch grey issuant from fog argent; in base a scroll argent inscribed "S.F. · 1776" sable.',
+			'Sable, a sea lion sejant argent upon a rock, behind it an arch grey issuant from fog argent; in base a scroll argent inscribed "S.F. · 1903" sable.',
 	},
 	{
 		slug: "oakland-raiders",
 		club: "Oakland Raiders",
 		colors: "sable black, argent silver #a5acaf",
 		blazon:
-			'Sable, two cutlasses in saltire argent surmounted by a ship\'s prow argent; in base an anchor argent; within an annulet sable bezanty argent inscribed "OAKLAND · A.D. 1852".',
+			'Sable, two cutlasses in saltire argent surmounted by a ship\'s prow argent; in base an anchor argent; within an annulet sable bezanty argent inscribed "OAKLAND · A.D. 1913".',
 	},
 	{
 		slug: "detroit-tigers",
@@ -154,35 +160,35 @@ export const CREST_BLAZONS = [
 		club: "San Diego Aztecs",
 		colors: "gules #c41230, sable black, argent white",
 		blazon:
-			'Gules, a sun in splendour argent, in base a pyramid of five steps or between two feathers argent and a scroll or inscribed "A.D. MDCCLXIX"; within a bordure embattled sable.',
+			'Gules, a sun in splendour argent, in base a pyramid of five steps or between two feathers argent and a scroll or inscribed "A.D. MCMXXVIII"; within a bordure embattled sable.',
 	},
 	{
 		slug: "denver-buffaloes",
 		club: "Denver Buffaloes",
 		colors: "sable black, or #cfb87c",
 		blazon:
-			'Sable, a bison courant or before mountains indented or; in base a scroll sable inscribed "A.D. 1858" or; on a chief or the numerals 5280 sable.',
+			'Sable, a bison courant or before mountains indented or; in base a scroll sable inscribed "A.D. 1908" or; on a chief or the numerals 5280 sable.',
 	},
 	{
 		slug: "orlando-orange",
 		club: "Orlando Orange",
 		colors: "tenné orange #f47321, azure #0b2265, or gold",
 		blazon:
-			'Tenné, an orange slice or between two palm fronds vert; in base an alligator vert; within a bordure azure bezanty inscribed "ORLANDO · MDCCCLXXV" or.',
+			'Tenné, an orange slice or between two palm fronds vert; in base an alligator vert; within a bordure azure bezanty inscribed "ORLANDO · MCMLXII" or.',
 	},
 	{
 		slug: "charlotte-hornets",
 		club: "Charlotte Hornets",
 		colors: "purpure #1d1160, vert teal #00788c, or gold",
 		blazon:
-			'Purpure semé of hexagons vert, a hornet volant or; in base a scroll or inscribed "A.D. 1780" purpure; on a chief vert three hexagons purpure.',
+			'Purpure semé of hexagons vert, a hornet volant or; in base a scroll or inscribed "A.D. 1949" purpure; on a chief vert three hexagons purpure.',
 	},
 	{
 		slug: "baltimore-crabs",
 		club: "Baltimore Crabs",
 		colors: "tenné orange #df4601, sable black, gules red",
 		blazon:
-			'Per pale sable and tenné, a crab gules, its dexter claw grasping an oar or; in base a lighthouse argent and a scroll sable inscribed "B.C.F.C. · 1729" or.',
+			'Per pale sable and tenné, a crab gules, its dexter claw grasping an oar or; in base a lighthouse argent and a scroll sable inscribed "B.C.F.C. · 1889" or.',
 	},
 	{
 		slug: "st-louis-cardinals",
@@ -203,7 +209,7 @@ export const CREST_BLAZONS = [
 		club: "Austin Longhorns",
 		colors: "tenné burnt orange #bf5700, sable charcoal #333f48, or gold",
 		blazon:
-			'Tenné, a longhorn\'s head cabossed sable, horns extended throughout; on a chief tenné a capitol dome or; in base a scroll or inscribed "A.D. 1839" sable.',
+			'Tenné, a longhorn\'s head cabossed sable, horns extended throughout; on a chief tenné a capitol dome or; in base a scroll or inscribed "A.D. 1916" sable.',
 	},
 	{
 		slug: "portland-roses",
@@ -217,28 +223,28 @@ export const CREST_BLAZONS = [
 		club: "Sacramento Bears",
 		colors: "gules #cc2244, azure #1c2c5b, argent white",
 		blazon:
-			'Gules, a bear passant sable upon a compartment vert, before two rivers conjoined argent; in base a scroll argent inscribed "S.B.F.C. · 1849" gules.',
+			'Gules, a bear passant sable upon a compartment vert, before two rivers conjoined argent; in base a scroll argent inscribed "S.B.F.C. · 1902" gules.',
 	},
 	{
 		slug: "pittsburgh-steelers",
 		club: "Pittsburgh Steelers",
 		colors: "sable #101820, or #ffb612, argent white",
 		blazon:
-			'Sable, three bridges or in pale spanning as many rivers argent; on a chief or a hammer and anvil sable; in base a scroll or inscribed "BENIGNO NUMINE · MDCCLVIII" sable.',
+			'Sable, three bridges or in pale spanning as many rivers argent; on a chief or a hammer and anvil sable; in base a scroll or inscribed "BENIGNO NUMINE · MDCCCXCVI" sable.',
 	},
 	{
 		slug: "las-vegas-runnin-rebels",
 		club: "Las Vegas Runnin' Rebels",
 		colors: "gules #cf0a2c, grey #666666, argent white",
 		blazon:
-			'Gules, a vaquero\'s head couped in profile argent, moustached, hatted sable; in base a horseshoe or reversed and a scroll argent inscribed "L.V. · A.D. 1905" gules; within a bordure grey embattled.',
+			'Gules, a vaquero\'s head couped in profile argent, moustached, hatted sable; in base a horseshoe or reversed and a scroll argent inscribed "L.V. · A.D. 1958" gules; within a bordure grey embattled.',
 	},
 	{
 		slug: "cincinnati-reds",
 		club: "Cincinnati Reds",
 		colors: "gules #c6011f, sable black, or gold",
 		blazon:
-			'Gules, a plough or, thereon a winged hog argent; in base a scroll or inscribed "JUNCTA JUVANT · MDCCLXXXVIII" gules.',
+			'Gules, a plough or, thereon a winged hog argent; in base a scroll or inscribed "JUNCTA JUVANT · MDCCCLXXXI" gules.',
 	},
 	{
 		slug: "kansas-city-athletics",
@@ -259,7 +265,7 @@ export const CREST_BLAZONS = [
 		club: "Indianapolis Hoosiers",
 		colors: "gules crimson #990000, argent white, or gold",
 		blazon:
-			'Gules, a torch argent enflamed or, environed of thirteen mullets argent in orle; in base a scroll argent inscribed "A.D. MDCCCXXI" gules.',
+			'Gules, a torch argent enflamed or, environed of thirteen mullets argent in orle; in base a scroll argent inscribed "A.D. MCMV" gules.',
 	},
 	{
 		slug: "nashville-stars",
@@ -280,14 +286,14 @@ export const CREST_BLAZONS = [
 		club: "Jacksonville Gamecocks",
 		colors: "gules garnet #73000a, sable black, or gold",
 		blazon:
-			'Sable, a cock statant gules, combed and wattled or, armed with a spur or; in base a bascule bridge or and a scroll or inscribed "J.G.F.C. · 1822" sable.',
+			'Sable, a cock statant gules, combed and wattled or, armed with a spur or; in base a bascule bridge or and a scroll or inscribed "J.G.F.C. · 1968" sable.',
 	},
 	{
 		slug: "providence-sailors",
 		club: "Providence Sailors",
 		colors: "azure #0c2340, or old gold #b9975b, argent white",
 		blazon:
-			'Azure, an anchor and a ship\'s wheel in saltire or; in chief dexter a sextant or; in base barry wavy argent and azure; within a bordure cabled or inscribed "SPES · MDCXXXVI" azure.',
+			'Azure, an anchor and a ship\'s wheel in saltire or; in chief dexter a sextant or; in base barry wavy argent and azure; within a bordure cabled or inscribed "SPES · MDCCCXCVIII" azure.',
 	},
 
 	// Third tier
@@ -303,14 +309,14 @@ export const CREST_BLAZONS = [
 		club: "Milwaukee Badgers",
 		colors: "gules #c5050c, argent white, or gold",
 		blazon:
-			'Gules, a badger\'s head couped affronté argent, masked sable; in base two ears of barley in saltire or and a scroll argent inscribed "M.B.F.C. · 1846" gules.',
+			'Gules, a badger\'s head couped affronté argent, masked sable; in base two ears of barley in saltire or and a scroll argent inscribed "M.B.F.C. · 1893" gules.',
 	},
 	{
 		slug: "oklahoma-city-sooners",
 		club: "Oklahoma City Sooners",
 		colors: "gules crimson #841617, cream #fdf9d8, or gold",
 		blazon:
-			'Gules, a covered wagon or in full career, behind it a sun in splendour or; in base a scroll or inscribed "XXII · IV · MDCCCLXXXIX" gules.',
+			'Gules, a covered wagon or in full career, behind it a sun in splendour or; in base a scroll or inscribed "MCMVII" gules.',
 	},
 	{
 		slug: "richmond-spiders",
@@ -331,14 +337,14 @@ export const CREST_BLAZONS = [
 		club: "Fresno Bulldogs",
 		colors: "gules #c41230, azure #13284c, argent white",
 		blazon:
-			'Gules, a bulldog\'s head couped affronté argent, collared azure; in base a bunch of grapes purpure and a scroll argent inscribed "A.D. 1885" gules.',
+			'Gules, a bulldog\'s head couped affronté argent, collared azure; in base a bunch of grapes purpure and a scroll argent inscribed "A.D. 1921" gules.',
 	},
 	{
 		slug: "birmingham-elephants",
 		club: "Birmingham Elephants",
 		colors: "gules crimson #9e1b32, grey #828a8f, argent white",
 		blazon:
-			'Gules, an elephant statant grey, before it a smith proper bearing hammer and anvil; in base a scroll grey inscribed "A.D. 1871" gules.',
+			'Gules, an elephant statant grey, before it a smith proper bearing hammer and anvil; in base a scroll grey inscribed "A.D. 1899" gules.',
 	},
 	{
 		slug: "hartford-whalers",
@@ -352,28 +358,28 @@ export const CREST_BLAZONS = [
 		club: "Buffalo Bills",
 		colors: "azure #00338d, gules #c60c30, argent white",
 		blazon:
-			'Azure, a bison passant gules before a grain elevator argent; in base three barrulets wavy argent and a scroll argent inscribed "B.B.F.C. · 1832" azure.',
+			'Azure, a bison passant gules before a grain elevator argent; in base three barrulets wavy argent and a scroll argent inscribed "B.B.F.C. · 1890" azure.',
 	},
 	{
 		slug: "el-paso-vaqueros",
 		club: "El Paso Vaqueros",
 		colors: "tenné orange #ff8200, azure #041e42, or gold",
 		blazon:
-			'Tenné, a sombrero sable over a lasso coiled or, behind it a sun in splendour or; in base a cactus vert, a rail fesswise sable, and a scroll or inscribed "EL PASO DEL NORTE · 1659"; within a bordure indented azure.',
+			'Tenné, a sombrero sable over a lasso coiled or, behind it a sun in splendour or; in base a cactus vert, a rail fesswise sable, and a scroll or inscribed "EL PASO DEL NORTE · 1934"; within a bordure indented azure.',
 	},
 	{
 		slug: "omaha-cornhuskers",
 		club: "Omaha Cornhuskers",
 		colors: "gules #d00000, sable black, or gold",
 		blazon:
-			'Gules, two ears of maize in saltire or, husked proper; in base a river barry wavy argent and gules and a scroll or inscribed "O.C.F.C. · 1854" gules.',
+			'Gules, two ears of maize in saltire or, husked proper; in base a river barry wavy argent and gules and a scroll or inscribed "O.C.F.C. · 1899" gules.',
 	},
 	{
 		slug: "honolulu-rainbow-warriors",
 		club: "Honolulu Rainbow Warriors",
 		colors: "vert #024731, argent white, rainbow proper",
 		blazon:
-			'Vert, a rainbow throughout proper issuant from a sea barry wavy argent and vert, behind a headland sable; in base a scroll argent inscribed "UA MAU KE EA · 1850" vert.',
+			'Vert, a rainbow throughout proper issuant from a sea barry wavy argent and vert, behind a headland sable; in base a scroll argent inscribed "UA MAU KE EA · 1947" vert.',
 	},
 	{
 		slug: "new-orleans-tigers",
@@ -387,28 +393,28 @@ export const CREST_BLAZONS = [
 		club: "Knoxville Volunteers",
 		colors: "tenné orange #ff8200, grey #58595b, argent white",
 		blazon:
-			'Tenné, a powder horn or slung upon a ridge of mountains grey, smoke issuant argent; in base a scroll or inscribed "K.V.F.C. · MDCCXCI" sable.',
+			'Tenné, a powder horn or slung upon a ridge of mountains grey, smoke issuant argent; in base a scroll or inscribed "K.V.F.C. · MCMXI" sable.',
 	},
 	{
 		slug: "bakersfield-mavericks",
 		club: "Bakersfield Mavericks",
 		colors: "azure #0033a0, or #ffc72c, sable black",
 		blazon:
-			'Azure, a steer\'s head cabossed or, unbranded, between two derricks sable; in base a scroll or inscribed "A.D. 1873" azure.',
+			'Azure, a steer\'s head cabossed or, unbranded, between two derricks sable; in base a scroll or inscribed "A.D. 1937" azure.',
 	},
 	{
 		slug: "albuquerque-isotopes",
 		club: "Albuquerque Isotopes",
 		colors: "gules #ba0c2f, or #f2a900, vert green",
 		blazon:
-			'Gules, an atom or, its three orbits ellipsed, the first charged with a balloon or; in base a chile pepper vert and a scroll gules inscribed "A.D. MDCCVI" or.',
+			'Gules, an atom or, its three orbits ellipsed, the first charged with a balloon or; in base a chile pepper vert and a scroll gules inscribed "A.D. MCMLII" or.',
 	},
 	{
 		slug: "boise-broncos",
 		club: "Boise Broncos",
 		colors: "azure #0033a0, tenné orange #d64309, argent white",
 		blazon:
-			'Azure, a horse\'s head couped argent, maned tenné, rearing; in base a stand of three trees vert and a scroll argent inscribed "B.B. · 1863" azure.',
+			'Azure, a horse\'s head couped argent, maned tenné, rearing; in base a stand of three trees vert and a scroll argent inscribed "B.B. · 1943" azure.',
 	},
 	{
 		slug: "ventura-pacifics",
@@ -422,13 +428,13 @@ export const CREST_BLAZONS = [
 		club: "Little Rock Razorbacks",
 		colors: "gules cardinal #9d2235, argent white",
 		blazon:
-			'Gules, a boar passant argent, tusked and bristled; in base a rock proper upon a river barry wavy argent and gules, and a scroll argent inscribed "LA PETITE ROCHE · MDCCXXII" gules.',
+			'Gules, a boar passant argent, tusked and bristled; in base a rock proper upon a river barry wavy argent and gules, and a scroll argent inscribed "LA PETITE ROCHE · MCMIV" gules.',
 	},
 	{
 		slug: "spokane-beavers",
 		club: "Spokane Beavers",
 		colors: "azure #1c2c5b, gules #cc2244, argent white",
 		blazon:
-			'Azure, a beaver proper gnawing a log or before a waterfall argent over rocks; in chief sinister a clock tower argent; in base two logs in saltire or and a scroll argent inscribed "S.B.F.C. · 1881" sable.',
+			'Azure, a beaver proper gnawing a log or before a waterfall argent over rocks; in chief sinister a clock tower argent; in base two logs in saltire or and a scroll argent inscribed "S.B.F.C. · 1907" sable.',
 	},
 ];

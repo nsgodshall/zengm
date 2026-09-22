@@ -17,11 +17,67 @@ import { mkdir, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { CREST_BLAZONS } from "./crest-blazons.js";
 
-const PREAMBLE =
-	"An armorial achievement drawn as a modern football club badge: a shield or roundel, the field divided as blazoned, the principal charge boldly drawn, lesser charges in chief and base, within a bordure. Flat vector, thick confident outlines, no more than four tinctures, no gradients, transparent background - a club crest, not a page from a medieval roll of arms. Where the blazon calls for letters or numerals, render them in a condensed serif, evenly spaced and integral to the badge, never as a caption. The silhouette must read at 32 pixels.";
+// Decided with the user: the badges shouldn't all look like the same badge. Each
+// club gets its own shape, drawing manner, lettering and bordure, picked from
+// its slug so a rerun draws the same club the same way.
+const SHAPES = [
+	"a heater shield",
+	"a roundel",
+	"a shield with a pointed base",
+	"an oval cartouche",
+	"a lozenge standing on its point",
+	"a shield with a curved chief and squared base",
+	"a shield couped and arched",
+];
 
-const buildPrompt = (crest) =>
-	`${PREAMBLE}\n\nBlazon: ${crest.blazon}\n\nTinctures, exactly: ${crest.colors}.`;
+const MANNERS = [
+	"flat vector, thick confident outlines",
+	"flat vector, fine engraved linework over solid grounds",
+	"bold modern vector, heavy simplified shapes, the detail cut away",
+	"flat vector cut like a woodblock print, chiselled edges",
+	"flat vector, the charges drawn as clean silhouettes with a single interior line",
+];
+
+const LETTERING = [
+	"a condensed serif",
+	"a slab serif",
+	"a narrow blackletter",
+	"a wide grotesque",
+	"a stencilled sans",
+];
+
+const BORDURES = [
+	"within a plain bordure",
+	"within a cabled bordure",
+	"within a bordure beaded of the trim tincture",
+	"with no bordure, the field running to the edge",
+	"within a narrow double fillet",
+];
+
+// Same slug, same badge, every run
+const pick = (list, slug, salt) => {
+	let hash = salt;
+	for (const character of slug) {
+		hash = (hash * 31 + character.codePointAt(0)) % 100003;
+	}
+	return list[hash % list.length];
+};
+
+const buildPrompt = (crest) => {
+	const shape = pick(SHAPES, crest.slug, 7);
+	const manner = pick(MANNERS, crest.slug, 13);
+	const lettering = pick(LETTERING, crest.slug, 29);
+	const bordure = pick(BORDURES, crest.slug, 53);
+
+	const preamble = [
+		`An armorial achievement drawn as a modern football club badge on ${shape}, the field divided as blazoned, the principal charge boldly drawn, lesser charges in chief and base, ${bordure}.`,
+		`${manner[0].toUpperCase()}${manner.slice(1)}, no more than four tinctures, no gradients, no drop shadows, transparent background - a club crest, not a page from a medieval roll of arms.`,
+		`Where the blazon calls for letters or numerals, render them in ${lettering}, evenly spaced and integral to the badge, never as a caption.`,
+		"A date is the year the club was founded. The silhouette must read at 32 pixels.",
+	].join(" ");
+
+	return `${preamble}\n\nBlazon: ${crest.blazon}\n\nTinctures, exactly: ${crest.colors}.`;
+};
 
 const parseArgs = (argv) => {
 	const args = {
