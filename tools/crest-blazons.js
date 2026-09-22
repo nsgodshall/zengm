@@ -275,11 +275,11 @@ export const CREST_BLAZONS = [
 			"Azure, a mullet of five points or charged with a guitar's head sable, three pegs argent; in base two notes or and the numerals 1779 argent; within a double annulet or.",
 	},
 	{
-		slug: "cleveland-indians",
-		club: "Cleveland Indians",
+		slug: "cleveland-spiders",
+		club: "Cleveland Spiders",
 		colors: "azure #0c2340, gules #e31937, argent white",
 		blazon:
-			"Azure, a lighthouse argent upon a rock, in base a bridge of three arches gules; in chief dexter a gull argent; on a scroll argent the numerals 1796 azure.",
+			'Azure, a spider sable upon a web argent throughout, in chief a lighthouse argent; in base a bridge of three arches gules and a scroll argent inscribed "CLEVELAND · 1887" azure.',
 	},
 	{
 		slug: "jacksonville-gamecocks",
@@ -319,11 +319,11 @@ export const CREST_BLAZONS = [
 			'Gules, a covered wagon or in full career, behind it a sun in splendour or; in base a scroll or inscribed "MCMVII" gules.',
 	},
 	{
-		slug: "richmond-spiders",
-		club: "Richmond Spiders",
+		slug: "richmond-redtails",
+		club: "Richmond Redtails",
 		colors: "gules #990000, azure #0c2340, argent white",
 		blazon:
-			'Gules, a spider sable upon a web argent throughout; in chief a scroll argent inscribed "R.S.F.C."; in base the numerals 1737 argent.',
+			'Gules, a red-tailed hawk volant argent, its tail gules, grasping a tobacco leaf or; in chief a scroll argent inscribed "R.R.F.C."; in base the numerals 1911 argent.',
 	},
 	{
 		slug: "salt-lake-city-pioneers",
@@ -382,11 +382,11 @@ export const CREST_BLAZONS = [
 			'Vert, a rainbow throughout proper issuant from a sea barry wavy argent and vert, behind a headland sable; in base a scroll argent inscribed "UA MAU KE EA · 1947" vert.',
 	},
 	{
-		slug: "new-orleans-tigers",
-		club: "New Orleans Tigers",
+		slug: "new-orleans-jazz",
+		club: "New Orleans Jazz",
 		colors: "purpure #461d7c, or #fdd023, argent white",
 		blazon:
-			"Purpure, a tiger's head couped affronté or, between in chief two fleurs-de-lis or; in base a crescent argent and the numerals 1718 or.",
+			"Purpure, a cornet bendwise or, between in chief two fleurs-de-lis or; in base a crescent argent and the numerals 1923 or.",
 	},
 	{
 		slug: "knoxville-volunteers",

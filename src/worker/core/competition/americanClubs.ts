@@ -371,7 +371,7 @@ const SECOND_TIER: RealClub[] = [
 	),
 	club(
 		"Cleveland",
-		"Indians",
+		"Spiders",
 		"CLE",
 		"Cleveland",
 		["#0c2340", "#e31937", "#ffffff"],
@@ -423,7 +423,7 @@ const THIRD_TIER: RealClub[] = [
 	),
 	club(
 		"Richmond",
-		"Spiders",
+		"Redtails",
 		"RIC",
 		"Richmond",
 		["#990000", "#0c2340", "#ffffff"],
@@ -496,10 +496,9 @@ const THIRD_TIER: RealClub[] = [
 		["#024731", "#ffffff", "#000000"],
 		file("honolulu-rainbow-warriors.svg"),
 	),
-	// After LSU's Tigers
 	club(
 		"New Orleans",
-		"Tigers",
+		"Jazz",
 		"NOL",
 		"New Orleans",
 		["#461d7c", "#fdd023", "#ffffff"],
