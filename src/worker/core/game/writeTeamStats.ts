@@ -15,6 +15,7 @@ import { bySport, isSport } from "../../../common/sportFunctions.ts";
 import { isSingleDivision } from "../competition/competitionStructure.ts";
 import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
 import { getTvShare } from "../competition/worldRevenue.ts";
+import { getWorldCommercialRevenueMultiplier } from "../competition/worldInfrastructure.ts";
 
 const writeTeamStats = async (results: GameResults) => {
 	const allStarGame = results.team[0].id === -1 && results.team[1].id === -2;
@@ -284,6 +285,13 @@ const writeTeamStats = async (results: GameResults) => {
 
 		merchRevenue *= fudgeFactor * seasonLengthFactor;
 		sponsorRevenue *= fudgeFactor * seasonLengthFactor;
+		if (t.worldInfrastructure) {
+			const commercialMultiplier = getWorldCommercialRevenueMultiplier(
+				t.worldInfrastructure.commercial.level,
+			);
+			merchRevenue *= commercialMultiplier;
+			sponsorRevenue *= commercialMultiplier;
+		}
 		nationalTvRevenue *= fudgeFactor * seasonLengthFactor;
 		localTvRevenue *= fudgeFactor * seasonLengthFactor;
 		ticketRevenue *= fudgeFactor * seasonLengthFactor;

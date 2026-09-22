@@ -619,7 +619,15 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 							(p): p is { pid: number; tid: number } =>
 								(p as { pid?: number }).pid !== undefined,
 						);
-					assert(winners.length > 0, `${season} ${division.name} ${shortName}`);
+					// A Division can have no eligible young player who appeared in a
+					// game. Keep the award empty rather than giving it to an over-age
+					// player. Every other award must have at least one winner.
+					if (shortName !== "YPS") {
+						assert(
+							winners.length > 0,
+							`${season} ${division.name} ${shortName}`,
+						);
+					}
 					for (const p of winners) {
 						assert.strictEqual(
 							divisionIdByTid.get(p.tid),
@@ -628,7 +636,7 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 						);
 					}
 
-					if (shortName === "YPS") {
+					if (shortName === "YPS" && winners.length > 0) {
 						const p = (await idb.getCopy.players({ pid: winners[0]!.pid }))!;
 						assert(
 							season - p.born.year <= YOUNG_PLAYER_MAX_AGE,

@@ -25,6 +25,7 @@ import {
 	regressHype,
 } from "./worldRevenue.ts";
 import { releaseRelegationClausePlayers } from "./relegationClauses.ts";
+import { ensureWorldFinanceLedger } from "./worldInfrastructure.ts";
 
 /**
  * A top-tier champion is its Country's champion, marked the same way as a
@@ -51,11 +52,15 @@ const crownChampions = async (
 			[row.tid, g.get("season")],
 		);
 		if (teamSeason) {
+			teamSeason.worldFinance = ensureWorldFinanceLedger(
+				teamSeason.worldFinance,
+			);
 			if (isTopTier) {
 				teamSeason.playoffRoundsWon = 0;
 				teamSeason.hype = helpers.bound(teamSeason.hype + 0.2, 0, 1);
 			}
 			teamSeason.cash += prize;
+			teamSeason.worldFinance.prizeMoney += prize;
 			await idb.cache.teamSeasons.put(teamSeason);
 		}
 
@@ -147,12 +152,16 @@ const applyMoves = async (
 			? getPromotionPrize({ tier: from.tier, salaryCap: g.get("salaryCap") })
 			: 0;
 		if (teamSeason) {
+			teamSeason.worldFinance = ensureWorldFinanceLedger(
+				teamSeason.worldFinance,
+			);
 			teamSeason.hype = helpers.bound(
 				teamSeason.hype + (promoted ? PROMOTION_HYPE : -PROMOTION_HYPE),
 				0,
 				1,
 			);
 			teamSeason.cash += prize;
+			teamSeason.worldFinance.prizeMoney += prize;
 			await idb.cache.teamSeasons.put(teamSeason);
 		}
 

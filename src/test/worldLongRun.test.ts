@@ -205,6 +205,14 @@ const takeSnapshot = async () => {
 					? Math.max(...affordableFreeAgents.map((row) => row.ovr))
 					: undefined,
 			cash: (teamSeason?.cash ?? 0) / 1000,
+			infrastructureLevel: t.worldInfrastructure
+				? mean(Object.values(t.worldInfrastructure).map((asset) => asset.level))
+				: undefined,
+			capitalProjects: (teamSeason?.worldFinance?.capitalProjects ?? 0) / 1000,
+			debtInterest: (teamSeason?.worldFinance?.debtInterest ?? 0) / 1000,
+			ownerFunding: (teamSeason?.worldFinance?.ownerFunding ?? 0) / 1000,
+			promotionSpendingLimit:
+				(teamSeason?.worldFinance?.promotionSpendingLimit ?? 0) / 1000,
 			pop: teamSeason?.pop,
 			hype: teamSeason?.hype,
 			stadiumCapacity: teamSeason?.stadiumCapacity,
@@ -699,6 +707,11 @@ const formatSummary = (
 				round(mean(clubs.map((c) => c.pop ?? Number.NaN)), 2),
 				round(mean(clubs.map((c) => c.avgAge))),
 				clubs.reduce((total, c) => total + c.loanedIn, 0),
+				round(mean(clubs.map((c) => c.infrastructureLevel ?? Number.NaN)), 1),
+				round(mean(clubs.map((c) => c.capitalProjects))),
+				round(mean(clubs.map((c) => c.debtInterest))),
+				round(mean(clubs.map((c) => c.ownerFunding))),
+				round(mean(clubs.map((c) => c.promotionSpendingLimit))),
 			]);
 		}
 	}
@@ -725,6 +738,11 @@ const formatSummary = (
 			"Pop",
 			"Age",
 			"Loaned in",
+			"Infrastructure",
+			"Capital",
+			"Interest",
+			"Owner funding",
+			"Promotion funds",
 		],
 		tierRows,
 	);

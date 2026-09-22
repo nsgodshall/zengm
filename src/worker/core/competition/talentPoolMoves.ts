@@ -42,6 +42,7 @@ import {
 	canAddContractToWorldClubStrategy,
 	getWorldPlayingTimePromise,
 } from "./clubStrategy.ts";
+import { ensureWorldFinanceLedger } from "./worldInfrastructure.ts";
 
 // International Soccer Zen GM mod (Epic 4): moving players in and out of the
 // international talent pool (see competition/talentPool.ts). Pool players are
@@ -239,6 +240,8 @@ const signFromTalentPool = async ({
 	const phase = g.get("phase");
 
 	teamSeason.cash -= fee;
+	teamSeason.worldFinance = ensureWorldFinanceLedger(teamSeason.worldFinance);
+	teamSeason.worldFinance.transferFeesPaid += fee;
 	await idb.cache.teamSeasons.put(teamSeason);
 
 	p.tid = tid;

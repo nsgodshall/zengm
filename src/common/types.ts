@@ -1788,6 +1788,9 @@ export type Team = {
 	// International Soccer Zen GM mod (Epic 4): the club's payroll when its World
 	// was created, which its wage budget covers until its first season is over
 	startingPayroll?: number;
+	// International Soccer Zen GM mod (World overhaul): persistent capital
+	// assets. Optional so existing Worlds initialize them from current budgets.
+	worldInfrastructure?: WorldInfrastructure;
 	// International Soccer Zen GM mod (Epic 7): the real town a World's club is
 	// in, with the title of its English Wikipedia article
 	location?: {
@@ -1983,6 +1986,9 @@ export type TeamSeasonWithoutKey = {
 	gpHome: number; // Includes playoff games! Used for attendance average
 	att: number;
 	cash: number;
+	// International Soccer Zen GM mod (World overhaul): cash movements that do
+	// not fit ZenGM's operating revenue/expense buckets.
+	worldFinance?: WorldFinanceLedger;
 	won: number;
 	lost: number;
 	tied: number;
@@ -2084,6 +2090,35 @@ export type TeamSeasonWithoutKey = {
 
 	// Only used in historical leagues when realStats="all"
 	srID?: string;
+};
+
+export type WorldInfrastructureKey =
+	| "academy"
+	| "training"
+	| "medical"
+	| "scouting"
+	| "stadium"
+	| "commercial";
+
+export type WorldInfrastructureAsset = {
+	level: number;
+	invested: number;
+};
+
+export type WorldInfrastructure = Record<
+	WorldInfrastructureKey,
+	WorldInfrastructureAsset
+>;
+
+export type WorldFinanceLedger = {
+	transferFeesPaid: number;
+	transferFeesReceived: number;
+	capitalProjects: number;
+	debtInterest: number;
+	ownerFunding: number;
+	prizeMoney: number;
+	openingDebt: number;
+	promotionSpendingLimit: number;
 };
 
 export type TeamSeason = TeamSeasonWithoutKey & {

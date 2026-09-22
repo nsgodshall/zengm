@@ -103,6 +103,15 @@ describe("canAiAffordFee", () => {
 		expect(canAiAffordFee({ cash: 50000, fee: 50001 })).toBe(false);
 		expect(canAiAffordFee({ cash: -10000, fee: 1000 })).toBe(false);
 	});
+
+	test("a promoted club can use only its planned allowance", () => {
+		expect(
+			canAiAffordFee({ cash: 10_000, fee: 15_000, spendingAllowance: 5_000 }),
+		).toBe(true);
+		expect(
+			canAiAffordFee({ cash: 10_000, fee: 15_001, spendingAllowance: 5_000 }),
+		).toBe(false);
+	});
 });
 
 describe("getTransferFunds", () => {

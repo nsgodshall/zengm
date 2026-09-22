@@ -25,6 +25,7 @@ import {
 	getAcademyStrength,
 	planAcademyPromotions,
 } from "./youthAcademy.ts";
+import { getWorldAcademyInfrastructureBonus } from "./worldInfrastructure.ts";
 
 type AcademyClub = {
 	tid: number;
@@ -109,7 +110,16 @@ export const getAcademyClubs = async () => {
 				: tierByDivisionId.get(t.divisionId);
 		clubs.push({
 			tid: t.tid,
-			strength: getAcademyStrength({ scoutingLevel, tier: tier ?? 1 }),
+			strength: getAcademyStrength({
+				scoutingLevel,
+				tier: tier ?? 1,
+				infrastructureBonus:
+					t.worldInfrastructure === undefined
+						? 0
+						: getWorldAcademyInfrastructureBonus(
+								t.worldInfrastructure.academy.level,
+							),
+			}),
 		});
 	}
 

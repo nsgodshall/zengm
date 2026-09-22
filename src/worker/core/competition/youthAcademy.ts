@@ -85,10 +85,15 @@ export const ACADEMY_TIER_PENALTY = 0.25;
 export const getAcademyStrength = ({
 	scoutingLevel,
 	tier,
+	infrastructureBonus = 0,
 }: {
 	scoutingLevel: number;
 	tier: number;
-}) => levelToEffect(scoutingLevel) - ACADEMY_TIER_PENALTY * (tier - 1);
+	infrastructureBonus?: number;
+}) =>
+	levelToEffect(scoutingLevel) +
+	infrastructureBonus -
+	ACADEMY_TIER_PENALTY * (tier - 1);
 
 // Each round of an intake, clubs pick in order of academy strength plus up to
 // this much luck either way

@@ -54,6 +54,7 @@ describe("getWorldAwards", () => {
 		expect(evaluate(youngPlayer.formula, 35)).toBeCloseTo(
 			evaluate(mvpFormula, 35) - 10000,
 		);
+		expect(youngPlayer.maxAge).toBe(YOUNG_PLAYER_MAX_AGE);
 	});
 });
 

@@ -2,6 +2,7 @@ import type { Player, TeamSeason } from "../../../common/types.ts";
 import { idb } from "../../db/index.ts";
 import { g, helpers, logEvent } from "../../util/index.ts";
 import teamLink from "./teamLink.ts";
+import { ensureWorldFinanceLedger } from "./worldInfrastructure.ts";
 
 /**
  * The money and paperwork of any transfer: the buying club pays the fee
@@ -27,6 +28,12 @@ export const recordTransfer = async ({
 }) => {
 	buyerSeason.cash -= fee;
 	sellerSeason.cash += fee;
+	buyerSeason.worldFinance = ensureWorldFinanceLedger(buyerSeason.worldFinance);
+	sellerSeason.worldFinance = ensureWorldFinanceLedger(
+		sellerSeason.worldFinance,
+	);
+	buyerSeason.worldFinance.transferFeesPaid += fee;
+	sellerSeason.worldFinance.transferFeesReceived += fee;
 	await idb.cache.teamSeasons.putAll([buyerSeason, sellerSeason]);
 
 	const eid = await logEvent({
