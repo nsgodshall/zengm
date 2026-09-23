@@ -1,5 +1,6 @@
 import { PHASE } from "../../../common/constants.ts";
 import type { Phase } from "../../../common/types.ts";
+import type { ClubOwnerKind } from "./clubOwners.ts";
 
 // How much of the regular season the winter window stays open, ending at the
 // trade deadline
@@ -162,15 +163,73 @@ export const SURPLUS_SPENDING_FRACTION = 0.2;
 // first three seasons, then the revenue/debt budget stands on its own.
 export const STARTING_PAYROLL_FLOOR_STEP = 0.25;
 
+// Once a club has real financial results, its board still lets its underlying
+// finances do most of the work. These deliberately small ranges add character
+// without letting ownership or market size rescue an unsustainable club.
+export const WAGE_BUDGET_DYNAMICS = {
+	marketRange: 0.04,
+	profitMarginCap: 0.25,
+	profitRange: 0.04,
+	ownerMultiplier: {
+		local: 1,
+		benefactor: 1.06,
+		investmentGroup: 1.025,
+		fanOwned: 0.975,
+	} satisfies Record<ClubOwnerKind, number>,
+};
+
+/**
+ * The board's appetite for wages. The largest market gets a 4% lift and the
+ * smallest a 4% cut. A profitable season can move the budget another 4% in
+ * either direction, while ownership adds a small persistent personality.
+ */
+export const getWageBudgetMultiplier = ({
+	popRank,
+	numTeams,
+	ownerKind = "local",
+	lastSeasonProfitMargin,
+}: {
+	popRank: number;
+	numTeams: number;
+	ownerKind?: ClubOwnerKind;
+	lastSeasonProfitMargin?: number;
+}) => {
+	const marketPosition = numTeams <= 1 ? 0.5 : (popRank - 1) / (numTeams - 1);
+	const marketMultiplier =
+		1 + WAGE_BUDGET_DYNAMICS.marketRange * (1 - 2 * marketPosition);
+
+	const profitMargin =
+		lastSeasonProfitMargin !== undefined
+			? Math.max(
+					-WAGE_BUDGET_DYNAMICS.profitMarginCap,
+					Math.min(
+						WAGE_BUDGET_DYNAMICS.profitMarginCap,
+						lastSeasonProfitMargin,
+					),
+				)
+			: 0;
+	const profitMultiplier =
+		1 +
+		(profitMargin / WAGE_BUDGET_DYNAMICS.profitMarginCap) *
+			WAGE_BUDGET_DYNAMICS.profitRange;
+
+	return (
+		marketMultiplier *
+		profitMultiplier *
+		WAGE_BUDGET_DYNAMICS.ownerMultiplier[ownerKind]
+	);
+};
+
 /**
  * A club's wage budget, in thousands of dollars.
  *
  * International Soccer Zen GM mod (Epic 8, decided): once a club has a
  * completed season, its board lets it spend on wages what last season's
  * `revenue` left after its `runningCosts` (coaching, facilities, health, and
- * scouting), so it breaks even. A club in debt (negative `cash`) has that cut
- * to pay the debt off over DEBT_REPAYMENT_SEASONS, and a club with cash to spare
- * can spend SURPLUS_SPENDING_FRACTION of it. Kept between `minWageBudget`,
+ * scouting), adjusted slightly for market size, ownership, and last season's
+ * profit. A club in debt (negative `cash`) has that cut to pay the debt off over
+ * DEBT_REPAYMENT_SEASONS, and a club with cash to spare can spend
+ * SURPLUS_SPENDING_FRACTION of it. Kept between `minWageBudget`,
  * enough to field a squad on minimum contracts, and double the salary cap.
  * Scaling the cap by revenue instead left most lower-tier clubs hundreds of
  * millions in debt within 10 seasons while big clubs piled up cash.
@@ -195,6 +254,8 @@ export const getWageBudget = ({
 	seasonsCompleted,
 	maxBudget,
 	ownerFunding = 0,
+	ownerKind,
+	lastSeasonProfitMargin,
 }: {
 	salaryCap: number;
 	revenue: number | undefined;
@@ -209,6 +270,10 @@ export const getWageBudget = ({
 	maxBudget?: number;
 	// What the club's owner puts in this season, which the board can spend
 	ownerFunding?: number;
+	// Ownership influences how aggressively the board turns income into wages
+	ownerKind?: ClubOwnerKind;
+	// Last season's profit after ordinary expenses, divided by its revenue
+	lastSeasonProfitMargin?: number;
 }) => {
 	if (revenue !== undefined) {
 		const cashAdjustment =
@@ -220,19 +285,30 @@ export const getWageBudget = ({
 				? startingPayroll *
 					Math.max(0, 1 - STARTING_PAYROLL_FLOOR_STEP * seasonsCompleted)
 				: 0;
+		const operatingBudget =
+			(revenue + ownerFunding - runningCosts) *
+			getWageBudgetMultiplier({
+				popRank,
+				numTeams,
+				ownerKind,
+				lastSeasonProfitMargin,
+			});
 		return Math.round(
 			Math.min(
 				maxBudget ?? MAX_CONTRACT_CAP_MULTIPLE * salaryCap,
 				Math.max(
 					minWageBudget,
-					revenue + ownerFunding - runningCosts + cashAdjustment,
+					operatingBudget + cashAdjustment,
 					startingPayrollFloor,
 				),
 			),
 		);
 	}
 
-	const budget = getMarketSizeWageBudget({ salaryCap, popRank, numTeams });
+	const budget = Math.round(
+		getMarketSizeWageBudget({ salaryCap, popRank, numTeams }) *
+			WAGE_BUDGET_DYNAMICS.ownerMultiplier[ownerKind ?? "local"],
+	);
 	if (startingPayroll !== undefined) {
 		return Math.max(
 			budget,

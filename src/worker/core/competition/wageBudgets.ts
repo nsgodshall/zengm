@@ -48,6 +48,7 @@ export const getWageBudgets = async () => {
 			nationalTv: number;
 			lastTier: number;
 			runningCosts: number;
+			profitMargin: number;
 			cash: number;
 		}
 	>();
@@ -57,11 +58,16 @@ export const getWageBudgets = async () => {
 			revenue += amount;
 		}
 		const { coaching, facilities, health, scouting } = teamSeason.expenses;
+		let expenses = 0;
+		for (const amount of Object.values(teamSeason.expenses)) {
+			expenses += amount;
+		}
 		financesByTid.set(teamSeason.tid, {
 			revenue,
 			nationalTv: teamSeason.revenues.nationalTv,
 			lastTier: getTier(teamSeason.divisionId) ?? 1,
 			runningCosts: coaching + facilities + health + scouting,
+			profitMargin: revenue > 0 ? (revenue - expenses) / revenue : 0,
 			cash: teamSeason.cash,
 		});
 	}
@@ -96,6 +102,8 @@ export const getWageBudgets = async () => {
 				// Storytelling (Phase 6c): a benefactor's money counts as income for
 				// the board's budget (see competition/clubOwners.ts)
 				ownerFunding: getOwnerFunding(t.worldOwner),
+				ownerKind: t.worldOwner?.kind,
+				lastSeasonProfitMargin: finances?.profitMargin,
 				runningCosts: finances?.runningCosts ?? 0,
 				cash: finances?.cash ?? 0,
 				minWageBudget,

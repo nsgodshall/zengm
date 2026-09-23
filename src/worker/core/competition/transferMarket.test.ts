@@ -5,6 +5,7 @@ import {
 	getTransferFee,
 	getTransferWindow,
 	getWageBudget,
+	getWageBudgetMultiplier,
 	getWinterWindowDays,
 	canSignWithinWageBudget,
 } from "./transferMarket.ts";
@@ -155,7 +156,8 @@ describe("getWageBudget", () => {
 		runningCosts: 120000,
 		cash: 0,
 		minWageBudget: 20000,
-		popRank: 15,
+		// Halfway between the largest and smallest markets, for a neutral baseline.
+		popRank: 15.5,
 		numTeams: 30,
 	};
 
@@ -209,11 +211,12 @@ describe("getWageBudget", () => {
 		expect(budget(150000)).toBe(160000);
 
 		// Once there's revenue, the floor drops by 25% of the starting payroll
-		// each season. Here the ordinary revenue budget is $50M.
+		// each season. Here the ordinary revenue budget is $50M before the
+		// smallest-market board adjustment makes it $48M.
 		expect(budget(150000, 200000, 1)).toBe(112500);
 		expect(budget(150000, 200000, 2)).toBe(75000);
-		expect(budget(150000, 200000, 3)).toBe(50000);
-		expect(budget(150000, 200000, 4)).toBe(50000);
+		expect(budget(150000, 200000, 3)).toBe(48000);
+		expect(budget(150000, 200000, 4)).toBe(48000);
 
 		// The usual maximum still applies during the transition.
 		expect(budget(500000, 200000, 1)).toBe(200000);
@@ -234,6 +237,72 @@ describe("getWageBudget", () => {
 		expect(budget(1)).toBe(120000);
 		expect(budget(3)).toBe(100000);
 		expect(budget(5)).toBe(80000);
+	});
+
+	test("ownership also influences a club's first budget", () => {
+		const budget = (ownerKind: "benefactor" | "local" | "fanOwned") =>
+			getWageBudget({
+				salaryCap: 100000,
+				revenue: undefined,
+				runningCosts: 0,
+				cash: 0,
+				minWageBudget: 0,
+				popRank: 3,
+				numTeams: 5,
+				ownerKind,
+			});
+
+		expect(budget("benefactor")).toBe(106000);
+		expect(budget("local")).toBe(100000);
+		expect(budget("fanOwned")).toBe(97500);
+	});
+
+	test("keeps ongoing market-size effects modest", () => {
+		const biggest = getWageBudget({
+			...afterASeason,
+			popRank: 1,
+			lastSeasonProfitMargin: 0,
+		});
+		const smallest = getWageBudget({
+			...afterASeason,
+			popRank: 30,
+			lastSeasonProfitMargin: 0,
+		});
+
+		expect(biggest).toBe(187200);
+		expect(smallest).toBe(172800);
+	});
+
+	test("owner type changes the board's wage appetite", () => {
+		const budget = (
+			ownerKind: "benefactor" | "investmentGroup" | "local" | "fanOwned",
+		) =>
+			getWageBudget({
+				...afterASeason,
+				popRank: 15.5,
+				ownerKind,
+				lastSeasonProfitMargin: 0,
+			});
+
+		expect(budget("benefactor")).toBeGreaterThan(budget("investmentGroup"));
+		expect(budget("investmentGroup")).toBeGreaterThan(budget("local"));
+		expect(budget("local")).toBeGreaterThan(budget("fanOwned"));
+	});
+
+	test("recent profit and loss adjust the budget within a four percent range", () => {
+		const multiplier = (lastSeasonProfitMargin: number) =>
+			getWageBudgetMultiplier({
+				popRank: 15.5,
+				numTeams: 30,
+				ownerKind: "local",
+				lastSeasonProfitMargin,
+			});
+
+		expect(multiplier(0.25)).toBeCloseTo(1.04);
+		expect(multiplier(-0.25)).toBeCloseTo(0.96);
+		// Extreme results are capped, so one season cannot swing the budget wildly.
+		expect(multiplier(1000000)).toBeCloseTo(1.04);
+		expect(multiplier(-1000000)).toBeCloseTo(0.96);
 	});
 });
 
