@@ -53,7 +53,7 @@ const TOP_TIER: RealClub[] = [
 		"NYY",
 		"New York City",
 		["#0c2340", "#ffffff", "#c4ced3"],
-		file("new-york-yankees.svg"),
+		file("new-york-yankees.png"),
 		true,
 	),
 	club(
@@ -62,7 +62,7 @@ const TOP_TIER: RealClub[] = [
 		"BKN",
 		"New York City",
 		["#113388", "#ffffff", "#dd1133"],
-		file("brooklyn-dodgers.svg"),
+		file("brooklyn-dodgers.png"),
 		true,
 	),
 	// "LI" for Long Island, since the Yankees have New York's "NY"
@@ -72,7 +72,7 @@ const TOP_TIER: RealClub[] = [
 		"NYI",
 		"New York City",
 		["#00539b", "#f47d30", "#ffffff"],
-		generated("LI"),
+		file("new-york-islanders.png"),
 		true,
 	),
 	// After UCLA
@@ -82,7 +82,7 @@ const TOP_TIER: RealClub[] = [
 		"LAB",
 		"Los Angeles",
 		["#2774ae", "#ffd100", "#ffffff"],
-		generated("LA"),
+		file("los-angeles-bruins.png"),
 		true,
 	),
 	club(
@@ -91,7 +91,7 @@ const TOP_TIER: RealClub[] = [
 		"ANA",
 		"Anaheim",
 		["#ba0021", "#003263", "#ffffff"],
-		generated("A"),
+		file("anaheim-angels.png"),
 		true,
 	),
 	club(
@@ -109,7 +109,7 @@ const TOP_TIER: RealClub[] = [
 		"DAL",
 		"Dallas",
 		["#002244", "#869397", "#ffffff"],
-		generated("DAL"),
+		file("dallas-cowboys.png"),
 		true,
 	),
 	club(
@@ -118,7 +118,7 @@ const TOP_TIER: RealClub[] = [
 		"HOU",
 		"Houston",
 		["#12284b", "#eb6e1f", "#ffffff"],
-		generated("H"),
+		file("houston-colt-45s.png"),
 		true,
 	),
 	club(
@@ -127,7 +127,7 @@ const TOP_TIER: RealClub[] = [
 		"ATL",
 		"Atlanta",
 		["#13274f", "#ce1141", "#ffffff"],
-		generated("ATL"),
+		file("atlanta-braves.png"),
 		true,
 	),
 	club(
@@ -146,7 +146,7 @@ const TOP_TIER: RealClub[] = [
 		"MIA",
 		"Miami",
 		["#f47321", "#005030", "#ffffff"],
-		file("miami-hurricanes.svg"),
+		file("miami-hurricanes.png"),
 		true,
 	),
 	club(
@@ -155,7 +155,7 @@ const TOP_TIER: RealClub[] = [
 		"PHI",
 		"Philadelphia",
 		["#c81e3b", "#013b73", "#ffffff"],
-		file("philadelphia-phillies.svg"),
+		file("philadelphia-phillies.png"),
 		true,
 	),
 	club(
@@ -173,7 +173,7 @@ const TOP_TIER: RealClub[] = [
 		"BOS",
 		"Boston",
 		["#c8102e", "#0c2340", "#ffffff"],
-		generated("BOS"),
+		file("boston-minutemen.png"),
 	),
 	club(
 		"San Bernardino",
@@ -181,7 +181,7 @@ const TOP_TIER: RealClub[] = [
 		"SBH",
 		"San Bernardino",
 		["#1b365d", "#c69214", "#ffffff"],
-		generated("SB"),
+		file("san-bernardino-highlanders.png"),
 	),
 	club(
 		"San Francisco",
@@ -197,7 +197,7 @@ const TOP_TIER: RealClub[] = [
 		"OAK",
 		"Oakland",
 		["#000000", "#a5acaf", "#ffffff"],
-		generated("O"),
+		file("oakland-raiders.png"),
 	),
 	club(
 		"Detroit",
@@ -205,7 +205,7 @@ const TOP_TIER: RealClub[] = [
 		"DET",
 		"Detroit",
 		["#0c2c56", "#fa4616", "#ffffff"],
-		file("detroit-tigers.svg"),
+		file("detroit-tigers.png"),
 	),
 	club(
 		"Seattle",
@@ -213,7 +213,7 @@ const TOP_TIER: RealClub[] = [
 		"SEA",
 		"Seattle",
 		["#005831", "#ffc121", "#ffffff"],
-		generated("S"),
+		file("seattle-sonics.png"),
 	),
 	club(
 		"Minneapolis",
@@ -234,7 +234,7 @@ const SECOND_TIER: RealClub[] = [
 		"SDA",
 		"San Diego",
 		["#c41230", "#000000", "#ffffff"],
-		generated("SD"),
+		file("san-diego-aztecs.png"),
 	),
 	club(
 		"Denver",
@@ -242,7 +242,7 @@ const SECOND_TIER: RealClub[] = [
 		"DEN",
 		"Denver",
 		["#000000", "#cfb87c", "#ffffff"],
-		generated("D"),
+		file("denver-buffaloes.png"),
 	),
 	club(
 		"Orlando",
@@ -250,7 +250,7 @@ const SECOND_TIER: RealClub[] = [
 		"ORL",
 		"Orlando",
 		["#f47321", "#0b2265", "#ffffff"],
-		generated("O"),
+		file("orlando-orange.png"),
 	),
 	club(
 		"Charlotte",
@@ -274,7 +274,7 @@ const SECOND_TIER: RealClub[] = [
 		"STL",
 		"St. Louis",
 		["#c41e3a", "#0c2340", "#fedb00"],
-		file("st-louis-cardinals.svg"),
+		file("st-louis-cardinals.png"),
 	),
 	club(
 		"San Antonio",
@@ -282,7 +282,7 @@ const SECOND_TIER: RealClub[] = [
 		"SAS",
 		"San Antonio",
 		["#000000", "#c4ced4", "#ffffff"],
-		generated("SA"),
+		file("san-antonio-spurs.png"),
 	),
 	// Texas's longhorn, not its "UT"
 	club(
@@ -291,7 +291,7 @@ const SECOND_TIER: RealClub[] = [
 		"AUS",
 		"Austin",
 		["#bf5700", "#ffffff", "#333f48"],
-		file("austin-longhorns.svg"),
+		file("austin-longhorns.png"),
 	),
 	// The old Portland Beavers' "P" cap logo
 	club(
@@ -309,7 +309,7 @@ const SECOND_TIER: RealClub[] = [
 		"SAC",
 		"Sacramento",
 		["#cc2244", "#ffffff", "#1c2c5b"],
-		file("sacramento-bears.svg"),
+		file("sacramento-bears.png"),
 	),
 	club(
 		"Pittsburgh",
@@ -317,7 +317,7 @@ const SECOND_TIER: RealClub[] = [
 		"PIT",
 		"Pittsburgh",
 		["#101820", "#ffb612", "#ffffff"],
-		generated("PIT"),
+		file("pittsburgh-steelers.png"),
 	),
 	// UNLV's Runnin' Rebels
 	club(
@@ -326,7 +326,7 @@ const SECOND_TIER: RealClub[] = [
 		"LVR",
 		"Las Vegas",
 		["#cf0a2c", "#666666", "#ffffff"],
-		generated("LV"),
+		file("las-vegas-runnin-rebels.png"),
 	),
 	club(
 		"Cincinnati",
@@ -334,7 +334,7 @@ const SECOND_TIER: RealClub[] = [
 		"CIN",
 		"Cincinnati",
 		["#c6011f", "#ffffff", "#000000"],
-		file("cincinnati-reds.svg"),
+		file("cincinnati-reds.png"),
 	),
 	club(
 		"Kansas City",
@@ -342,7 +342,7 @@ const SECOND_TIER: RealClub[] = [
 		"KCA",
 		"Kansas City",
 		["#003831", "#efb21e", "#ffffff"],
-		generated("KC"),
+		file("kansas-city-athletics.png"),
 	),
 	club(
 		"Columbus",
@@ -350,7 +350,7 @@ const SECOND_TIER: RealClub[] = [
 		"CLB",
 		"Columbus",
 		["#bb0000", "#666666", "#ffffff"],
-		generated("C"),
+		file("columbus-buckeyes.png"),
 	),
 	club(
 		"Indianapolis",
@@ -358,7 +358,7 @@ const SECOND_TIER: RealClub[] = [
 		"IND",
 		"Indianapolis",
 		["#990000", "#ffffff", "#000000"],
-		generated("I"),
+		file("indianapolis-hoosiers.png"),
 	),
 	// Nashville's Negro League club
 	club(
@@ -367,7 +367,7 @@ const SECOND_TIER: RealClub[] = [
 		"NSH",
 		"Nashville",
 		["#0c2340", "#c8102e", "#ffffff"],
-		generated("N"),
+		file("nashville-stars.png"),
 	),
 	club(
 		"Cleveland",
@@ -375,7 +375,7 @@ const SECOND_TIER: RealClub[] = [
 		"CLE",
 		"Cleveland",
 		["#0c2340", "#e31937", "#ffffff"],
-		generated("CLE"),
+		file("cleveland-spiders.png"),
 	),
 	// After South Carolina's Gamecocks
 	club(
@@ -384,7 +384,7 @@ const SECOND_TIER: RealClub[] = [
 		"JAX",
 		"Jacksonville",
 		["#73000a", "#000000", "#ffffff"],
-		generated("J"),
+		file("jacksonville-gamecocks.png"),
 	),
 	club(
 		"Providence",
@@ -392,7 +392,7 @@ const SECOND_TIER: RealClub[] = [
 		"PVD",
 		"Providence",
 		["#0c2340", "#b9975b", "#ffffff"],
-		generated("PVD"),
+		file("providence-sailors.png"),
 	),
 ];
 
@@ -403,7 +403,7 @@ const THIRD_TIER: RealClub[] = [
 		"RAL",
 		"Raleigh",
 		["#7bafd4", "#13294b", "#ffffff"],
-		generated("R"),
+		file("raleigh-tar-heels.png"),
 	),
 	club(
 		"Milwaukee",
@@ -411,7 +411,7 @@ const THIRD_TIER: RealClub[] = [
 		"MIL",
 		"Milwaukee",
 		["#c5050c", "#ffffff", "#000000"],
-		generated("M"),
+		file("milwaukee-badgers.png"),
 	),
 	club(
 		"Oklahoma City",
@@ -419,7 +419,7 @@ const THIRD_TIER: RealClub[] = [
 		"OKC",
 		"Oklahoma City",
 		["#841617", "#fdf9d8", "#ffffff"],
-		generated("OKC"),
+		file("oklahoma-city-sooners.png"),
 	),
 	club(
 		"Richmond",
@@ -550,7 +550,7 @@ const THIRD_TIER: RealClub[] = [
 		"LRK",
 		"Little Rock",
 		["#9d2235", "#ffffff", "#000000"],
-		generated("LR"),
+		file("little-rock-razorbacks.png"),
 	),
 	club(
 		"Spokane",
