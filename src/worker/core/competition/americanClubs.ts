@@ -221,7 +221,7 @@ const TOP_TIER: RealClub[] = [
 		"MIN",
 		"Minneapolis",
 		["#0b2e5c", "#8fc4e8", "#ffffff"],
-		generated("MIN"),
+		file("minneapolis-thunder.png"),
 	),
 ];
 
