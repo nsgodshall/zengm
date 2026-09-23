@@ -19,6 +19,7 @@ import { runDraft } from "./actions.ts";
 import { bySport, isSport } from "../../common/sportFunctions.ts";
 import { isSingleDivision } from "../core/competition/competitionStructure.ts";
 import { getCompetitionStructure } from "../core/competition/ensureCompetitionStructure.ts";
+import { getChampionsLeagueState } from "../core/competition/championsLeagueSchedule.ts";
 
 const getNumDaysThisRound = (playoffSeries: PlayoffSeries) => {
 	let numDaysThisRound = 0;
@@ -88,11 +89,26 @@ const getNumDaysPlayoffs = async () => {
 		// Every remaining game is an upper bound on the days left because all
 		// games in a round share a schedule day. game.play stops when the bracket
 		// finishes, so this also works for links with different numbers of rounds.
-		return state.links.reduce(
+		const promotionPlayoffDays = state.links.reduce(
 			(total, link) =>
 				total + link.entrants.length - link.numSpots - link.games.length,
 			0,
 		);
+
+		// The Champions League runs alongside the promotion playoffs and usually
+		// lasts longer, so counting only the promotion playoffs leaves its games
+		// unplayed - and with no promotion playoffs at all it counts zero days,
+		// which stops the phase dead. Its own upper bound, on the same reasoning.
+		const championsLeagueState = getChampionsLeagueState();
+		const championsLeagueDays =
+			championsLeagueState?.season === g.get("season")
+				? championsLeagueState.groupGames.filter(
+						(game) => game.homePts === undefined,
+					).length + championsLeagueState.qualifiers.length
+				: 0;
+
+		// They share schedule days, so the longer of the two is what's left
+		return Math.max(promotionPlayoffDays, championsLeagueDays);
 	}
 
 	const playoffSeries = await idb.cache.playoffSeries.get(g.get("season"));
