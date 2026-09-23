@@ -130,6 +130,19 @@ unchanged.
 
 ## 3. Infrastructure and finances
 
+**Status: implemented.** Every World club now carries optional persistent
+academy, training, medical, scouting, stadium, and commercial assets initialized
+from its existing operation. AI capital spending raises the weakest assets
+first, records the exact allocation, expands the stadium, and produces durable
+sporting or commercial benefits above the neutral baseline. Team seasons keep
+a compact ledger for wages and operations through the existing accounts plus
+transfer fees, capital projects, debt interest, owner funding, prize money,
+opening debt, and controlled promotion spending. Debt costs 5% annually;
+exceptional owner support applies only beyond two seasons of revenue in debt.
+The Team Finances page shows assets, ledger rows, and a three-season projection.
+All fields are optional and filled lazily, so existing Worlds need no database
+migration.
+
 - Turn capital spending into persistent academy, training, medical, scouting,
   arena, and commercial assets.
 - Separate wages, transfers, operations, capital projects, debt, and owner
@@ -138,6 +151,17 @@ unchanged.
 - Make every cash sink produce a visible sporting or commercial benefit.
 
 ## 4. Player development
+
+**Status: implemented.** World preseason development now scales ZenGM's normal
+rating changes from the player's actual appearances, competition tier, training
+and medical infrastructure, fulfilled playing-time promise, and loan outcome.
+Every player has a stable standard, early, late, or stalled curve derived from
+his existing identity, so old saves need no migration. A completed loan carries
+its borrower and the player's pre-loan playing-time share into development; the
+latest compact development result records minutes, multiplier, rating change,
+and playing-time gain for the long-run harness without accumulating another
+history table. Academy players receive their club's training benefit without a
+false no-minutes penalty.
 
 - Connect development to playing time, role, coaching, facilities, loans,
   injuries, morale, and competition level.
@@ -152,15 +176,123 @@ unchanged.
 - Consider limited parachute payments only after the squad planner and
   contract clauses are measured.
 
-## 6–9. Competition and presentation features
+## 6. Domestic cups
 
-- Domestic elimination cups spanning every tier in a country.
-- International qualification and club competition for top-tier teams.
-- Contract options, bonuses, clauses, installments, sell-on percentages, and
-  loan-to-buy agreements.
-- Scouting knowledge by country and player exposure.
-- Persistent club identities, ownership styles, rivalries, records, movement
-  timelines, academy lineages, and transfer histories.
+- Add one annual elimination cup spanning every tier in each country.
+- Fit cup rounds around the Division schedule without giving a club two games
+  on one day.
+- Record cup draws, results, winners, prize money, and club history.
+
+## 7. Champions League
+
+**Implementation status:** the playable competition engine and its main
+presentation are complete. It
+qualifies clubs from final domestic tables, draws and schedules persisted group
+and knockout rounds alongside promotion playoffs, validates saved state, uses a
+neutral-site final, updates rolling Country coefficients, and pays every award
+through the World finance ledger. World Tournaments shows qualification, live
+group tables and matchdays, knockout results, prize totals, coefficients, and
+past winners. Schedule cards and box scores retain their competition, club
+history and team records count finals and titles, and same-season appearances
+cup-tie a player after a transfer. The league dashboard now shows the user's
+qualification, prize money, and championship status. The long-run harness
+reports each tournament's field and knockout representation by Country, prize
+distribution, unique champions, repeat winners, and title concentration.
+Remaining work is deeper streak and margin records plus balance tuning based on
+multi-decade results.
+
+### Goal
+
+Add one annual inter-country club tournament that crowns a World champion and
+creates meaningful sporting and financial rewards without replacing domestic
+titles. It must use playable scheduled games, survive reloads between rounds,
+and work with any World containing two to seven Countries.
+
+### Qualification and field
+
+- Qualify from the current season's top-tier tables after the domestic regular
+  season. Every Country gets its champion and runner-up.
+- Use an 8-club field for two to four Countries and a 16-club field for five to
+  seven Countries. Give remaining places to the next domestic finishers from
+  the highest five-season Country coefficients.
+- Begin coefficients equally. Break first-season ties deterministically by
+  `countryId`; after that, score Champions League wins and advancement over a
+  rolling five seasons. Never use hidden club ratings to award a place.
+- If a Country cannot supply its allocation, pass the place to the next
+  eligible club by coefficient and league finish. A club can qualify only once.
+
+### Tournament format
+
+- Draw four-club groups, keeping clubs from the same Country apart wherever
+  the field permits. Play a double round robin: six matchdays per club.
+- Advance the top two in each group. Rank by points, point differential, points
+  scored, head-to-head result, then domestic seed.
+- Play a seeded single-game knockout bracket: group winners host runners-up in
+  the first round, the better surviving seed hosts later rounds, and the final
+  uses a neutral site. A knockout tie advances the better seed in sports that
+  allow tied games.
+- Run the tournament in the playoffs phase after domestic tables are final.
+  Schedule Champions League and promotion-playoff games on the same round days
+  because their top-tier and lower-tier entrants cannot overlap.
+
+### State and scheduling
+
+- Add optional `championsLeagueState` and compact historical results to game
+  attributes, following the resumable promotion-playoff pattern. Do not bump
+  the league database version.
+- Store entrants, domestic seeds, groups, tables, knockout seeds, completed
+  games, and scheduled game IDs. Validate saved state rather than rebuilding a
+  different draw after reload.
+- Add one scheduler that merges a Champions League matchday with the active
+  promotion-playoff round and proves that no club appears twice on a day.
+- Mark each scheduled game through tournament state so the game loop can route
+  its result to the correct competition. Keep domestic table records fixed.
+
+### Money and squad rules
+
+- Pay a modest entry award, win/draw awards, round bonuses, and a champion
+  prize. Record every payment as Champions League prize money in the financial
+  ledger and tune the total below a typical top-tier national-TV season so the
+  tournament does not create runaway dynasties.
+- Use the club's current first-team roster. A player transferred after appearing
+  in the tournament is cup-tied for its remaining matches that season; store
+  only the season and competition on the player and clear it naturally next
+  year.
+- Pay normal wages, attendance, and game operating costs. The neutral final
+  splits gate revenue between both clubs.
+
+### Presentation and history
+
+- Add a Champions League page with qualification places, group tables, bracket,
+  schedule, results, prize totals, and past winners.
+- Label games in Daily Schedule, box scores, team schedules, news, and the
+  dashboard. Show qualification and elimination events and a distinct trophy
+  in club history.
+- Add World records for titles, final appearances, longest winning run, biggest
+  win, and all-time club and Country coefficients.
+
+### Validation
+
+- Pure tests cover slot allocation, coefficient ordering, protected group
+  draws, table tiebreakers, knockout seeding, byes/fallbacks, and invalid saved
+  state.
+- Integration tests play every scheduled round, reload between rounds, confirm
+  that domestic records do not change, and verify prize-ledger entries and the
+  next season's rolling coefficients.
+- Five- and twenty-season Worlds check qualification diversity, title
+  concentration, added games, injuries, prize inflation, cash concentration,
+  and effects on domestic promotion survival.
+
+## 8. Contracts and scouting
+
+- Add contract options, bonuses, clauses, installments, sell-on percentages,
+  and loan-to-buy agreements.
+- Add scouting knowledge by country and player exposure.
+
+## 9. Club history and identity
+
+- Add persistent ownership styles, rivalries, records, movement timelines,
+  academy lineages, and transfer histories.
 
 ## Engineering rules
 

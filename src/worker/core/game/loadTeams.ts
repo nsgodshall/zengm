@@ -11,6 +11,8 @@ import playThroughInjuriesFactor from "../../../common/playThroughInjuriesFactor
 import { bySport, isSport } from "../../../common/sportFunctions.ts";
 import { last } from "../../../common/utils.ts";
 import { getWorldPlayingTimePromiseModifier } from "../competition/clubStrategy.ts";
+import { getLoanPlayingTimeModifier } from "../competition/loans.ts";
+import { isChampionsLeagueCupTied } from "../competition/championsLeague.ts";
 
 const MAX_NUM_PLAYERS_PACE = 7;
 
@@ -231,11 +233,15 @@ export const processTeam = async (
 			ovrs: rating.ovrs,
 		};
 
-		// Reset ptModifier for AI teams. This should not be necessary since it should always be 1, but let's be safe.
+		// AI playing-time commitments come from the club plan rather than a
+		// user-controlled rotation setting.
 		if (!g.get("userTids").includes(t.id) || g.get("spectator")) {
-			p2.ptModifier = getWorldPlayingTimePromiseModifier(
-				p.playingTimePromise,
-				g.get("season"),
+			p2.ptModifier = Math.max(
+				getWorldPlayingTimePromiseModifier(
+					p.playingTimePromise,
+					g.get("season"),
+				),
+				getLoanPlayingTimeModifier(p.loan, g.get("season")),
 			);
 		}
 		const seasonStats: Record<string, number> = {};
@@ -399,7 +405,11 @@ export const processTeam = async (
  * @param {IDBTransaction} ot An IndexedDB transaction on players and teams.
  * @returns {Promise<Record<number, undefined | ReturnType<typeof processTeam>>>} Resolves to a record of team objects, ordered by tid.
  */
-const loadTeams = async (tids: number[], conditions: Conditions) => {
+const loadTeams = async (
+	tids: number[],
+	conditions: Conditions,
+	championsLeagueTids: Set<number> = new Set(),
+) => {
 	const teams: Record<
 		number,
 		undefined | Awaited<ReturnType<typeof processTeam>>
@@ -469,7 +479,7 @@ const loadTeams = async (tids: number[], conditions: Conditions) => {
 	} else {
 		await Promise.all(
 			tids.map(async (tid) => {
-				const [players, team, teamSeason] = await Promise.all([
+				const [playersUnfiltered, team, teamSeason] = await Promise.all([
 					idb.cache.players.indexGetAll("playersByTid", tid),
 					idb.cache.teams.get(tid),
 					idb.cache.teamSeasons.indexGet("teamSeasonsByTidSeason", [
@@ -477,6 +487,16 @@ const loadTeams = async (tids: number[], conditions: Conditions) => {
 						g.get("season"),
 					]),
 				]);
+				const players = championsLeagueTids.has(tid)
+					? playersUnfiltered.filter(
+							(player) =>
+								!isChampionsLeagueCupTied({
+									cupTie: player.worldCupTie,
+									season: g.get("season"),
+									tid,
+								}),
+						)
+					: playersUnfiltered;
 
 				if (!team) {
 					throw new Error("Invalid tid");

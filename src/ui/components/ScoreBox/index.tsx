@@ -10,6 +10,7 @@ import getWinner from "../../../common/getWinner.ts";
 import { getCol } from "../../../common/getCol.ts";
 import { getBestPlayerBoxScore } from "../../../common/getBestPlayerBoxScore.ts";
 import { bySport, isSport } from "../../../common/sportFunctions.ts";
+import type { WorldGameCompetition } from "../../../common/types.ts";
 
 const roundHalf = (x: number) => {
 	return Math.round(x * 2) / 2;
@@ -87,6 +88,7 @@ export const ScoreBox = memo(
 		boxScoreTeamOverride?: string;
 		className?: string;
 		game: {
+			competition?: WorldGameCompetition;
 			finals?: boolean;
 			forceWin?: number;
 			gid: number;
@@ -240,6 +242,13 @@ export const ScoreBox = memo(
 						actions.length > 0 ? "border-end-0" : undefined,
 					)}
 				>
+					{game.competition && !small ? (
+						<div className="bg-body-secondary border-bottom px-2 py-1 small fw-bold">
+							{game.competition === "championsLeague"
+								? "Champions League"
+								: "Promotion Playoff"}
+						</div>
+					) : null}
 					{tradeDeadline ? (
 						<div
 							className={`${

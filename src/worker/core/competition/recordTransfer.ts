@@ -8,6 +8,7 @@ import { g, helpers, logEvent } from "../../util/index.ts";
 import { league } from "../index.ts";
 import { getCompetitionStructure } from "./ensureCompetitionStructure.ts";
 import teamLink from "./teamLink.ts";
+import { ensureWorldFinanceLedger } from "./worldInfrastructure.ts";
 import {
 	describeTransfer,
 	getBrokenTransferRecords,
@@ -49,6 +50,12 @@ export const recordTransfer = async ({
 }) => {
 	buyerSeason.cash -= fee;
 	sellerSeason.cash += fee;
+	buyerSeason.worldFinance = ensureWorldFinanceLedger(buyerSeason.worldFinance);
+	sellerSeason.worldFinance = ensureWorldFinanceLedger(
+		sellerSeason.worldFinance,
+	);
+	buyerSeason.worldFinance.transferFeesPaid += fee;
+	sellerSeason.worldFinance.transferFeesReceived += fee;
 	await idb.cache.teamSeasons.putAll([buyerSeason, sellerSeason]);
 
 	// Storytelling: the records the fee breaks, and a player going back to the

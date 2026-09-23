@@ -25,6 +25,15 @@ import { applyRealTeamInfo } from "../../../common/applyRealTeamInfo.ts";
 import { bySport, isSport } from "../../../common/sportFunctions.ts";
 import { choice, randInt, uniform } from "../../../common/random.ts";
 import { env } from "../../util/env.ts";
+import {
+	buildWorldPreseasonFinance,
+	ensureWorldFinanceLedger,
+	getInitialWorldInfrastructure,
+	getWorldInfrastructureOperatingLevel,
+	investInWorldInfrastructure,
+} from "../competition/worldInfrastructure.ts";
+import { getProjectedRevenue } from "../competition/worldRevenue.ts";
+import { getWorldDevelopmentPlan } from "../competition/worldPlayerDevelopment.ts";
 
 const newPhasePreseason = async (
 	conditions: Conditions,
@@ -199,6 +208,14 @@ const newPhasePreseason = async (
 	}
 
 	const activeTeams = teams.filter((t) => !t.disabled);
+	const structure = competition.getCompetitionStructure();
+	const world = !competition.isSingleDivision(structure);
+	const divisionById = new Map(
+		structure.competitionDivisions.map((division) => [
+			division.divisionId,
+			division,
+		]),
+	);
 	const newTeamSeasonsByTid = new Map(
 		(
 			await idb.cache.teamSeasons.indexGetAll("teamSeasonsBySeasonTid", [
@@ -211,6 +228,77 @@ const newPhasePreseason = async (
 	for (const [t, popRank] of Iterator.zip([activeTeams, popRanks], {
 		mode: "strict",
 	})) {
+		const teamSeason = newTeamSeasonsByTid.get(t.tid);
+		if (world && teamSeason) {
+			const previousTeamSeason = await idb.cache.teamSeasons.indexGet(
+				"teamSeasonsByTidSeason",
+				[t.tid, newSeason - 1],
+			);
+			t.worldInfrastructure ??= getInitialWorldInfrastructure(t.budget);
+			teamSeason.worldFinance = ensureWorldFinanceLedger(
+				teamSeason.worldFinance,
+			);
+			teamSeason.worldFinance.openingDebt = Math.max(
+				0,
+				-(previousTeamSeason?.cash ?? teamSeason.cash),
+			);
+
+			if (previousTeamSeason) {
+				const revenue = Object.values(previousTeamSeason.revenues).reduce(
+					(total, amount) => total + amount,
+					0,
+				);
+				const previousDivision =
+					previousTeamSeason.divisionId === undefined
+						? undefined
+						: divisionById.get(previousTeamSeason.divisionId);
+				const currentDivision =
+					t.divisionId === undefined
+						? undefined
+						: divisionById.get(t.divisionId);
+				const projectedRevenue =
+					previousDivision && currentDivision
+						? getProjectedRevenue({
+								revenue,
+								nationalTv: previousTeamSeason.revenues.nationalTv,
+								lastTier: previousDivision.tier,
+								tier: currentDivision.tier,
+							})
+						: revenue;
+				const finance = buildWorldPreseasonFinance({
+					cash: teamSeason.cash,
+					revenue: projectedRevenue,
+					promotionRevenueGain: projectedRevenue - revenue,
+				});
+				teamSeason.cash = finance.cashBeforeCapital;
+				teamSeason.worldFinance.debtInterest = finance.debtInterest;
+				teamSeason.worldFinance.ownerFunding = finance.ownerFunding;
+				teamSeason.worldFinance.promotionSpendingLimit =
+					finance.promotionSpendingLimit;
+
+				const aiRunsClub =
+					!g.get("userTids").includes(t.tid) ||
+					local.autoPlayUntil ||
+					g.get("spectator");
+				if (aiRunsClub && finance.capitalBudget > 0) {
+					const investment = investInWorldInfrastructure({
+						infrastructure: t.worldInfrastructure,
+						investment: finance.capitalBudget,
+						revenue: projectedRevenue,
+					});
+					t.worldInfrastructure = investment.infrastructure;
+					teamSeason.cash -= investment.investmentSpent;
+					teamSeason.worldFinance.capitalProjects = investment.investmentSpent;
+					if (investment.stadiumSeatsAdded > 0) {
+						t.stadiumCapacity += investment.stadiumSeatsAdded;
+						teamSeason.stadiumCapacity = t.stadiumCapacity;
+					}
+				}
+			}
+			await idb.cache.teamSeasons.put(teamSeason);
+			await idb.cache.teams.put(t);
+		}
+
 		if (
 			!g.get("userTids").includes(t.tid) ||
 			local.autoPlayUntil ||
@@ -218,33 +306,29 @@ const newPhasePreseason = async (
 		) {
 			await team.resetTicketPrice(t, popRank);
 
-			// Sometimes update budget items for AI teams
-			// International Soccer Zen GM mod (Epic 8): in a World, coaching,
-			// facilities, and health follow a club's market size every season,
-			// raised if it has cash to spare (see competition/worldRevenue.ts)
-			const reinvest = await competition.getBudgetReinvestment(
-				t.tid,
-				newSeason - 1,
-			);
+			// Persistent World assets raise the matching operating budget above
+			// the club's market-size baseline. Outside a World, keep upstream's
+			// occasional random budget reset.
+			const marketLevel = finances.defaultBudgetLevel(popRank);
+			const assetByBudget = {
+				scouting: "scouting",
+				coaching: "training",
+				health: "medical",
+				facilities: "stadium",
+			} as const;
 			for (const key of [
 				"scouting",
 				"coaching",
 				"health",
 				"facilities",
 			] as const) {
-				if (reinvest && key !== "scouting") {
-					t.budget[key] = reinvest.getLevel(
-						finances.defaultBudgetLevel(popRank),
-					);
+				if (world && t.worldInfrastructure) {
+					t.budget[key] = getWorldInfrastructureOperatingLevel({
+						assetLevel: t.worldInfrastructure[assetByBudget[key]].level,
+						marketLevel,
+					});
 				} else if (Math.random() < 0.5) {
-					t.budget[key] = finances.defaultBudgetLevel(popRank);
-				}
-			}
-			if (reinvest && reinvest.investment > 0) {
-				const teamSeason = newTeamSeasonsByTid.get(t.tid);
-				if (teamSeason) {
-					teamSeason.cash -= reinvest.investment;
-					await idb.cache.teamSeasons.put(teamSeason);
+					t.budget[key] = marketLevel;
 				}
 			}
 
@@ -275,6 +359,18 @@ const newPhasePreseason = async (
 	}
 
 	const coachingLevels: Record<number, number> = {};
+	const developmentInfoByTid = new Map<
+		number,
+		{
+			coachingLevel: number;
+			medicalLevel: number;
+			games: number;
+			tier: number;
+		}
+	>();
+	const numTiers = Math.max(
+		...structure.competitionDivisions.map((division) => division.tier),
+	);
 	for (const t of teams) {
 		const teamSeasons = await idb.getCopies.teamSeasons(
 			{
@@ -283,9 +379,28 @@ const newPhasePreseason = async (
 			},
 			"noCopyCache",
 		);
-		coachingLevels[t.tid] = await finances.getLevelLastThree("coaching", {
+		const coachingLevel = await finances.getLevelLastThree("coaching", {
 			t,
 			teamSeasons,
+		});
+		coachingLevels[t.tid] = coachingLevel;
+		const previousTeamSeason = teamSeasons.find(
+			(teamSeason) => teamSeason.season === newSeason - 1,
+		);
+		const division =
+			previousTeamSeason?.divisionId === undefined
+				? undefined
+				: divisionById.get(previousTeamSeason.divisionId);
+		developmentInfoByTid.set(t.tid, {
+			coachingLevel,
+			medicalLevel: t.worldInfrastructure?.medical.level ?? t.budget.health,
+			games: previousTeamSeason
+				? previousTeamSeason.won +
+					previousTeamSeason.lost +
+					previousTeamSeason.tied +
+					previousTeamSeason.otl
+				: 0,
+			tier: division?.tier ?? 1,
 		});
 	}
 
@@ -445,6 +560,54 @@ const newPhasePreseason = async (
 			p.born.year += 1;
 		} else {
 			// Update ratings
+			const previousOvr = p.ratings.at(-1)!.ovr;
+			const previousSeasonStats = p.stats.filter(
+				(stats) => stats.season === newSeason - 1 && stats.playoffs === false,
+			);
+			const statsRows = previousSeasonStats.filter(
+				(stats) => stats.tid !== PLAYER.TOT,
+			);
+			const totalStats = previousSeasonStats.find(
+				(stats) => stats.tid === PLAYER.TOT,
+			);
+			const gamesPlayed =
+				totalStats?.gp ??
+				statsRows.reduce((total, stats) => total + (stats.gp ?? 0), 0);
+			const lastLoan =
+				p.lastDevelopmentLoan?.season === newSeason - 1
+					? p.lastDevelopmentLoan
+					: undefined;
+			const onLoan = lastLoan !== undefined || p.loan !== undefined;
+			const previousPlayingTimeShare =
+				lastLoan?.previousPlayingTimeShare ?? p.loan?.previousPlayingTimeShare;
+			const developmentTid =
+				lastLoan?.borrowerTid ??
+				maxBy(statsRows, (stats) => stats.gp ?? 0)?.tid ??
+				p.academyTid ??
+				(p.tid >= 0 ? p.tid : undefined);
+			const developmentInfo =
+				developmentTid === undefined
+					? undefined
+					: developmentInfoByTid.get(developmentTid);
+			const developmentPlan =
+				world && developmentInfo
+					? getWorldDevelopmentPlan({
+							pid: p.pid,
+							age: newSeason - p.born.year,
+							gamesPlayed,
+							teamGames: developmentInfo.games,
+							hasPlayingTimeData: p.academyTid === undefined,
+							tier: developmentInfo.tier,
+							numTiers,
+							onLoan,
+							medicalLevel: developmentInfo.medicalLevel,
+							injuryGamesRemaining: p.injury.gamesRemaining,
+							promisedRole:
+								p.playingTimePromise?.season === newSeason - 1
+									? p.playingTimePromise.role
+									: undefined,
+						})
+					: undefined;
 			player.addRatingsRow(p, scoutingLevel);
 			await player.develop(
 				p,
@@ -452,8 +615,33 @@ const newPhasePreseason = async (
 				false,
 				// International Soccer Zen GM mod (Epic 8): an academy player develops
 				// with his club's coaching
-				coachingLevels[p.academyTid ?? p.tid],
+				developmentInfo?.coachingLevel ?? coachingLevels[p.academyTid ?? p.tid],
+				false,
+				developmentPlan,
 			);
+			if (developmentPlan) {
+				p.worldDevelopment = {
+					season: newSeason - 1,
+					archetype: developmentPlan.archetype,
+					playingTimeShare: developmentPlan.playingTimeShare,
+					positiveFactor: developmentPlan.positiveFactor,
+					negativeFactor: developmentPlan.negativeFactor,
+					tier: developmentInfo?.tier,
+					onLoan,
+					previousPlayingTimeShare,
+					playingTimeGain:
+						previousPlayingTimeShare === undefined
+							? undefined
+							: developmentPlan.playingTimeShare - previousPlayingTimeShare,
+					ovrChange: p.ratings.at(-1)!.ovr - previousOvr,
+				};
+			}
+			if (
+				p.lastDevelopmentLoan &&
+				p.lastDevelopmentLoan.season <= newSeason - 1
+			) {
+				delete p.lastDevelopmentLoan;
+			}
 		}
 
 		if (

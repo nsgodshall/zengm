@@ -79,6 +79,9 @@ const updatePlayoffs = async (
 			promotionPlayoffs: Awaited<
 				ReturnType<typeof competition.getPromotionPlayoffBrackets>
 			>;
+			championsLeague: Awaited<
+				ReturnType<typeof competition.getChampionsLeagueView>
+			>;
 	  }
 	| undefined
 > => {
@@ -272,6 +275,7 @@ const updatePlayoffs = async (
 			promotionPlayoffs: await competition.getPromotionPlayoffBrackets(
 				inputs.season,
 			),
+			championsLeague: await competition.getChampionsLeagueView(inputs.season),
 		};
 	}
 };

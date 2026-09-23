@@ -20,12 +20,19 @@ import {
 } from "./promotionPlayoffState.ts";
 import resolvePromotionRelegation from "./resolvePromotionRelegation.ts";
 import teamLink from "./teamLink.ts";
+import {
+	finalizeChampionsLeague,
+	getActiveChampionsLeagueMatchups,
+	getChampionsLeagueState,
+	saveChampionsLeagueState,
+	setChampionsLeagueScheduledGames,
+} from "./championsLeagueSchedule.ts";
 
 export type PromotionPlayoffState = NonNullable<
 	GameAttributesLeague["promotionPlayoffState"]
 >;
 
-const getState = () =>
+export const getPromotionPlayoffState = () =>
 	(g as unknown as Partial<GameAttributesLeague>).promotionPlayoffState;
 
 const saveState = async (state: PromotionPlayoffState) => {
@@ -35,7 +42,7 @@ const saveState = async (state: PromotionPlayoffState) => {
 /** Build the current season's brackets from the final Division tables. */
 export const initializePromotionPlayoffs = async () => {
 	const season = g.get("season");
-	const existing = getState();
+	const existing = getPromotionPlayoffState();
 	if (existing?.season === season) {
 		return existing;
 	}
@@ -79,18 +86,27 @@ export const getPromotionPlayoffEntrants = (state: PromotionPlayoffState) =>
  * when all links have produced their promotion winners.
  */
 export const newSchedulePromotionPlayoffsDay = async () => {
-	const state = getState();
+	const state = getPromotionPlayoffState();
 	if (!state || state.season !== g.get("season")) {
 		throw new Error(
 			"Promotion playoff state is missing for the current season",
 		);
 	}
 
-	if (state.scheduledGames.length > 0) {
+	const championsLeagueState = getChampionsLeagueState();
+	if (
+		state.scheduledGames.length > 0 ||
+		(championsLeagueState?.scheduledGames.length ?? 0) > 0
+	) {
 		const scheduledGids = new Set(
 			(await idb.cache.schedule.getAll()).map((game) => game.gid),
 		);
-		if (state.scheduledGames.some((game) => scheduledGids.has(game.gid))) {
+		if (
+			state.scheduledGames.some((game) => scheduledGids.has(game.gid)) ||
+			championsLeagueState?.scheduledGames.some((game) =>
+				scheduledGids.has(game.gid),
+			)
+		) {
 			return false;
 		}
 		throw new Error(
@@ -99,12 +115,31 @@ export const newSchedulePromotionPlayoffsDay = async () => {
 	}
 
 	const matchups = state.links.flatMap((link) => getActiveMatchups(link));
-	if (matchups.length === 0) {
-		return state.links.every((link) => getLinkProgress(link).done);
+	const championsLeagueMatchups = championsLeagueState
+		? getActiveChampionsLeagueMatchups(championsLeagueState)
+		: [];
+	if (matchups.length === 0 && championsLeagueMatchups.length === 0) {
+		const promotionDone = state.links.every(
+			(link) => getLinkProgress(link).done,
+		);
+		const championsLeagueDone =
+			!championsLeagueState || championsLeagueState.championTid !== undefined;
+		if (championsLeagueState?.championTid !== undefined) {
+			await finalizeChampionsLeague(championsLeagueState);
+		}
+		return promotionDone && championsLeagueDone;
+	}
+	const allMatchups = [...matchups, ...championsLeagueMatchups];
+	const scheduledTids = allMatchups.flatMap((matchup) => [
+		matchup.homeTid,
+		matchup.awayTid,
+	]);
+	if (new Set(scheduledTids).size !== scheduledTids.length) {
+		throw new Error("A club cannot play twice on one World tournament day");
 	}
 
 	await setSchedule(
-		matchups.map((matchup) => [matchup.homeTid, matchup.awayTid]),
+		allMatchups.map((matchup) => [matchup.homeTid, matchup.awayTid]),
 	);
 	const schedule = await idb.cache.schedule.getAll();
 	state.scheduledGames = matchups.map((matchup) => {
@@ -119,7 +154,20 @@ export const newSchedulePromotionPlayoffsDay = async () => {
 		}
 		return { gid: game.gid, ...matchup };
 	});
+	for (const scheduled of state.scheduledGames) {
+		const game = schedule.find((row) => row.gid === scheduled.gid)!;
+		game.competition = "promotionPlayoff";
+		await idb.cache.schedule.put(game);
+	}
 	await saveState(state);
+	if (championsLeagueState) {
+		await setChampionsLeagueScheduledGames(
+			championsLeagueState,
+			championsLeagueMatchups,
+			schedule,
+		);
+		await saveChampionsLeagueState(championsLeagueState);
+	}
 	return false;
 };
 
@@ -159,7 +207,7 @@ export const recordPromotionPlayoffResults = async (
 	results: GameResults[],
 	conditions: Conditions,
 ) => {
-	const state = getState();
+	const state = getPromotionPlayoffState();
 	if (!state || state.season !== g.get("season")) {
 		throw new Error(
 			"Promotion playoff state is missing for the current season",
@@ -175,9 +223,7 @@ export const recordPromotionPlayoffResults = async (
 			(game) => game.gid === result.gid,
 		);
 		if (!scheduled) {
-			throw new Error(
-				`Game ${result.gid} is not a scheduled promotion playoff game`,
-			);
+			continue;
 		}
 		const linkIndex = state.links.findIndex(
 			(link) => link.linkId === scheduled.linkId,

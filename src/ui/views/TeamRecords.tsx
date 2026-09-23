@@ -69,7 +69,7 @@ const TeamRecords = ({
 		...(ties ? ["T"] : []),
 		...(usePts ? ["PTS", "PTS%"] : ["%"]),
 		// International Soccer Zen GM mod (storytelling): a World's honours in
-		// place of playoff records
+		// place of playoff records, with its Champions League record alongside
 		...(world
 			? [
 					{
@@ -101,6 +101,30 @@ const TeamRecords = ({
 					{
 						title: "Best",
 						desc: "Best Finish",
+						sortType: "number" as const,
+					},
+					{
+						title: "CLF",
+						desc: "Champions League Finals Appearances",
+						sortSequence: ["desc", "asc"] as const,
+						sortType: "number" as const,
+					},
+					{
+						title: "Last",
+						desc: "Last Champions League Final",
+						sortSequence: ["desc", "asc"] as const,
+						sortType: "number" as const,
+					},
+					{
+						title: "CL",
+						desc: "Champions League Titles",
+						sortSequence: ["desc", "asc"] as const,
+						sortType: "number" as const,
+					},
+					{
+						title: "Last",
+						desc: "Last Champions League Title",
+						sortSequence: ["desc", "asc"] as const,
 						sortType: "number" as const,
 					},
 					{
@@ -179,6 +203,10 @@ const TeamRecords = ({
 												t.world.bestFinish.position,
 										}
 									: undefined,
+								blankIfZero(t.championsLeagueFinals),
+								t.lastChampionsLeagueFinal,
+								blankIfZero(t.championsLeagueTitles),
+								t.lastChampionsLeagueTitle,
 								t.world?.stature,
 							]
 						: [

@@ -737,11 +737,15 @@ const TeamFinances = ({
 	barData,
 	contractTotals,
 	contracts,
+	financeProjection,
+	infrastructure,
+	ledger,
 	luxuryTaxAmount,
 	maxStadiumCapacity,
 	minPayrollAmount,
 	otherTeamTicketPrices,
 	payroll,
+	promotionSpendingLimit,
 	salariesSeasons,
 	show,
 	t,
@@ -1043,6 +1047,144 @@ const TeamFinances = ({
 					</div>
 				) : null}
 			</div>
+
+			{infrastructure && ledger ? (
+				<>
+					<h2>Club Infrastructure</h2>
+					<p className="text-body-secondary">
+						Capital projects create permanent assets. Their levels improve
+						academy recruitment, training, medical care, scouting, stadium
+						capacity, and commercial revenue.
+					</p>
+					<div className="row mb-4">
+						{infrastructure.map((asset) => {
+							const names = {
+								academy: "Academy",
+								training: "Training ground",
+								medical: "Medical center",
+								scouting: "Scouting network",
+								stadium: "Stadium",
+								commercial: "Commercial operation",
+							};
+							return (
+								<div className="col-xl-2 col-md-4 col-6 mb-3" key={asset.key}>
+									<div className="card h-100">
+										<div className="card-body">
+											<div className="fw-bold">{names[asset.key]}</div>
+											<div className="fs-4">Level {asset.level}</div>
+											<small className="text-body-secondary">
+												{helpers.formatCurrency(asset.invested, "M", 1)}{" "}
+												invested
+											</small>
+										</div>
+									</div>
+								</div>
+							);
+						})}
+					</div>
+
+					<h2>Financial Ledger</h2>
+					<div className="table-responsive mb-4">
+						<table className="table table-striped table-sm">
+							<thead>
+								<tr>
+									<th>Season</th>
+									<th className="text-end">Revenue</th>
+									<th className="text-end">Wages</th>
+									<th className="text-end">Operations</th>
+									<th className="text-end">Transfers paid/received</th>
+									<th className="text-end">Capital</th>
+									<th className="text-end">Interest</th>
+									<th className="text-end">Owner funding</th>
+									<th className="text-end">Prize money</th>
+									<th className="text-end">Cash/debt</th>
+								</tr>
+							</thead>
+							<tbody>
+								{ledger.map((row) => (
+									<tr key={row.season}>
+										<td>{row.season}</td>
+										<td className="text-end">
+											{helpers.formatCurrency(row.operatingRevenue, "M", 1)}
+										</td>
+										<td className="text-end">
+											{helpers.formatCurrency(row.wages, "M", 1)}
+										</td>
+										<td className="text-end">
+											{helpers.formatCurrency(row.operations, "M", 1)}
+										</td>
+										<td className="text-end">
+											{helpers.formatCurrency(row.transferFeesPaid, "M", 1)} /{" "}
+											{helpers.formatCurrency(row.transferFeesReceived, "M", 1)}
+										</td>
+										<td className="text-end">
+											{helpers.formatCurrency(row.capitalProjects, "M", 1)}
+										</td>
+										<td className="text-end">
+											{helpers.formatCurrency(row.debtInterest, "M", 1)}
+										</td>
+										<td className="text-end">
+											{helpers.formatCurrency(row.ownerFunding, "M", 1)}
+										</td>
+										<td className="text-end">
+											{helpers.formatCurrency(row.prizeMoney, "M", 1)}
+										</td>
+										<td className="text-end">
+											{row.closingDebt > 0
+												? `${helpers.formatCurrency(row.closingDebt, "M", 1)} debt`
+												: helpers.formatCurrency(row.closingCash, "M", 1)}
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+
+					{financeProjection ? (
+						<>
+							<h2>Three-Season Projection</h2>
+							<p className="text-body-secondary">
+								Uses the current payroll and last completed season's recurring
+								revenue and operating costs. Transfer fees and new capital
+								projects are excluded.
+								{promotionSpendingLimit && promotionSpendingLimit > 0
+									? ` The board also authorized ${helpers.formatCurrency(promotionSpendingLimit, "M", 1)} of controlled promotion spending.`
+									: ""}
+							</p>
+							<div className="table-responsive mb-4">
+								<table className="table table-sm">
+									<thead>
+										<tr>
+											<th>Season</th>
+											<th className="text-end">Operating result</th>
+											<th className="text-end">Interest</th>
+											<th className="text-end">Projected cash/debt</th>
+										</tr>
+									</thead>
+									<tbody>
+										{financeProjection.map((row) => (
+											<tr key={row.season}>
+												<td>{row.season}</td>
+												<td className="text-end">
+													{helpers.formatCurrency(row.operatingResult, "M", 1)}
+												</td>
+												<td className="text-end">
+													{helpers.formatCurrency(row.interest, "M", 1)}
+												</td>
+												<td className="text-end">
+													{row.debt > 0
+														? `${helpers.formatCurrency(row.debt, "M", 1)} debt`
+														: helpers.formatCurrency(row.cash, "M", 1)}
+												</td>
+											</tr>
+										))}
+									</tbody>
+								</table>
+							</div>
+						</>
+					) : null}
+				</>
+			) : null}
 
 			<h2>Player Salaries</h2>
 

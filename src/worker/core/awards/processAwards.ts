@@ -53,6 +53,11 @@ const filterPlayersForAward = (
 	teamInfos: Record<number, { gp: number }>,
 ) => {
 	let filteredPlayers = players;
+	const { maxAge } = award;
+	if (maxAge !== undefined) {
+		filteredPlayers = filteredPlayers.filter((p) => p.age <= maxAge);
+	}
+
 	if (award.bench) {
 		// Handle case where GS is not available, which happens when loading historical stats
 		if (

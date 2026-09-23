@@ -5,6 +5,7 @@ import type {
 	AllStars,
 	ViewInput,
 	Awards,
+	GameAttributesLeague,
 } from "../../common/types.ts";
 import { competition, season } from "../core/index.ts";
 import { omit, orderBy } from "../../common/utils.ts";
@@ -151,6 +152,10 @@ const getRowInfo = async (
 	}[],
 	awards: Awards[],
 	allStars: AllStars[],
+	championsLeague: {
+		finalistsBySeason: Map<number, Set<number>>;
+		titles: NonNullable<GameAttributesLeague["championsLeagueHistory"]>;
+	},
 ) => {
 	let playoffs = 0;
 	let finals = 0;
@@ -200,6 +205,34 @@ const getRowInfo = async (
 		lastPlayoffs,
 		lastFinals,
 		lastTitle,
+		championsLeagueFinals: [...championsLeague.finalistsBySeason].filter(
+			([season, tids]) =>
+				seasonAttrs.some((row) => row.season === season) && tids.has(tid),
+		).length,
+		championsLeagueTitles: championsLeague.titles.filter(
+			(row) =>
+				row.championTid === tid &&
+				seasonAttrs.some((season) => season.season === row.season),
+		).length,
+		lastChampionsLeagueFinal: maxBy(
+			[...championsLeague.finalistsBySeason]
+				.filter(
+					([season, tids]) =>
+						seasonAttrs.some((row) => row.season === season) && tids.has(tid),
+				)
+				.map(([season]) => ({ season })),
+			"season",
+		),
+		lastChampionsLeagueTitle: maxBy(
+			championsLeague.titles
+				.filter(
+					(row) =>
+						row.championTid === tid &&
+						seasonAttrs.some((season) => season.season === row.season),
+				)
+				.map((row) => ({ season: row.season })),
+			"season",
+		),
 		...(await tallyAwards(
 			tid,
 			new Set(seasonAttrs.map((x) => x.season)),
@@ -237,6 +270,10 @@ type Team = {
 	lastPlayoffs: number | undefined;
 	lastFinals: number | undefined;
 	lastTitle: number | undefined;
+	championsLeagueFinals: number;
+	championsLeagueTitles: number;
+	lastChampionsLeagueFinal: number | undefined;
+	lastChampionsLeagueTitle: number | undefined;
 	sortValue: number;
 } & Awaited<ReturnType<typeof tallyAwards>>;
 
@@ -255,6 +292,8 @@ const sumRecordsFor = (
 		"playoffs",
 		"finals",
 		"titles",
+		"championsLeagueFinals",
+		"championsLeagueTitles",
 		"allStar",
 		"allStarMVP",
 		"bestRecord",
@@ -262,7 +301,14 @@ const sumRecordsFor = (
 		"bestRecordDiv",
 	] as const;
 	const colsMin = ["start"] as const;
-	const colsMax = ["end", "lastPlayoffs", "lastFinals", "lastTitle"] as const;
+	const colsMax = [
+		"end",
+		"lastPlayoffs",
+		"lastFinals",
+		"lastTitle",
+		"lastChampionsLeagueFinal",
+		"lastChampionsLeagueTitle",
+	] as const;
 
 	const output = teams[0]
 		? omit(teams[0], ["disabled"])
@@ -306,6 +352,23 @@ const updateTeamRecords = async (
 	) {
 		const awards = await idb.getCopies.awards(undefined, "noCopyCache");
 		const allStars = await idb.getCopies.allStars(undefined, "noCopyCache");
+		const gameAttributes = g as unknown as Partial<GameAttributesLeague>;
+		const championsLeagueResults = gameAttributes.championsLeagueResults ?? [];
+		const finalistsBySeason = new Map<number, Set<number>>();
+		for (const [season, games] of Map.groupBy(
+			championsLeagueResults.filter((game) => game.stage === "knockout"),
+			(game) => game.season,
+		)) {
+			const finalRound = Math.max(...games.map((game) => game.round ?? 0));
+			const final = games.find((game) => game.round === finalRound);
+			if (final) {
+				finalistsBySeason.set(season, new Set([final.homeTid, final.awayTid]));
+			}
+		}
+		const championsLeague = {
+			finalistsBySeason,
+			titles: gameAttributes.championsLeagueHistory ?? [],
+		};
 
 		// Show newest awards in leftmost columns if we scan in order from most recent
 		awards.reverse();
@@ -382,7 +445,13 @@ const updateTeamRecords = async (
 				name: t.name,
 				imgURL: t.imgURL,
 				imgURLSmall: t.imgURLSmall,
-				...(await getRowInfo(t.tid, seasonAttrsFiltered, awards, allStars)),
+				...(await getRowInfo(
+					t.tid,
+					seasonAttrsFiltered,
+					awards,
+					allStars,
+					championsLeague,
+				)),
 				sortValue: teams.length,
 			};
 
@@ -405,7 +474,13 @@ const updateTeamRecords = async (
 						abbrev: seasonAttrs[0]!.abbrev,
 						region: seasonAttrs[0]!.region,
 						name: seasonAttrs[0]!.name,
-						...(await getRowInfo(tid, seasonAttrs, awards, allStars)),
+						...(await getRowInfo(
+							tid,
+							seasonAttrs,
+							awards,
+							allStars,
+							championsLeague,
+						)),
 						sortValue: teams.length + partials.length,
 					});
 				};
@@ -514,6 +589,8 @@ const updateTeamRecords = async (
 				world:
 					byType === "by_team" && t.root ? worldHonours?.get(t.tid) : undefined,
 			})),
+			// Both the honours and the Champions League columns only mean anything
+			// in a World, and getClubRecordsHonours returns nothing outside one
 			world: worldHonours !== undefined,
 			ties: season.hasTies(Infinity) || ties,
 			otl: g.get("otl") || otl,

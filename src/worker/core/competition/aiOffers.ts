@@ -109,7 +109,13 @@ const getBuyerProblem = async ({
 		return `The ${name} can't fit his wages in their budget`;
 	}
 
-	if (!canAiAffordFee({ cash: buyerSeason.cash, fee })) {
+	if (
+		!canAiAffordFee({
+			cash: buyerSeason.cash,
+			fee,
+			spendingAllowance: buyerSeason.worldFinance?.promotionSpendingLimit,
+		})
+	) {
 		return `The ${name} can't afford the fee`;
 	}
 };

@@ -66,6 +66,7 @@ export const getDivisionAwards = (): AwardSetting[] => [
 		shortName: YOUNG_PLAYER_SHORT_NAME,
 		name: "Young Player of the Season",
 		group: "div",
+		maxAge: YOUNG_PLAYER_MAX_AGE,
 	},
 	{
 		// ZenGM calls a one-team award "<name> Team"

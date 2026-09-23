@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { deleteDB } from "@dumbmatter/idb";
-import { afterAll, assert, beforeAll, describe, test } from "vitest";
+import { afterAll, assert, beforeAll, describe, expect, test } from "vitest";
 import { LEAGUE_DATABASE_VERSION, PHASE, PLAYER } from "../common/constants.ts";
 import { defaultGameAttributes } from "../common/defaultGameAttributes.ts";
 import type {
@@ -46,6 +46,7 @@ import {
 	describeTitle,
 	getLongestTitleRun,
 } from "../worker/core/competition/storyContext.ts";
+import { getChampionsLeaguePrize } from "../worker/core/competition/championsLeague.ts";
 import {
 	getWorldAwards,
 	getWorldAwardsBeforeSoccerStyle,
@@ -346,6 +347,113 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		}
 	});
 
+	test("the Champions League plays a complete tournament and pays its prizes", async () => {
+		const gameAttributes = g as unknown as Partial<GameAttributesLeague>;
+		const results = gameAttributes.championsLeagueResults ?? [];
+		const coefficients = gameAttributes.championsLeagueCoefficients ?? [];
+		const history = gameAttributes.championsLeagueHistory ?? [];
+
+		expect(coefficients.map((row) => row.season)).toEqual(completedSeasons);
+		expect(history.map((row) => row.season)).toEqual(completedSeasons);
+		for (const season of completedSeasons) {
+			const seasonResults = results.filter(
+				(result) => result.season === season,
+			);
+			const groupResults = seasonResults.filter(
+				(result) => result.stage === "group",
+			);
+			const knockoutResults = seasonResults.filter(
+				(result) => result.stage === "knockout",
+			);
+			expect(groupResults).toHaveLength(24);
+			expect(knockoutResults).toHaveLength(3);
+			expect(new Set(seasonResults.map((result) => result.gid)).size).toBe(27);
+
+			const groupAppearances = new Map<number, number>();
+			for (const result of groupResults) {
+				for (const tid of [result.homeTid, result.awayTid]) {
+					groupAppearances.set(tid, (groupAppearances.get(tid) ?? 0) + 1);
+				}
+			}
+			expect(groupAppearances.size).toBe(8);
+			expect([...groupAppearances.values()]).toEqual(Array(8).fill(6));
+			expect(
+				knockoutResults.every((result) => result.winnerTid !== undefined),
+			).toBe(true);
+			const finalRound = Math.max(
+				...knockoutResults.map((result) => result.round!),
+			);
+			const final = knockoutResults.find(
+				(result) => result.round === finalRound,
+			)!;
+			const finalBoxScore = await idb.league.get("games", final.gid);
+			expect(finalBoxScore?.neutralSite).toBe(true);
+			for (const result of seasonResults) {
+				const boxScore = await idb.league.get("games", result.gid);
+				expect(boxScore?.competition).toBe("championsLeague");
+			}
+		}
+
+		const state = gameAttributes.championsLeagueState!;
+		expect(state.season).toBe(completedSeasons.at(-1));
+		expect(state.championTid).toBeDefined();
+		expect(state.championPrizePaid).toBe(true);
+		expect(state.scheduledGames).toEqual([]);
+		expect(history.at(-1)?.championTid).toBe(state.championTid);
+		const tournamentView = await competition.getChampionsLeagueView(
+			state.season,
+		);
+		expect(tournamentView?.available).toBe(true);
+		expect(tournamentView?.champion?.tid).toBe(state.championTid);
+		expect(tournamentView?.qualifiers).toHaveLength(8);
+		expect(tournamentView?.groups).toHaveLength(2);
+		expect(tournamentView?.knockoutRounds).toHaveLength(2);
+		expect(tournamentView?.pastWinners).toHaveLength(completedSeasons.length);
+		const cupTiedPlayers = (await idb.cache.players.getAll()).filter(
+			(player) => player.worldCupTie?.season === state.season,
+		);
+		expect(cupTiedPlayers.length).toBeGreaterThan(0);
+
+		const latestResults = results.filter(
+			(result) => result.season === state.season,
+		);
+		const expectedPrizeTotal =
+			8 * getChampionsLeaguePrize("entry") +
+			latestResults
+				.filter((result) => result.stage === "group")
+				.reduce(
+					(total, result) =>
+						total +
+						(result.winnerTid === undefined
+							? 2 * getChampionsLeaguePrize("draw")
+							: getChampionsLeaguePrize("win")),
+					0,
+				) +
+			3 * getChampionsLeaguePrize("advance") +
+			getChampionsLeaguePrize("champion");
+		expect(
+			Object.values(state.prizeMoneyByTid).reduce(
+				(total, prize) => total + prize,
+				0,
+			),
+		).toBe(expectedPrizeTotal);
+		expect(state.prizeMoneyByTid[state.championTid!]).toBeGreaterThanOrEqual(
+			getChampionsLeaguePrize("entry") +
+				2 * getChampionsLeaguePrize("advance") +
+				getChampionsLeaguePrize("champion"),
+		);
+
+		for (const [tidString, prize] of Object.entries(state.prizeMoneyByTid)) {
+			const teamSeason = await idb.cache.teamSeasons.indexGet(
+				"teamSeasonsByTidSeason",
+				[Number(tidString), state.season],
+			);
+			expect(teamSeason?.worldFinance?.prizeMoney).toBeGreaterThanOrEqual(
+				prize,
+			);
+		}
+	});
+
 	test("clubs move between seasons exactly as the tables and promotion playoff say", async () => {
 		for (const season of completedSeasons) {
 			const tables = await competition.getDivisionTables(season);
@@ -418,6 +526,31 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 					`${season} ${type}`,
 				);
 			}
+			assert.strictEqual(
+				events.filter(
+					(event) =>
+						event.season === season &&
+						event.text?.includes("qualified for the Champions League"),
+				).length,
+				8,
+				`${season} Champions League qualifiers`,
+			);
+			assert(
+				events.some(
+					(event) =>
+						event.season === season &&
+						event.text?.includes("Champions League group stage"),
+				),
+				`${season} Champions League group eliminations`,
+			);
+			assert(
+				events.some(
+					(event) =>
+						event.season === season &&
+						event.text?.includes("are World champions"),
+				),
+				`${season} Champions League champion`,
+			);
 		}
 	});
 
@@ -1559,7 +1692,15 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 							(p): p is { pid: number; tid: number } =>
 								(p as { pid?: number }).pid !== undefined,
 						);
-					assert(winners.length > 0, `${season} ${division.name} ${shortName}`);
+					// A Division can have no eligible young player who appeared in a
+					// game. Keep the award empty rather than giving it to an over-age
+					// player. Every other award must have at least one winner.
+					if (shortName !== "YPS") {
+						assert(
+							winners.length > 0,
+							`${season} ${division.name} ${shortName}`,
+						);
+					}
 					for (const p of winners) {
 						assert.strictEqual(
 							divisionIdByTid.get(p.tid),
@@ -1568,7 +1709,7 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 						);
 					}
 
-					if (shortName === "YPS") {
+					if (shortName === "YPS" && winners.length > 0) {
 						const p = (await idb.getCopy.players({ pid: winners[0]!.pid }))!;
 						assert(
 							season - p.born.year <= YOUNG_PLAYER_MAX_AGE,
@@ -2762,6 +2903,7 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			tid: lenderTid,
 			season: endSeason,
 			academy: true,
+			previousPlayingTimeShare: 0,
 		});
 		assert.strictEqual(p1.academyTid, undefined);
 		assert.strictEqual(p1.contract.amount, minContract);
@@ -2843,6 +2985,7 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			tid: userTid,
 			season: endSeason,
 			academy: true,
+			previousPlayingTimeShare: 0,
 		});
 		assert.strictEqual(p2.contract.amount, minContract);
 		assert.strictEqual(p2.loanListed, undefined);

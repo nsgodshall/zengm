@@ -100,8 +100,33 @@ export const processLoan = async (p: Player, borrowerTid: number) => {
 	const academy = p.academyTid !== undefined;
 	const lenderTid = p.academyTid ?? p.tid;
 	const endSeason = getLoanEndSeason({ season, phase });
+	const lenderTeamSeason = await idb.cache.teamSeasons.indexGet(
+		"teamSeasonsByTidSeason",
+		[lenderTid, season],
+	);
+	const lenderGames = lenderTeamSeason
+		? lenderTeamSeason.won +
+			lenderTeamSeason.lost +
+			lenderTeamSeason.tied +
+			lenderTeamSeason.otl
+		: 0;
+	const previousGamesPlayed = p.stats
+		.filter((stats) => stats.season === season && stats.playoffs === false)
+		.reduce((total, stats) => total + (stats.gp ?? 0), 0);
+	const previousPlayingTimeShare =
+		lenderGames > 0
+			? helpers.bound(previousGamesPlayed / lenderGames, 0, 1)
+			: academy
+				? 0
+				: undefined;
 
-	p.loan = { tid: lenderTid, season: endSeason };
+	p.loan = {
+		tid: lenderTid,
+		season: endSeason,
+		...(previousPlayingTimeShare !== undefined
+			? { previousPlayingTimeShare }
+			: {}),
+	};
 	if (academy) {
 		p.loan.academy = true;
 		delete p.academyTid;
@@ -153,6 +178,11 @@ export const returnLoan = async (p: Player) => {
 	const borrowerTid = p.tid;
 	const lenderTid = p.loan.tid;
 	const academy = !!p.loan.academy;
+	p.lastDevelopmentLoan = {
+		season: g.get("season"),
+		borrowerTid,
+		previousPlayingTimeShare: p.loan.previousPlayingTimeShare,
+	};
 	delete p.loan;
 	p.ptModifier = 1;
 

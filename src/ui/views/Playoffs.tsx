@@ -9,6 +9,7 @@ import { range } from "../../common/utils.ts";
 import { PlayoffMatchup } from "../components/PlayoffMatchup.tsx";
 import { useLocal } from "../util/local.ts";
 import { PromotionPlayoffs } from "../components/PromotionPlayoffs.tsx";
+import { ChampionsLeague } from "../components/ChampionsLeague.tsx";
 
 type TeamToEdit = View<"playoffs">["teamsToEdit"][number];
 
@@ -25,9 +26,12 @@ const Playoffs = ({
 	series,
 	teamsToEdit,
 	promotionPlayoffs,
+	championsLeague,
 }: View<"playoffs">) => {
+	const world =
+		promotionPlayoffs !== undefined && championsLeague !== undefined;
 	useTitleBar({
-		title: promotionPlayoffs ? "Promotion Playoffs" : "Playoffs",
+		title: world ? "World Tournaments" : "Playoffs",
 		jumpTo: true,
 		jumpToSeason: season,
 		dropdownView: "playoffs",
@@ -38,6 +42,9 @@ const Playoffs = ({
 	const { userTid } = useLocal(["userTid"]);
 
 	const [editing, setEditing] = useState(false);
+	const [worldSection, setWorldSection] = useState<
+		"championsLeague" | "promotionPlayoffs"
+	>("championsLeague");
 	const [teamsEdited, setTeamsEdited] = useState(teamsToEdit);
 	const actuallyEditing = canEdit && editing;
 
@@ -92,13 +99,47 @@ const Playoffs = ({
 
 	// International Soccer Zen GM mod (Epic 6): a World has promotion playoffs
 	// instead
-	if (promotionPlayoffs) {
+	if (world) {
 		return (
-			<PromotionPlayoffs
-				brackets={promotionPlayoffs}
-				season={season}
-				userTid={userTid}
-			/>
+			<>
+				<ul className="nav nav-tabs mb-3">
+					<li className="nav-item">
+						<button
+							type="button"
+							className={clsx("nav-link", {
+								active: worldSection === "championsLeague",
+							})}
+							onClick={() => setWorldSection("championsLeague")}
+						>
+							Champions League
+						</button>
+					</li>
+					<li className="nav-item">
+						<button
+							type="button"
+							className={clsx("nav-link", {
+								active: worldSection === "promotionPlayoffs",
+							})}
+							onClick={() => setWorldSection("promotionPlayoffs")}
+						>
+							Promotion Playoffs
+						</button>
+					</li>
+				</ul>
+				{worldSection === "championsLeague" ? (
+					<ChampionsLeague
+						season={season}
+						tournament={championsLeague}
+						userTid={userTid}
+					/>
+				) : (
+					<PromotionPlayoffs
+						brackets={promotionPlayoffs}
+						season={season}
+						userTid={userTid}
+					/>
+				)}
+			</>
 		);
 	}
 

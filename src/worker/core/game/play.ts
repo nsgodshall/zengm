@@ -48,6 +48,7 @@ import { isSingleDivision } from "../competition/competitionStructure.ts";
 import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
 import { recordInSeasonStories } from "../competition/recordInSeasonStories.ts";
 import { recordPromotionPlayoffResults } from "../competition/promotionPlayoffSchedule.ts";
+import { recordChampionsLeagueResults } from "../competition/championsLeagueSchedule.ts";
 
 /**
  * Play one or more days of games.
@@ -159,6 +160,7 @@ const play = async (
 				await updatePlayoffSeries(results, conditions);
 			} else {
 				await recordPromotionPlayoffResults(results, conditions);
+				await recordChampionsLeagueResults(results, conditions);
 			}
 		} else {
 			// Update clinchedPlayoffs, only if there are games left in the schedule. Otherwise, this would be inaccruate (not correctly accounting for tiebreakers) and redundant (going to be called again on phase change)
@@ -513,6 +515,7 @@ const play = async (
 					) {
 						found = true;
 						(result as any).forceWin = i + 1;
+						(result as GameResults).competition = game.competition;
 						results.push(result);
 						break;
 					}
@@ -556,9 +559,10 @@ const play = async (
 			} else {
 				// Only do neutralSite when not forcing a win, since forcing a win uses homeCourtFactor and I don't want to worry about how that interacts with neutralSite
 				const neutralSite =
-					g.get("phase") === PHASE.PLAYOFFS &&
-					(g.get("neutralSite") === "playoffs" ||
-						(g.get("neutralSite") === "finals" && game.finals));
+					game.neutralSite === true ||
+					(g.get("phase") === PHASE.PLAYOFFS &&
+						(g.get("neutralSite") === "playoffs" ||
+							(g.get("neutralSite") === "finals" && game.finals)));
 
 				const result = getResult({
 					gid: game.gid,
@@ -567,6 +571,7 @@ const play = async (
 					doPlayByPlay,
 					neutralSite,
 				});
+				(result as GameResults).competition = game.competition;
 				results.push(result);
 			}
 		}
@@ -621,7 +626,16 @@ const play = async (
 				tids.add(matchup.awayTid);
 			}
 
-			const teams = await loadTeams(Array.from(tids), conditions); // Play games
+			const championsLeagueTids = new Set(
+				schedule
+					.filter((game) => game.competition === "championsLeague")
+					.flatMap((game) => [game.homeTid, game.awayTid]),
+			);
+			const teams = await loadTeams(
+				Array.from(tids),
+				conditions,
+				championsLeagueTids,
+			); // Play games
 
 			await cbSimGames(schedule, teams, dayOver);
 		}

@@ -159,6 +159,8 @@ const Schedule = ({
 										game={{
 											// Leave out forceTie, since ScoreBox wants the value for finished games
 											finals: game.finals,
+											competition: game.competition,
+											neutralSite: game.neutralSite,
 											gid: game.gid,
 											season: game.season,
 											teams: game.teams,

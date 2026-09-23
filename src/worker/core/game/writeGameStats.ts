@@ -196,6 +196,7 @@ const getPlayoffInfos = async (game: Game) => {
 export const gameSimToBoxScore = async (results: GameResults, att: number) => {
 	const gameStats: Game = {
 		gid: results.gid,
+		competition: results.competition,
 		day: results.day,
 		att,
 		clutchPlays: [],

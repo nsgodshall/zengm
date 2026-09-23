@@ -5,7 +5,12 @@ import fs from "node:fs/promises";
 import { afterAll, describe, test } from "vitest";
 import { LEAGUE_DATABASE_VERSION, PHASE, PLAYER } from "../common/constants.ts";
 import { defaultGameAttributes } from "../common/defaultGameAttributes.ts";
-import type { EventBBGM, Player, TeamSeason } from "../common/types.ts";
+import type {
+	EventBBGM,
+	GameAttributesLeague,
+	Player,
+	TeamSeason,
+} from "../common/types.ts";
 import { unwrapGameAttribute } from "../common/unwrapGameAttribute.ts";
 import { competition, league, team } from "../worker/core/index.ts";
 import { getWageBudgets } from "../worker/core/competition/wageBudgets.ts";
@@ -226,6 +231,14 @@ const takeSnapshot = async () => {
 					? Math.max(...affordableFreeAgents.map((row) => row.ovr))
 					: undefined,
 			cash: (teamSeason?.cash ?? 0) / 1000,
+			infrastructureLevel: t.worldInfrastructure
+				? mean(Object.values(t.worldInfrastructure).map((asset) => asset.level))
+				: undefined,
+			capitalProjects: (teamSeason?.worldFinance?.capitalProjects ?? 0) / 1000,
+			debtInterest: (teamSeason?.worldFinance?.debtInterest ?? 0) / 1000,
+			ownerFunding: (teamSeason?.worldFinance?.ownerFunding ?? 0) / 1000,
+			promotionSpendingLimit:
+				(teamSeason?.worldFinance?.promotionSpendingLimit ?? 0) / 1000,
 			pop: teamSeason?.pop,
 			hype: teamSeason?.hype,
 			stadiumCapacity: teamSeason?.stadiumCapacity,
@@ -245,6 +258,22 @@ const takeSnapshot = async () => {
 		(p) => p.tid === PLAYER.UNDRAFTED && p.academyTid !== undefined,
 	);
 	const ovrs = onClubs.map((p) => p.ratings.at(-1)!.ovr);
+	const developmentPlayers = players.filter(
+		(p) => p.worldDevelopment?.season === season - 1,
+	);
+	const summarizeDevelopment = (group: Player[]) => ({
+		count: group.length,
+		meanPlayingTime: mean(
+			group.map((p) => p.worldDevelopment!.playingTimeShare),
+		),
+		meanFactor: mean(group.map((p) => p.worldDevelopment!.positiveFactor)),
+		meanOvrChange: mean(group.map((p) => p.worldDevelopment!.ovrChange)),
+		meanPlayingTimeGain: mean(
+			group
+				.map((p) => p.worldDevelopment!.playingTimeGain)
+				.filter((value) => value !== undefined),
+		),
+	});
 	const leagueInfo = {
 		season,
 		numClubPlayers: onClubs.length,
@@ -306,6 +335,30 @@ const takeSnapshot = async () => {
 		},
 		numTransferListed: players.filter((p) => (p as any).transferListed).length,
 		numLoanListed: players.filter((p) => (p as any).loanListed).length,
+		development: {
+			tracked: developmentPlayers.length,
+			loans: summarizeDevelopment(
+				developmentPlayers.filter((p) => p.worldDevelopment!.onLoan),
+			),
+			nonLoans: summarizeDevelopment(
+				developmentPlayers.filter(
+					(p) =>
+						!p.worldDevelopment!.onLoan &&
+						p.academyTid === undefined &&
+						season - p.born.year <= 25,
+				),
+			),
+			byArchetype: (["standard", "early", "late", "stalled"] as const).map(
+				(archetype) => ({
+					archetype,
+					...summarizeDevelopment(
+						developmentPlayers.filter(
+							(p) => p.worldDevelopment!.archetype === archetype,
+						),
+					),
+				}),
+			),
+		},
 	};
 
 	return { season, clubs, league: leagueInfo };
@@ -325,6 +378,9 @@ const analyzeSeasons = async (snapshots: Snapshot[]) => {
 	const events: EventBBGM[] = await idb.league.getAll("events");
 	const players: Player[] = await idb.league.getAll("players");
 	const teams = await idb.cache.teams.getAll();
+	const gameAttributes = g as unknown as Partial<GameAttributesLeague>;
+	const championsLeagueHistory = gameAttributes.championsLeagueHistory ?? [];
+	const championsLeagueResults = gameAttributes.championsLeagueResults ?? [];
 	const clubName = (tid: number) => {
 		const t = teams.find((t) => t.tid === tid);
 		return t ? `${t.region} ${t.name}` : `tid ${tid}`;
@@ -337,6 +393,29 @@ const analyzeSeasons = async (snapshots: Snapshot[]) => {
 		const summary = (await competition.getWorldSeasonSummary(season))!;
 		const rows = teamSeasons.filter((row) => row.season === season);
 		const snapshot = snapshots.find((snapshot) => snapshot.season === season);
+		const tournament = championsLeagueHistory.find(
+			(row) => row.season === season,
+		);
+		const tournamentResults = championsLeagueResults.filter(
+			(result) => result.season === season,
+		);
+		const knockoutTids = new Set(
+			tournamentResults
+				.filter((result) => result.stage === "knockout")
+				.flatMap((result) => [result.homeTid, result.awayTid]),
+		);
+		const tournamentCountryByTid = new Map(
+			tournament?.qualifiers.map((row) => [row.tid, row.countryId]) ?? [],
+		);
+		const countCountries = (tids: number[]) =>
+			Object.fromEntries(
+				[...Map.groupBy(tids, (tid) => tournamentCountryByTid.get(tid))]
+					.filter(([countryId]) => countryId !== undefined)
+					.map(([countryId, group]) => [
+						countryNameById.get(countryId!) ?? String(countryId),
+						group.length,
+					]),
+			);
 
 		const divisions = summary.flatMap((country) =>
 			country.divisions.map((division) => {
@@ -508,6 +587,28 @@ const analyzeSeasons = async (snapshots: Snapshot[]) => {
 			teamSeasonsWithoutDivision: rows.filter(
 				(row) => row.divisionId === undefined,
 			).length,
+			championsLeague:
+				tournament === undefined
+					? undefined
+					: {
+							champion: clubName(tournament.championTid),
+							championCountry: countryNameById.get(
+								tournamentCountryByTid.get(tournament.championTid)!,
+							),
+							games: tournamentResults.length,
+							qualifiersByCountry: countCountries(
+								tournament.qualifiers.map((row) => row.tid),
+							),
+							knockoutClubsByCountry: countCountries([...knockoutTids]),
+							totalPrizeMoney:
+								Object.values(tournament.prizeMoneyByTid).reduce(
+									(total, prize) => total + prize,
+									0,
+								) / 1000,
+							championPrizeMoney:
+								(tournament.prizeMoneyByTid[tournament.championTid] ?? 0) /
+								1000,
+						},
 		});
 	}
 
@@ -541,6 +642,22 @@ const analyzeSeasons = async (snapshots: Snapshot[]) => {
 			(championsByDivision[division.name] ??= []).push(
 				division.champion ?? "none",
 			);
+		}
+	}
+	const championsLeagueTitles = Map.groupBy(
+		championsLeagueHistory,
+		(row) => row.championTid,
+	);
+	const championsLeagueTitlesByClub = [...championsLeagueTitles]
+		.map(([tid, titles]) => ({ club: clubName(tid), titles: titles.length }))
+		.sort((a, b) => b.titles - a.titles || a.club.localeCompare(b.club));
+	let consecutiveRepeatWinners = 0;
+	for (let i = 1; i < championsLeagueHistory.length; i++) {
+		if (
+			championsLeagueHistory[i]!.championTid ===
+			championsLeagueHistory[i - 1]!.championTid
+		) {
+			consecutiveRepeatWinners += 1;
 		}
 	}
 
@@ -614,6 +731,12 @@ const analyzeSeasons = async (snapshots: Snapshot[]) => {
 			relegationReturns,
 		},
 		championsByDivision,
+		championsLeague: {
+			tournaments: championsLeagueHistory.length,
+			uniqueChampions: championsLeagueTitles.size,
+			consecutiveRepeatWinners,
+			titlesByClub: championsLeagueTitlesByClub,
+		},
 	};
 };
 
@@ -679,6 +802,41 @@ const formatSummary = (
 		]),
 	);
 
+	lines.push("## Player development", "");
+	table(
+		[
+			"Season",
+			"Group",
+			"Players",
+			"Playing time",
+			"Playing-time gain",
+			"Factor",
+			"Ovr change",
+		],
+		snapshots.flatMap((snapshot) => {
+			const development = snapshot.league.development;
+			const row = (
+				label: string,
+				values: typeof development.loans,
+			): (string | number)[] => [
+				snapshot.season,
+				label,
+				values.count,
+				round(values.meanPlayingTime, 2),
+				round(values.meanPlayingTimeGain, 2),
+				round(values.meanFactor, 2),
+				round(values.meanOvrChange, 2),
+			];
+			return [
+				row("Loans", development.loans),
+				row("Comparable non-loans", development.nonLoans),
+				...development.byArchetype.map((values) =>
+					row(values.archetype, values),
+				),
+			];
+		}),
+	);
+
 	lines.push("## Clubs by Country and tier at each regular season start", "");
 	const tierKeys = [
 		...new Set(
@@ -720,6 +878,11 @@ const formatSummary = (
 				round(mean(clubs.map((c) => c.pop ?? Number.NaN)), 2),
 				round(mean(clubs.map((c) => c.avgAge))),
 				clubs.reduce((total, c) => total + c.loanedIn, 0),
+				round(mean(clubs.map((c) => c.infrastructureLevel ?? Number.NaN)), 1),
+				round(mean(clubs.map((c) => c.capitalProjects))),
+				round(mean(clubs.map((c) => c.debtInterest))),
+				round(mean(clubs.map((c) => c.ownerFunding))),
+				round(mean(clubs.map((c) => c.promotionSpendingLimit))),
 			]);
 		}
 	}
@@ -746,6 +909,11 @@ const formatSummary = (
 			"Pop",
 			"Age",
 			"Loaned in",
+			"Infrastructure",
+			"Capital",
+			"Interest",
+			"Owner funding",
+			"Promotion funds",
 		],
 		tierRows,
 	);
@@ -872,7 +1040,44 @@ const formatSummary = (
 	)) {
 		lines.push(`- ${division}: ${champions.join("; ")}`);
 	}
-	lines.push("", `Errors: ${errors.length}`);
+
+	lines.push("", "## Champions League", "");
+	table(
+		[
+			"Season",
+			"Champion",
+			"Country",
+			"Games",
+			"Qualifiers by Country",
+			"Knockout clubs by Country",
+			"Total prizes",
+			"Champion prizes",
+		],
+		analysis.seasons.flatMap((season) => {
+			const tournament = season.championsLeague;
+			if (tournament === undefined) {
+				return [];
+			}
+			return [
+				[
+					season.season,
+					tournament.champion,
+					tournament.championCountry ?? "unknown",
+					tournament.games,
+					JSON.stringify(tournament.qualifiersByCountry),
+					JSON.stringify(tournament.knockoutClubsByCountry),
+					round(tournament.totalPrizeMoney),
+					round(tournament.championPrizeMoney),
+				],
+			];
+		}),
+	);
+	lines.push(
+		`Unique champions: ${analysis.championsLeague.uniqueChampions}/${analysis.championsLeague.tournaments}; consecutive repeat winners: ${analysis.championsLeague.consecutiveRepeatWinners}`,
+		`Titles by club: ${analysis.championsLeague.titlesByClub.map((row) => `${row.club} (${row.titles})`).join("; ") || "none"}`,
+		"",
+		`Errors: ${errors.length}`,
+	);
 
 	return lines.join("\n");
 };

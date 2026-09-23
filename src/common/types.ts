@@ -409,9 +409,12 @@ type GameTeam = {
 	[key: string]: any;
 };
 
+export type WorldGameCompetition = "championsLeague" | "promotionPlayoff";
+
 export type Game = {
 	att: number;
 	clutchPlays?: string[];
+	competition?: WorldGameCompetition;
 	day?: number; // Only optional for legacy
 	finals?: boolean;
 	forceWin?: number; // If defined, it's the number of iterations that were used to force the win/tie
@@ -770,6 +773,82 @@ export type GameAttributesLeague = {
 			homeTid: number;
 			awayTid: number;
 		}[];
+	};
+	// Annual inter-Country club tournament. State is optional and self-contained
+	// so an older World can initialize it at its next playoffs without a database
+	// migration.
+	championsLeagueCoefficients?: {
+		season: number;
+		pointsByCountry: Record<number, number>;
+	}[];
+	championsLeagueResults?: {
+		season: number;
+		stage: "group" | "knockout";
+		groupId?: number;
+		matchday?: number;
+		round?: number;
+		gid: number;
+		homeTid: number;
+		awayTid: number;
+		homePts: number;
+		awayPts: number;
+		winnerTid?: number;
+	}[];
+	championsLeagueHistory?: {
+		season: number;
+		qualifiers: {
+			tid: number;
+			countryId: number;
+			domesticPosition: number;
+			countryCoefficient: number;
+			seed: number;
+		}[];
+		groups: number[][];
+		prizeMoneyByTid: Record<number, number>;
+		championTid: number;
+	}[];
+	championsLeagueState?: {
+		season: number;
+		qualifiers: {
+			tid: number;
+			countryId: number;
+			domesticPosition: number;
+			countryCoefficient: number;
+			seed: number;
+		}[];
+		groups: number[][];
+		groupGames: {
+			groupId: number;
+			matchday: number;
+			homeTid: number;
+			awayTid: number;
+			gid?: number;
+			homePts?: number;
+			awayPts?: number;
+		}[];
+		knockoutSeeds: { tid: number; seed: number }[];
+		knockoutGames: {
+			round: number;
+			homeTid: number;
+			awayTid: number;
+			gid?: number;
+			homePts?: number;
+			awayPts?: number;
+			winnerTid?: number;
+		}[];
+		scheduledGames: {
+			gid: number;
+			stage: "group" | "knockout";
+			groupId?: number;
+			matchday?: number;
+			round?: number;
+			homeTid: number;
+			awayTid: number;
+		}[];
+		pointsByCountry: Record<number, number>;
+		prizeMoneyByTid: Record<number, number>;
+		championTid?: number;
+		championPrizePaid?: boolean;
 	};
 	daysLeft: number;
 	defaultStadiumCapacity: number;
@@ -1373,6 +1452,36 @@ export type MinimalPlayerRatings = {
 };
 
 export type PlayerWithoutKey<PlayerRatings = MinimalPlayerRatings> = {
+	// A player who appeared for a club in a World tournament cannot appear for
+	// another club in that tournament during the same season.
+	worldCupTie?: {
+		season: number;
+		competition: "championsLeague";
+		tid: number;
+	};
+	// The most recent World development season. This is overwritten every
+	// preseason, keeping the development model observable without accumulating
+	// another season-by-season history table.
+	worldDevelopment?: {
+		season: number;
+		archetype: "standard" | "early" | "late" | "stalled";
+		playingTimeShare: number;
+		positiveFactor: number;
+		negativeFactor: number;
+		tier?: number;
+		onLoan: boolean;
+		previousPlayingTimeShare?: number;
+		playingTimeGain?: number;
+		ovrChange: number;
+	};
+	// A completed loan is returned before preseason development. Retain its
+	// borrower for one phase so development uses the club and Division where the
+	// player actually spent the season.
+	lastDevelopmentLoan?: {
+		season: number;
+		borrowerTid: number;
+		previousPlayingTimeShare?: number;
+	};
 	// International Soccer Zen GM mod (Epic 5): the club whose youth academy
 	// this PLAYER.UNDRAFTED player is in (see competition/academies.ts)
 	academyTid?: number;
@@ -1397,6 +1506,9 @@ export type PlayerWithoutKey<PlayerRatings = MinimalPlayerRatings> = {
 	loan?: {
 		tid: number;
 		season: number;
+		// The player's share of club games immediately before the loan, used to
+		// measure whether the move actually increased his playing time.
+		previousPlayingTimeShare?: number;
 		// Loaned from the club's academy, so he goes back to it
 		academy?: true;
 	};
@@ -1815,9 +1927,11 @@ export type ReleasedPlayer = ReleasedPlayerWithoutKey & {
 export type ScheduleGameWithoutKey = {
 	gid?: number;
 	awayTid: number;
+	competition?: WorldGameCompetition;
 	homeTid: number;
 	forceWin?: number | "tie"; // either awayTid or homeTid, if defined
 	finals?: boolean; // Used for easily checking neutralSite "finals" setting
+	neutralSite?: boolean; // Competition-specific neutral game, independent of the league setting
 	day: number; // In the playoffs the values are kind of weird
 };
 
@@ -1934,6 +2048,9 @@ export type Team = {
 	// International Soccer Zen GM mod (Epic 4): the club's payroll when its World
 	// was created, which its wage budget covers until its first season is over
 	startingPayroll?: number;
+	// International Soccer Zen GM mod (World overhaul): persistent capital
+	// assets. Optional so existing Worlds initialize them from current budgets.
+	worldInfrastructure?: WorldInfrastructure;
 	// International Soccer Zen GM mod (Epic 7): the real town a World's club is
 	// in, with the title of its English Wikipedia article
 	location?: {
@@ -2158,6 +2275,9 @@ export type TeamSeasonWithoutKey = {
 	gpHome: number; // Includes playoff games! Used for attendance average
 	att: number;
 	cash: number;
+	// International Soccer Zen GM mod (World overhaul): cash movements that do
+	// not fit ZenGM's operating revenue/expense buckets.
+	worldFinance?: WorldFinanceLedger;
 	won: number;
 	lost: number;
 	tied: number;
@@ -2263,6 +2383,35 @@ export type TeamSeasonWithoutKey = {
 
 	// Only used in historical leagues when realStats="all"
 	srID?: string;
+};
+
+export type WorldInfrastructureKey =
+	| "academy"
+	| "training"
+	| "medical"
+	| "scouting"
+	| "stadium"
+	| "commercial";
+
+export type WorldInfrastructureAsset = {
+	level: number;
+	invested: number;
+};
+
+export type WorldInfrastructure = Record<
+	WorldInfrastructureKey,
+	WorldInfrastructureAsset
+>;
+
+export type WorldFinanceLedger = {
+	transferFeesPaid: number;
+	transferFeesReceived: number;
+	capitalProjects: number;
+	debtInterest: number;
+	ownerFunding: number;
+	prizeMoney: number;
+	openingDebt: number;
+	promotionSpendingLimit: number;
 };
 
 export type TeamSeason = TeamSeasonWithoutKey & {

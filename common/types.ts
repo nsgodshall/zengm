@@ -68,6 +68,7 @@ const awardInfoCommonSchema = z.object({
 
 	// Filters
 	bench: z.literal(true).optional(),
+	maxAge: z.number().gte(0).optional(),
 	mip: z.literal(true).optional(),
 	rookie: z.literal(true).optional(),
 });

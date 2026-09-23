@@ -26,6 +26,7 @@ import {
 import { getWorldSeasonSummary } from "./seasonSummary.ts";
 import { getPlayerTransferInfo } from "./playerTransferInfo.ts";
 import getPromotionPlayoffBrackets from "./promotionPlayoffBrackets.ts";
+import getChampionsLeagueView from "./championsLeagueView.ts";
 import getScheduleDivisions from "./scheduleDivisions.ts";
 import { makeTransferOffer } from "./userTransfers.ts";
 import { academyTransfersBetweenAiClubs } from "./academyTransfers.ts";
@@ -173,6 +174,7 @@ export default {
 	getWorldSeasonSummary,
 	getPlayerTransferInfo,
 	getPromotionPlayoffBrackets,
+	getChampionsLeagueView,
 	getScheduleDivisions,
 	makeTransferOffer,
 	academyTransfersBetweenAiClubs,

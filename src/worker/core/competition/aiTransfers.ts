@@ -282,7 +282,13 @@ const attempt = async (
 		return;
 	}
 
-	if (!canAiAffordFee({ cash: buyerSeason.cash, fee })) {
+	if (
+		!canAiAffordFee({
+			cash: buyerSeason.cash,
+			fee,
+			spendingAllowance: buyerSeason.worldFinance?.promotionSpendingLimit,
+		})
+	) {
 		return;
 	}
 	if (

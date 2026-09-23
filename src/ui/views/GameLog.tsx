@@ -224,17 +224,26 @@ const GameLog = ({
 					<div className="row">
 						<div className="col-md-10">
 							{boxScore.gid >= 0 ? (
-								<BoxScoreWrapper
-									abbrev={abbrev}
-									boxScore={boxScore}
-									currentGidInList={currentGidInList}
-									nextGid={nextGid}
-									prevGid={prevGid}
-									showNextPrev
-									sportState={undefined}
-									tid={tid}
-									Row={StatsRow}
-								/>
+								<>
+									{"competition" in boxScore && boxScore.competition ? (
+										<div className="alert alert-secondary py-2 fw-bold">
+											{boxScore.competition === "championsLeague"
+												? "Champions League"
+												: "Promotion Playoff"}
+										</div>
+									) : null}
+									<BoxScoreWrapper
+										abbrev={abbrev}
+										boxScore={boxScore}
+										currentGidInList={currentGidInList}
+										nextGid={nextGid}
+										prevGid={prevGid}
+										showNextPrev
+										sportState={undefined}
+										tid={tid}
+										Row={StatsRow}
+									/>
+								</>
 							) : (
 								<p>Select a game from the menu to view a box score.</p>
 							)}

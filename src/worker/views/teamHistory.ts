@@ -2,6 +2,7 @@ import { competition } from "../core/index.ts";
 import { idb } from "../db/index.ts";
 import { g, helpers } from "../util/index.ts";
 import type {
+	GameAttributesLeague,
 	UpdateEvents,
 	ViewInput,
 	TeamSeason,
@@ -338,6 +339,33 @@ const updateTeamHistory = async (
 		);
 
 		const playersByPid = groupByUnique(history.players, "pid");
+		const gameAttributes = g as unknown as Partial<GameAttributesLeague>;
+		const championsLeagueHistory = gameAttributes.championsLeagueHistory ?? [];
+		const championsLeagueResults = gameAttributes.championsLeagueResults ?? [];
+		const championsLeagueFinals = new Map<number, Set<number>>();
+		for (const [season, games] of Map.groupBy(
+			championsLeagueResults.filter((game) => game.stage === "knockout"),
+			(game) => game.season,
+		)) {
+			const finalRound = Math.max(...games.map((game) => game.round ?? 0));
+			const final = games.find((game) => game.round === finalRound);
+			if (final) {
+				championsLeagueFinals.set(
+					season,
+					new Set([final.homeTid, final.awayTid]),
+				);
+			}
+		}
+		const championsLeague = {
+			finals: [...championsLeagueFinals]
+				.filter(([, tids]) => tids.has(inputs.tid))
+				.map(([season]) => season)
+				.sort((a, b) => b - a),
+			titles: championsLeagueHistory
+				.filter((row) => row.championTid === inputs.tid)
+				.map((row) => row.season)
+				.sort((a, b) => b - a),
+		};
 		const retiredJerseyNumbers2 = retiredJerseyNumbers.map((row) => {
 			let numRings = 0;
 			if (row.pid !== undefined) {
@@ -381,6 +409,7 @@ const updateTeamHistory = async (
 						tid: inputs.tid,
 						getScore: competition.getScorerValue,
 					}),
+			championsLeague,
 		};
 	}
 };

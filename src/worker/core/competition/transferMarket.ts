@@ -302,12 +302,19 @@ export const getTransferFunds = ({
 }) => Math.max(0, cash + MAX_DEBT_FRACTION_OF_WAGE_BUDGET * wageBudget);
 
 /**
- * International Soccer Zen GM mod (Epic 8, decided): whether an AI club can pay
- * a transfer fee. AI clubs only spend cash they have, since debt cuts their
- * wage budgets (see getWageBudget).
+ * Whether an AI club can pay a transfer fee. Normally it spends only cash it
+ * has. A newly promoted club can also use the bounded spending allowance its
+ * preseason financial plan set from the increase in projected revenue.
  */
-export const canAiAffordFee = ({ cash, fee }: { cash: number; fee: number }) =>
-	fee <= cash;
+export const canAiAffordFee = ({
+	cash,
+	fee,
+	spendingAllowance = 0,
+}: {
+	cash: number;
+	fee: number;
+	spendingAllowance?: number;
+}) => fee <= Math.max(0, cash + spendingAllowance);
 
 /** Whether the user's club can pay a transfer fee (see getTransferFunds) */
 export const canAffordFee = ({
