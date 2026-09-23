@@ -258,7 +258,7 @@ const SECOND_TIER: RealClub[] = [
 		"CHA",
 		"Charlotte",
 		["#1d1160", "#00788c", "#ffffff"],
-		generated("CLT"),
+		file("charlotte-hornets.png"),
 	),
 	club(
 		"Baltimore",
@@ -266,7 +266,7 @@ const SECOND_TIER: RealClub[] = [
 		"BAL",
 		"Baltimore",
 		["#df4601", "#000000", "#ffffff"],
-		generated("B"),
+		file("baltimore-crabs.png"),
 	),
 	club(
 		"St. Louis",
@@ -435,7 +435,7 @@ const THIRD_TIER: RealClub[] = [
 		"SLC",
 		"Salt Lake City",
 		["#cc0000", "#ffffff", "#000000"],
-		generated("SLC"),
+		file("salt-lake-city-pioneers.png"),
 	),
 	club(
 		"Fresno",
@@ -443,7 +443,7 @@ const THIRD_TIER: RealClub[] = [
 		"FRE",
 		"Fresno",
 		["#c41230", "#13284c", "#ffffff"],
-		file("fresno-bulldogs.svg"),
+		file("fresno-bulldogs.png"),
 	),
 	// After Alabama's elephant
 	club(
@@ -452,7 +452,7 @@ const THIRD_TIER: RealClub[] = [
 		"BIR",
 		"Birmingham",
 		["#9e1b32", "#ffffff", "#828a8f"],
-		generated("BIR"),
+		file("birmingham-elephants.png"),
 	),
 	club(
 		"Hartford",
@@ -460,7 +460,7 @@ const THIRD_TIER: RealClub[] = [
 		"HFD",
 		"Hartford",
 		["#00754a", "#162d53", "#ffffff"],
-		file("hartford-whalers.svg"),
+		file("hartford-whalers.png"),
 	),
 	club(
 		"Buffalo",
@@ -468,7 +468,7 @@ const THIRD_TIER: RealClub[] = [
 		"BUF",
 		"Buffalo",
 		["#00338d", "#c60c30", "#ffffff"],
-		generated("BUF"),
+		file("buffalo-bills.png"),
 	),
 	// After UTEP's Miners, in their orange
 	club(
@@ -477,7 +477,7 @@ const THIRD_TIER: RealClub[] = [
 		"ELP",
 		"El Paso",
 		["#ff8200", "#041e42", "#ffffff"],
-		generated("E"),
+		file("el-paso-vaqueros.png"),
 	),
 	// Omaha's own university logo, not Nebraska's "N"
 	club(
@@ -494,7 +494,7 @@ const THIRD_TIER: RealClub[] = [
 		"HON",
 		"Honolulu",
 		["#024731", "#ffffff", "#000000"],
-		file("honolulu-rainbow-warriors.svg"),
+		file("honolulu-rainbow-warriors.png"),
 	),
 	club(
 		"New Orleans",
@@ -502,7 +502,7 @@ const THIRD_TIER: RealClub[] = [
 		"NOL",
 		"New Orleans",
 		["#461d7c", "#fdd023", "#ffffff"],
-		generated("N"),
+		file("new-orleans-jazz.png"),
 	),
 	club(
 		"Knoxville",
@@ -510,7 +510,7 @@ const THIRD_TIER: RealClub[] = [
 		"KNX",
 		"Knoxville",
 		["#ff8200", "#ffffff", "#58595b"],
-		generated("K"),
+		file("knoxville-volunteers.png"),
 	),
 	club(
 		"Bakersfield",
@@ -518,7 +518,7 @@ const THIRD_TIER: RealClub[] = [
 		"BAK",
 		"Bakersfield",
 		["#0033a0", "#ffc72c", "#ffffff"],
-		generated("BAK"),
+		file("bakersfield-mavericks.png"),
 	),
 	club(
 		"Albuquerque",
@@ -526,7 +526,7 @@ const THIRD_TIER: RealClub[] = [
 		"ABQ",
 		"Albuquerque",
 		["#ba0c2f", "#f2a900", "#ffffff"],
-		generated("A"),
+		file("albuquerque-isotopes.png"),
 	),
 	club(
 		"Boise",
@@ -534,7 +534,7 @@ const THIRD_TIER: RealClub[] = [
 		"BOI",
 		"Boise",
 		["#0033a0", "#d64309", "#ffffff"],
-		generated("BOI"),
+		file("boise-broncos.png"),
 	),
 	club(
 		"Ventura",
@@ -542,7 +542,7 @@ const THIRD_TIER: RealClub[] = [
 		"VEN",
 		"Ventura",
 		["#006ba6", "#f2a900", "#ffffff"],
-		generated("V"),
+		file("ventura-pacifics.png"),
 	),
 	club(
 		"Little Rock",
@@ -558,7 +558,7 @@ const THIRD_TIER: RealClub[] = [
 		"SPO",
 		"Spokane",
 		["#1c2c5b", "#cc2244", "#ffffff"],
-		generated("S"),
+		file("spokane-beavers.png"),
 	),
 ];
 
