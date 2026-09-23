@@ -194,8 +194,12 @@ through the World finance ledger. World Tournaments shows qualification, live
 group tables and matchdays, knockout results, prize totals, coefficients, and
 past winners. Schedule cards and box scores retain their competition, club
 history and team records count finals and titles, and same-season appearances
-cup-tie a player after a transfer. Remaining work is richer news and dashboard
-placement, deeper records, and long-run concentration tuning.
+cup-tie a player after a transfer. The league dashboard now shows the user's
+qualification, prize money, and championship status. The long-run harness
+reports each tournament's field and knockout representation by Country, prize
+distribution, unique champions, repeat winners, and title concentration.
+Remaining work is deeper streak and margin records plus balance tuning based on
+multi-decade results.
 
 ### Goal
 

@@ -50,6 +50,7 @@ const LeagueDashboard = ({
 	boardObjective,
 	worldTable,
 	worldTableSeasonOver,
+	worldTournament,
 }: View<"leagueDashboard">) => {
 	useTitleBar({ title: `${region} ${name} Dashboard` });
 
@@ -94,6 +95,26 @@ const LeagueDashboard = ({
 									worldTableSeasonOver={worldTableSeasonOver}
 								/>
 							</div>
+							{worldTournament ? (
+								<div className="border rounded p-2 mb-3">
+									<strong>Champions League</strong>
+									<br />
+									{worldTournament.userIsChampion
+										? "World champions"
+										: worldTournament.qualified
+											? `Qualified · ${helpers.formatCurrency(
+													worldTournament.prizeMoney / 1000,
+													"M",
+												)} earned`
+											: worldTournament.champion
+												? `Champion: ${worldTournament.champion}`
+												: "Not qualified"}
+									<br />
+									<a href={helpers.leagueUrl(["playoffs"])}>
+										» World Tournaments
+									</a>
+								</div>
+							) : null}
 						</div>
 						<div className="col-sm-8">
 							<div className="text-center mb-3">

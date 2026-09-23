@@ -626,6 +626,38 @@ const updateStandings = async (inputs: unknown, updateEvents: UpdateEvents) => {
 	}
 };
 
+const updateWorldTournament = async (
+	inputs: unknown,
+	updateEvents: UpdateEvents,
+) => {
+	if (
+		updateEvents.includes("firstRun") ||
+		updateEvents.includes("gameSim") ||
+		updateEvents.includes("newPhase")
+	) {
+		const tournament = await competition.getChampionsLeagueView(
+			g.get("season"),
+		);
+		if (!tournament?.available) {
+			return { worldTournament: undefined };
+		}
+		const user = tournament.qualifiers.find(
+			(club) => club.tid === g.get("userTid"),
+		);
+		return {
+			worldTournament: {
+				qualified: user !== undefined,
+				prizeMoney: user?.prizeMoney ?? 0,
+				champion:
+					tournament.champion === undefined
+						? undefined
+						: `${tournament.champion.region} ${tournament.champion.name}`,
+				userIsChampion: tournament.champion?.tid === g.get("userTid"),
+			},
+		};
+	}
+};
+
 const updateNewsFeed = async (inputs: unknown, updateEvents: UpdateEvents) => {
 	if (
 		updateEvents.includes("firstRun") ||
@@ -682,10 +714,15 @@ const updateNewsFeed = async (inputs: unknown, updateEvents: UpdateEvents) => {
 
 export default async (inputs: unknown, updateEvents: UpdateEvents) => {
 	// Woo TypeScript, gotta break this up into 3 parts or it just says fuck it and calls it any
+	const teamAndTournament = Object.assign(
+		{},
+		await updateTeam(inputs, updateEvents),
+		await updateWorldTournament(inputs, updateEvents),
+	);
 	const part1 = Object.assign(
 		{},
 		await updateInbox(inputs, updateEvents),
-		await updateTeam(inputs, updateEvents),
+		teamAndTournament,
 		await updatePayroll(inputs, updateEvents),
 	);
 	const part2 = Object.assign(
@@ -699,6 +736,5 @@ export default async (inputs: unknown, updateEvents: UpdateEvents) => {
 		await updatePlayoffs(inputs, updateEvents),
 		await updateStandings(inputs, updateEvents),
 	);
-
 	return Object.assign({}, part1, part2, part3);
 };
