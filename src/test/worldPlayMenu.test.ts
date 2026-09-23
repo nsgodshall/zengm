@@ -7,7 +7,7 @@ import "fake-indexeddb/auto";
 import { deleteDB } from "@dumbmatter/idb";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { LEAGUE_DATABASE_VERSION, PHASE } from "../common/constants.ts";
-import type { GameAttributesLeague } from "../common/types.ts";
+import type { GameAttributesLeague, ScheduleGame } from "../common/types.ts";
 import type { CompetitionStructure } from "../worker/core/competition/competitionStructure.ts";
 import { competition, league } from "../worker/core/index.ts";
 import { getWorldDefaultSettings } from "../worker/views/newLeague.ts";
@@ -138,19 +138,32 @@ describe("the Play menu in a World's playoffs", () => {
 				tid: 0,
 			});
 
-			const target = {
+			const regularSeasonTarget = {
 				season: STARTING_SEASON,
-				phase: PHASE.PLAYOFFS,
+				phase: PHASE.REGULAR_SEASON,
 			};
-			local.autoPlayUntil = { ...target, start: Date.now() };
+			local.autoPlayUntil = { ...regularSeasonTarget, start: Date.now() };
 			league.autoPlay().catch(onUnhandledRejection);
 
 			await waitFor(
 				() =>
 					local.autoPlayUntil === undefined &&
-					g.get("season") === target.season &&
-					g.get("phase") === target.phase &&
+					g.get("season") === regularSeasonTarget.season &&
+					g.get("phase") === regularSeasonTarget.phase &&
 					!lock.get("newPhase"),
+				9 * 60 * 1000,
+			);
+
+			// Follow the actual Play menu path through the end of the regular season.
+			// This intentionally returns before its un-awaited game.play call finishes,
+			// just like the browser action.
+			await playMenu.untilPlayoffs(undefined, {} as any);
+			await waitFor(
+				() =>
+					g.get("season") === STARTING_SEASON &&
+					g.get("phase") === PHASE.PLAYOFFS &&
+					!lock.get("newPhase") &&
+					!lock.get("gameSim"),
 				9 * 60 * 1000,
 			);
 
@@ -179,6 +192,22 @@ describe("the Play menu in a World's playoffs", () => {
 		const scheduled = gameAttributes.championsLeagueState?.scheduledGames ?? [];
 		expect(scheduled.length).toBeGreaterThan(0);
 
+		// Future fixtures are not draws. Before any game is played, every displayed
+		// group record starts at zero.
+		const tournament =
+			await competition.getChampionsLeagueView(STARTING_SEASON);
+		expect(tournament?.groups.length).toBeGreaterThan(0);
+		for (const row of tournament?.groups.flatMap((group) => group.rows) ?? []) {
+			expect(row).toMatchObject({
+				played: 0,
+				won: 0,
+				drawn: 0,
+				lost: 0,
+				pointDifferential: 0,
+				points: 0,
+			});
+		}
+
 		// ...and the promotion playoffs have nothing to play, so they're worth no
 		// days at all - the case that used to leave the Champions League unplayed
 		const promotionPlayoffDays = (
@@ -189,6 +218,18 @@ describe("the Play menu in a World's playoffs", () => {
 			0,
 		);
 		expect(promotionPlayoffDays).toBe(0);
+
+		// Recreate the browser failure: the saved league has the complete matchday,
+		// while the worker's in-memory schedule has lost it.
+		const persistedSchedule = await idb.league.getAll("schedule");
+		expect(persistedSchedule.map((game) => game.gid).sort()).toEqual(
+			scheduled.map((game) => game.gid).sort(),
+		);
+		const cacheInternals = idb.cache as unknown as {
+			_data: { schedule: Record<number, ScheduleGame> };
+		};
+		cacheInternals._data.schedule = {};
+		expect(await idb.cache.schedule.getAll()).toEqual([]);
 
 		await playMenu.day(undefined, {} as any);
 

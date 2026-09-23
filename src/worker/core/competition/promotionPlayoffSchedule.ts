@@ -3,6 +3,7 @@ import type {
 	Conditions,
 	GameAttributesLeague,
 	GameResults,
+	ScheduleGame,
 } from "../../../common/types.ts";
 import { idb } from "../../db/index.ts";
 import { g, logEvent } from "../../util/index.ts";
@@ -81,6 +82,54 @@ export const initializePromotionPlayoffs = async () => {
 export const getPromotionPlayoffEntrants = (state: PromotionPlayoffState) =>
 	new Set(state.links.flatMap((link) => link.entrants));
 
+type ScheduledWorldTournamentGame = {
+	gid: number;
+	homeTid: number;
+	awayTid: number;
+	competition: NonNullable<ScheduleGame["competition"]>;
+};
+
+const matchesScheduledGame = (
+	game: ScheduleGame,
+	expected: ScheduledWorldTournamentGame,
+) =>
+	game.gid === expected.gid &&
+	game.homeTid === expected.homeTid &&
+	game.awayTid === expected.awayTid &&
+	game.competition === expected.competition;
+
+/**
+ * If the browser's schedule cache loses a matchday that the playoff phase
+ * already persisted, restore it from the saved league before deciding the
+ * bracket is corrupt.
+ */
+const ensureScheduledGamesInCache = async (
+	expected: ScheduledWorldTournamentGame[],
+) => {
+	const cached = await idb.cache.schedule.getAll();
+	if (
+		expected.every((scheduled) =>
+			cached.some((game) => matchesScheduledGame(game, scheduled)),
+		)
+	) {
+		return true;
+	}
+
+	const persisted = await idb.league.getAll("schedule");
+	const recovered: ScheduleGame[] = [];
+	for (const scheduled of expected) {
+		const game = persisted.find((row) => matchesScheduledGame(row, scheduled));
+		if (!game) {
+			return false;
+		}
+		recovered.push(game);
+	}
+
+	await idb.cache.schedule.clear();
+	await idb.cache.schedule.putAll(recovered);
+	return true;
+};
+
 /**
  * Put every link's current round on the ordinary schedule. Returns true only
  * when all links have produced their promotion winners.
@@ -94,19 +143,18 @@ export const newSchedulePromotionPlayoffsDay = async () => {
 	}
 
 	const championsLeagueState = getChampionsLeagueState();
-	if (
-		state.scheduledGames.length > 0 ||
-		(championsLeagueState?.scheduledGames.length ?? 0) > 0
-	) {
-		const scheduledGids = new Set(
-			(await idb.cache.schedule.getAll()).map((game) => game.gid),
-		);
-		if (
-			state.scheduledGames.some((game) => scheduledGids.has(game.gid)) ||
-			championsLeagueState?.scheduledGames.some((game) =>
-				scheduledGids.has(game.gid),
-			)
-		) {
+	const scheduledGames: ScheduledWorldTournamentGame[] = [
+		...state.scheduledGames.map((game) => ({
+			...game,
+			competition: "promotionPlayoff" as const,
+		})),
+		...(championsLeagueState?.scheduledGames.map((game) => ({
+			...game,
+			competition: "championsLeague" as const,
+		})) ?? []),
+	];
+	if (scheduledGames.length > 0) {
+		if (await ensureScheduledGamesInCache(scheduledGames)) {
 			return false;
 		}
 		throw new Error(

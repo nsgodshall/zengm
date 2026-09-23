@@ -106,7 +106,11 @@ const getChampionsLeagueView = async (season: number) => {
 						if (game.homeTid !== row.tid && game.awayTid !== row.tid) {
 							continue;
 						}
-						if (game.homePts === game.awayPts) {
+						if (
+							game.homePts !== undefined &&
+							game.awayPts !== undefined &&
+							game.homePts === game.awayPts
+						) {
 							drawn += 1;
 						} else if (game.winnerTid === row.tid) {
 							won += 1;
