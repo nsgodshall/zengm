@@ -185,6 +185,13 @@ false no-minutes penalty.
 
 ## 7. Champions League
 
+**Implementation status:** the playable competition engine is complete. It
+qualifies clubs from final domestic tables, draws and schedules persisted group
+and knockout rounds alongside promotion playoffs, validates saved state, uses a
+neutral-site final, updates rolling Country coefficients, and pays every award
+through the World finance ledger. The next phase is its dedicated page, schedule
+labels, club history, records, and cup-tie enforcement.
+
 ### Goal
 
 Add one annual inter-country club tournament that crowns a World champion and

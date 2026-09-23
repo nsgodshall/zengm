@@ -47,6 +47,7 @@ import { advStats } from "../../util/advStats.ts";
 import { isSingleDivision } from "../competition/competitionStructure.ts";
 import { getCompetitionStructure } from "../competition/ensureCompetitionStructure.ts";
 import { recordPromotionPlayoffResults } from "../competition/promotionPlayoffSchedule.ts";
+import { recordChampionsLeagueResults } from "../competition/championsLeagueSchedule.ts";
 
 /**
  * Play one or more days of games.
@@ -158,6 +159,7 @@ const play = async (
 				await updatePlayoffSeries(results, conditions);
 			} else {
 				await recordPromotionPlayoffResults(results, conditions);
+				await recordChampionsLeagueResults(results, conditions);
 			}
 		} else {
 			// Update clinchedPlayoffs, only if there are games left in the schedule. Otherwise, this would be inaccruate (not correctly accounting for tiebreakers) and redundant (going to be called again on phase change)
@@ -549,9 +551,10 @@ const play = async (
 			} else {
 				// Only do neutralSite when not forcing a win, since forcing a win uses homeCourtFactor and I don't want to worry about how that interacts with neutralSite
 				const neutralSite =
-					g.get("phase") === PHASE.PLAYOFFS &&
-					(g.get("neutralSite") === "playoffs" ||
-						(g.get("neutralSite") === "finals" && game.finals));
+					game.neutralSite === true ||
+					(g.get("phase") === PHASE.PLAYOFFS &&
+						(g.get("neutralSite") === "playoffs" ||
+							(g.get("neutralSite") === "finals" && game.finals)));
 
 				const result = getResult({
 					gid: game.gid,

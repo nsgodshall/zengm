@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { deleteDB } from "@dumbmatter/idb";
-import { afterAll, assert, beforeAll, describe, test } from "vitest";
+import { afterAll, assert, beforeAll, describe, expect, test } from "vitest";
 import { LEAGUE_DATABASE_VERSION, PHASE, PLAYER } from "../common/constants.ts";
 import { defaultGameAttributes } from "../common/defaultGameAttributes.ts";
 import type {
@@ -23,6 +23,7 @@ import {
 	LOAN_MAX_AGE,
 } from "../worker/core/competition/loans.ts";
 import { getTvShare } from "../worker/core/competition/worldRevenue.ts";
+import { getChampionsLeaguePrize } from "../worker/core/competition/championsLeague.ts";
 import {
 	getWorldAwards,
 	getWorldAwardsBeforeSoccerStyle,
@@ -311,6 +312,93 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 				champions,
 				[tables[1]![0]!.tid, tables[3]![0]!.tid].sort(byTid),
 				`${season}`,
+			);
+		}
+	});
+
+	test("the Champions League plays a complete tournament and pays its prizes", async () => {
+		const gameAttributes = g as unknown as Partial<GameAttributesLeague>;
+		const results = gameAttributes.championsLeagueResults ?? [];
+		const coefficients = gameAttributes.championsLeagueCoefficients ?? [];
+
+		expect(coefficients.map((row) => row.season)).toEqual(completedSeasons);
+		for (const season of completedSeasons) {
+			const seasonResults = results.filter(
+				(result) => result.season === season,
+			);
+			const groupResults = seasonResults.filter(
+				(result) => result.stage === "group",
+			);
+			const knockoutResults = seasonResults.filter(
+				(result) => result.stage === "knockout",
+			);
+			expect(groupResults).toHaveLength(24);
+			expect(knockoutResults).toHaveLength(3);
+			expect(new Set(seasonResults.map((result) => result.gid)).size).toBe(27);
+
+			const groupAppearances = new Map<number, number>();
+			for (const result of groupResults) {
+				for (const tid of [result.homeTid, result.awayTid]) {
+					groupAppearances.set(tid, (groupAppearances.get(tid) ?? 0) + 1);
+				}
+			}
+			expect(groupAppearances.size).toBe(8);
+			expect([...groupAppearances.values()]).toEqual(Array(8).fill(6));
+			expect(
+				knockoutResults.every((result) => result.winnerTid !== undefined),
+			).toBe(true);
+			const finalRound = Math.max(
+				...knockoutResults.map((result) => result.round!),
+			);
+			const final = knockoutResults.find(
+				(result) => result.round === finalRound,
+			)!;
+			const finalBoxScore = await idb.league.get("games", final.gid);
+			expect(finalBoxScore?.neutralSite).toBe(true);
+		}
+
+		const state = gameAttributes.championsLeagueState!;
+		expect(state.season).toBe(completedSeasons.at(-1));
+		expect(state.championTid).toBeDefined();
+		expect(state.championPrizePaid).toBe(true);
+		expect(state.scheduledGames).toEqual([]);
+
+		const latestResults = results.filter(
+			(result) => result.season === state.season,
+		);
+		const expectedPrizeTotal =
+			8 * getChampionsLeaguePrize("entry") +
+			latestResults
+				.filter((result) => result.stage === "group")
+				.reduce(
+					(total, result) =>
+						total +
+						(result.winnerTid === undefined
+							? 2 * getChampionsLeaguePrize("draw")
+							: getChampionsLeaguePrize("win")),
+					0,
+				) +
+			3 * getChampionsLeaguePrize("advance") +
+			getChampionsLeaguePrize("champion");
+		expect(
+			Object.values(state.prizeMoneyByTid).reduce(
+				(total, prize) => total + prize,
+				0,
+			),
+		).toBe(expectedPrizeTotal);
+		expect(state.prizeMoneyByTid[state.championTid!]).toBeGreaterThanOrEqual(
+			getChampionsLeaguePrize("entry") +
+				2 * getChampionsLeaguePrize("advance") +
+				getChampionsLeaguePrize("champion"),
+		);
+
+		for (const [tidString, prize] of Object.entries(state.prizeMoneyByTid)) {
+			const teamSeason = await idb.cache.teamSeasons.indexGet(
+				"teamSeasonsByTidSeason",
+				[Number(tidString), state.season],
+			);
+			expect(teamSeason?.worldFinance?.prizeMoney).toBeGreaterThanOrEqual(
+				prize,
 			);
 		}
 	});

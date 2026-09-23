@@ -13,6 +13,10 @@ import {
 	getPromotionPlayoffEntrants,
 	initializePromotionPlayoffs,
 } from "../competition/promotionPlayoffSchedule.ts";
+import {
+	getChampionsLeagueEntrants,
+	initializeChampionsLeague,
+} from "../competition/championsLeagueSchedule.ts";
 
 const newPhasePlayoffs = async (
 	conditions: Conditions,
@@ -29,7 +33,13 @@ const newPhasePlayoffs = async (
 
 	if (world) {
 		const state = await initializePromotionPlayoffs();
-		tidPlayoffs = [...getPromotionPlayoffEntrants(state)];
+		const championsLeagueState = await initializeChampionsLeague();
+		tidPlayoffs = [
+			...new Set([
+				...getPromotionPlayoffEntrants(state),
+				...getChampionsLeagueEntrants(championsLeagueState),
+			]),
+		];
 	} else {
 		// Set playoff matchups
 		const {
@@ -146,7 +156,7 @@ const newPhasePlayoffs = async (
 	if (!liveGameSim) {
 		redirect = {
 			url: helpers.leagueUrl(["playoffs"]),
-			text: world ? "View promotion playoffs" : "View playoff bracket",
+			text: world ? "View World tournaments" : "View playoff bracket",
 		};
 	}
 

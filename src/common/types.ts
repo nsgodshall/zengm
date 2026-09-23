@@ -730,6 +730,69 @@ export type GameAttributesLeague = {
 			awayTid: number;
 		}[];
 	};
+	// Annual inter-Country club tournament. State is optional and self-contained
+	// so an older World can initialize it at its next playoffs without a database
+	// migration.
+	championsLeagueCoefficients?: {
+		season: number;
+		pointsByCountry: Record<number, number>;
+	}[];
+	championsLeagueResults?: {
+		season: number;
+		stage: "group" | "knockout";
+		groupId?: number;
+		matchday?: number;
+		round?: number;
+		gid: number;
+		homeTid: number;
+		awayTid: number;
+		homePts: number;
+		awayPts: number;
+		winnerTid?: number;
+	}[];
+	championsLeagueState?: {
+		season: number;
+		qualifiers: {
+			tid: number;
+			countryId: number;
+			domesticPosition: number;
+			countryCoefficient: number;
+			seed: number;
+		}[];
+		groups: number[][];
+		groupGames: {
+			groupId: number;
+			matchday: number;
+			homeTid: number;
+			awayTid: number;
+			gid?: number;
+			homePts?: number;
+			awayPts?: number;
+		}[];
+		knockoutSeeds: { tid: number; seed: number }[];
+		knockoutGames: {
+			round: number;
+			homeTid: number;
+			awayTid: number;
+			gid?: number;
+			homePts?: number;
+			awayPts?: number;
+			winnerTid?: number;
+		}[];
+		scheduledGames: {
+			gid: number;
+			stage: "group" | "knockout";
+			groupId?: number;
+			matchday?: number;
+			round?: number;
+			homeTid: number;
+			awayTid: number;
+		}[];
+		pointsByCountry: Record<number, number>;
+		prizeMoneyByTid: Record<number, number>;
+		championTid?: number;
+		championPrizePaid?: boolean;
+	};
 	daysLeft: number;
 	defaultStadiumCapacity: number;
 	dh: "all" | "none" | number[];
@@ -1791,6 +1854,7 @@ export type ScheduleGameWithoutKey = {
 	homeTid: number;
 	forceWin?: number | "tie"; // either awayTid or homeTid, if defined
 	finals?: boolean; // Used for easily checking neutralSite "finals" setting
+	neutralSite?: boolean; // Competition-specific neutral game, independent of the league setting
 	day: number; // In the playoffs the values are kind of weird
 };
 
