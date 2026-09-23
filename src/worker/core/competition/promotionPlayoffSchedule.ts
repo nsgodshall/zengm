@@ -154,6 +154,11 @@ export const newSchedulePromotionPlayoffsDay = async () => {
 		}
 		return { gid: game.gid, ...matchup };
 	});
+	for (const scheduled of state.scheduledGames) {
+		const game = schedule.find((row) => row.gid === scheduled.gid)!;
+		game.competition = "promotionPlayoff";
+		await idb.cache.schedule.put(game);
+	}
 	await saveState(state);
 	if (championsLeagueState) {
 		await setChampionsLeagueScheduledGames(

@@ -377,3 +377,18 @@ export const getCompletedGroupMatchday = (games: ChampionsLeagueGroupGame[]) =>
 		0,
 		6,
 	);
+
+export const isChampionsLeagueCupTied = ({
+	cupTie,
+	season,
+	tid,
+}: {
+	cupTie:
+		| { season: number; competition: "championsLeague"; tid: number }
+		| undefined;
+	season: number;
+	tid: number;
+}) =>
+	cupTie?.competition === "championsLeague" &&
+	cupTie.season === season &&
+	cupTie.tid !== tid;

@@ -185,12 +185,17 @@ false no-minutes penalty.
 
 ## 7. Champions League
 
-**Implementation status:** the playable competition engine is complete. It
+**Implementation status:** the playable competition engine and its main
+presentation are complete. It
 qualifies clubs from final domestic tables, draws and schedules persisted group
 and knockout rounds alongside promotion playoffs, validates saved state, uses a
 neutral-site final, updates rolling Country coefficients, and pays every award
-through the World finance ledger. The next phase is its dedicated page, schedule
-labels, club history, records, and cup-tie enforcement.
+through the World finance ledger. World Tournaments shows qualification, live
+group tables and matchdays, knockout results, prize totals, coefficients, and
+past winners. Schedule cards and box scores retain their competition, club
+history and team records count finals and titles, and same-season appearances
+cup-tie a player after a transfer. Remaining work is richer news and dashboard
+placement, deeper records, and long-run concentration tuning.
 
 ### Goal
 

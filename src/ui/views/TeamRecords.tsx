@@ -37,6 +37,7 @@ const TeamRecords = ({
 	ties,
 	otl,
 	usePts,
+	world,
 }: View<"teamRecords">) => {
 	const [showHistorical, setShowHistorical] = useState(true);
 
@@ -73,6 +74,34 @@ const TeamRecords = ({
 		"Last",
 		"Titles",
 		"Last",
+		...(world
+			? [
+					{
+						desc: "Champions League Finals Appearances",
+						title: "CLF",
+						sortSequence: ["desc", "asc"] as const,
+						sortType: "number" as const,
+					},
+					{
+						desc: "Last Champions League Final",
+						title: "Last",
+						sortSequence: ["desc", "asc"] as const,
+						sortType: "number" as const,
+					},
+					{
+						desc: "Champions League Titles",
+						title: "CL",
+						sortSequence: ["desc", "asc"] as const,
+						sortType: "number" as const,
+					},
+					{
+						desc: "Last Champions League Title",
+						title: "Last",
+						sortSequence: ["desc", "asc"] as const,
+						sortType: "number" as const,
+					},
+				]
+			: []),
 		"BR",
 		"BRC",
 		"BRD",
@@ -117,6 +146,14 @@ const TeamRecords = ({
 					t.lastFinals,
 					blankIfZero(t.titles),
 					t.lastTitle,
+					...(world
+						? [
+								blankIfZero(t.championsLeagueFinals),
+								t.lastChampionsLeagueFinal,
+								blankIfZero(t.championsLeagueTitles),
+								t.lastChampionsLeagueTitle,
+							]
+						: []),
 					blankIfZero(t.bestRecord),
 					blankIfZero(t.bestRecordConf),
 					blankIfZero(t.bestRecordDiv),

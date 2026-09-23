@@ -9,11 +9,13 @@ import HideableSection from "../../components/HideableSection.tsx";
 import { useLocal } from "../../util/local.ts";
 import { Championships } from "./Championships.tsx";
 import { LeagueHistoryChart } from "./LeagueHistoryChart.tsx";
+import { helpers } from "../../util/helpers.ts";
 
 const TeamHistory = ({
 	abbrev,
 	bestRecord,
 	championships,
+	championsLeague,
 	finalsAppearances,
 	history,
 	leagueHistory,
@@ -66,6 +68,39 @@ const TeamHistory = ({
 					</HideableSection>
 				</div>
 				<div className="col-sm-7 col-md-9 mt-3 mt-sm-0">
+					{championsLeague.finals.length > 0 ||
+					championsLeague.titles.length > 0 ? (
+						<HideableSection title="Champions League" className="mb-3">
+							<div className="d-flex flex-wrap align-items-center gap-3 mb-2">
+								<div
+									className="d-flex align-items-center justify-content-center rounded-circle bg-warning text-dark fw-bold"
+									style={{ width: 64, height: 64, fontSize: 20 }}
+									title="Champions League trophy"
+								>
+									CL
+								</div>
+								<div>
+									<div>
+										Titles: <strong>{championsLeague.titles.length}</strong>
+									</div>
+									<div>Final appearances: {championsLeague.finals.length}</div>
+								</div>
+							</div>
+							{championsLeague.titles.length > 0 ? (
+								<div>
+									Won in{" "}
+									{championsLeague.titles.map((titleSeason, index) => (
+										<span key={titleSeason}>
+											{index > 0 ? ", " : null}
+											<a href={helpers.leagueUrl(["playoffs", titleSeason])}>
+												{titleSeason}
+											</a>
+										</span>
+									))}
+								</div>
+							) : null}
+						</HideableSection>
+					) : null}
 					{/* International Soccer Zen GM mod (Epic 6) */}
 					{leagueHistory && leagueHistory.seasons.length > 0 ? (
 						<HideableSection title="League history" className="mb-3">

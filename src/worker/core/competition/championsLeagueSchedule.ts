@@ -7,6 +7,7 @@ import type {
 } from "../../../common/types.ts";
 import { idb } from "../../db/index.ts";
 import { g, logEvent } from "../../util/index.ts";
+import { bySport } from "../../../common/sportFunctions.ts";
 import { league } from "../index.ts";
 import {
 	drawChampionsLeagueGroups,
@@ -136,7 +137,7 @@ const payChampionsLeaguePrize = async (
 	await idb.cache.teamSeasons.put(teamSeason);
 };
 
-export const initializeChampionsLeague = async () => {
+export const initializeChampionsLeague = async (conditions: Conditions) => {
 	const season = g.get("season");
 	const existing = getChampionsLeagueState();
 	if (existing?.season === season) {
@@ -199,6 +200,22 @@ export const initializeChampionsLeague = async () => {
 			(result) => result.season !== season,
 		),
 	});
+	for (const qualifier of qualifiers) {
+		const countryName = structure.countries.find(
+			(country) => country.countryId === qualifier.countryId,
+		)?.name;
+		logEvent(
+			{
+				type: "playoffs",
+				text: `The ${teamLink(qualifier.tid)} qualified for the Champions League after finishing ${qualifier.domesticPosition}${qualifier.domesticPosition === 1 ? "st" : qualifier.domesticPosition === 2 ? "nd" : qualifier.domesticPosition === 3 ? "rd" : "th"} in ${countryName ?? "their Country"}.`,
+				showNotification: qualifier.tid === g.get("userTid"),
+				hideInLiveGame: true,
+				tids: [qualifier.tid],
+				score: 10,
+			},
+			conditions,
+		);
+	}
 	return state;
 };
 
@@ -343,8 +360,9 @@ export const setChampionsLeagueScheduledGames = async (
 		}
 		if (finalRound) {
 			game.neutralSite = true;
-			await idb.cache.schedule.put(game);
 		}
+		game.competition = "championsLeague";
+		await idb.cache.schedule.put(game);
 		state.scheduledGames.push({ gid: game.gid, ...matchup });
 	}
 };
@@ -357,6 +375,9 @@ const reportGame = (
 	winnerTid: number | undefined,
 	conditions: Conditions,
 ) => {
+	const isFinal =
+		game.stage === "knockout" &&
+		state.knockoutGames.filter((row) => row.round === game.round).length === 1;
 	const winnerText =
 		winnerTid === undefined
 			? `drew ${homePts}-${awayPts}`
@@ -364,15 +385,43 @@ const reportGame = (
 	logEvent(
 		{
 			type: "playoffs",
-			text: `${winnerTid === undefined ? `The ${teamLink(game.homeTid)} and ${teamLink(game.awayTid)}` : `The ${teamLink(winnerTid)}`} ${winnerText} in the Champions League.`,
+			text: `${winnerTid === undefined ? `The ${teamLink(game.homeTid)} and ${teamLink(game.awayTid)}` : `The ${teamLink(winnerTid)}`} ${winnerText} in the Champions League${isFinal && winnerTid !== undefined ? " final and are World champions!" : "."}${game.stage === "knockout" && !isFinal && winnerTid !== undefined ? ` The ${teamLink(winnerTid === game.homeTid ? game.awayTid : game.homeTid)} were eliminated.` : ""}`,
 			showNotification:
 				game.homeTid === g.get("userTid") || game.awayTid === g.get("userTid"),
 			hideInLiveGame: true,
 			tids: [game.homeTid, game.awayTid],
-			score: 10,
+			score: isFinal ? 20 : 10,
 		},
 		conditions,
 	);
+};
+
+const markCupTiedPlayers = async (
+	state: ChampionsLeagueState,
+	result: GameResults,
+) => {
+	for (const team of result.team) {
+		for (const gamePlayer of team.player) {
+			const appeared = bySport({
+				baseball: gamePlayer.stat.gp > 0,
+				basketball: gamePlayer.stat.min > 0,
+				football: gamePlayer.stat.min > 0,
+				hockey: gamePlayer.stat.min > 0,
+			});
+			if (!appeared) {
+				continue;
+			}
+			const player = await idb.cache.players.get(gamePlayer.id);
+			if (player) {
+				player.worldCupTie = {
+					season: state.season,
+					competition: "championsLeague",
+					tid: team.id,
+				};
+				await idb.cache.players.put(player);
+			}
+		}
+	}
 };
 
 export const recordChampionsLeagueResults = async (
@@ -394,6 +443,7 @@ export const recordChampionsLeagueResults = async (
 		if (!scheduled) {
 			continue;
 		}
+		await markCupTiedPlayers(state, result);
 		const home = result.team.find(
 			(row: { id: number }) => row.id === scheduled.homeTid,
 		);
@@ -431,6 +481,38 @@ export const recordChampionsLeagueResults = async (
 			} else {
 				addCountryPoints(state, winnerTid, 2);
 				await payChampionsLeaguePrize(state, winnerTid, "win");
+			}
+			const groupGames = state.groupGames.filter(
+				(row) => row.groupId === scheduled.groupId,
+			);
+			if (
+				groupGames.every(
+					(row) => row.homePts !== undefined && row.awayPts !== undefined,
+				)
+			) {
+				const groupTids = state.groups[scheduled.groupId!];
+				if (!groupTids) {
+					throw new Error("Champions League group result has no group");
+				}
+				const group = groupTids.map((tid) =>
+					state.qualifiers.find((qualifier) => qualifier.tid === tid)!,
+				);
+				for (const eliminated of getChampionsLeagueGroupTable({
+					group,
+					games: groupGames,
+				}).slice(2)) {
+					logEvent(
+						{
+							type: "playoffs",
+							text: `The ${teamLink(eliminated.tid)} were eliminated from the Champions League group stage.`,
+							showNotification: eliminated.tid === g.get("userTid"),
+							hideInLiveGame: true,
+							tids: [eliminated.tid],
+							score: 10,
+						},
+						conditions,
+					);
+				}
 			}
 		} else {
 			const seedByTid = new Map(
@@ -492,8 +574,22 @@ export const finalizeChampionsLeague = async (state: ChampionsLeagueState) => {
 		).filter((row) => row.season !== state.season),
 		{ season: state.season, pointsByCountry: state.pointsByCountry },
 	].filter((row) => row.season >= state.season - 4);
+	const history = [
+		...(
+			(g as unknown as Partial<GameAttributesLeague>).championsLeagueHistory ??
+			[]
+		).filter((row) => row.season !== state.season),
+		{
+			season: state.season,
+			qualifiers: state.qualifiers,
+			groups: state.groups,
+			prizeMoneyByTid: state.prizeMoneyByTid,
+			championTid: state.championTid,
+		},
+	].sort((a, b) => a.season - b.season);
 	await league.setGameAttributes({
 		championsLeagueCoefficients: coefficients,
+		championsLeagueHistory: history,
 		championsLeagueState: state,
 	});
 };

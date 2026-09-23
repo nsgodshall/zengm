@@ -33,7 +33,7 @@ const newPhasePlayoffs = async (
 
 	if (world) {
 		const state = await initializePromotionPlayoffs();
-		const championsLeagueState = await initializeChampionsLeague();
+		const championsLeagueState = await initializeChampionsLeague(conditions);
 		tidPlayoffs = [
 			...new Set([
 				...getPromotionPlayoffEntrants(state),

@@ -175,17 +175,30 @@ export const getUpcoming = async ({
 	};
 
 	const upcoming: {
+		competition?: Game["competition"];
 		finals?: boolean;
 		forceWin?: number | "tie";
 		gid: number;
+		neutralSite?: boolean;
 		season: number;
 		teams: [ReturnType<typeof getTeam>, ReturnType<typeof getTeam>];
 	}[] = filteredSchedule.map(
-		({ awayTid, day, finals, forceWin, gid, homeTid }) => {
+		({
+			awayTid,
+			competition,
+			day,
+			finals,
+			forceWin,
+			gid,
+			homeTid,
+			neutralSite,
+		}) => {
 			return {
+				competition,
 				finals,
 				forceWin,
 				gid,
+				neutralSite,
 				season: g.get("season"),
 				teams: [getTeam(homeTid, day), getTeam(awayTid, day)],
 			};

@@ -320,8 +320,10 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		const gameAttributes = g as unknown as Partial<GameAttributesLeague>;
 		const results = gameAttributes.championsLeagueResults ?? [];
 		const coefficients = gameAttributes.championsLeagueCoefficients ?? [];
+		const history = gameAttributes.championsLeagueHistory ?? [];
 
 		expect(coefficients.map((row) => row.season)).toEqual(completedSeasons);
+		expect(history.map((row) => row.season)).toEqual(completedSeasons);
 		for (const season of completedSeasons) {
 			const seasonResults = results.filter(
 				(result) => result.season === season,
@@ -355,6 +357,10 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 			)!;
 			const finalBoxScore = await idb.league.get("games", final.gid);
 			expect(finalBoxScore?.neutralSite).toBe(true);
+			for (const result of seasonResults) {
+				const boxScore = await idb.league.get("games", result.gid);
+				expect(boxScore?.competition).toBe("championsLeague");
+			}
 		}
 
 		const state = gameAttributes.championsLeagueState!;
@@ -362,6 +368,20 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 		expect(state.championTid).toBeDefined();
 		expect(state.championPrizePaid).toBe(true);
 		expect(state.scheduledGames).toEqual([]);
+		expect(history.at(-1)?.championTid).toBe(state.championTid);
+		const tournamentView = await competition.getChampionsLeagueView(
+			state.season,
+		);
+		expect(tournamentView?.available).toBe(true);
+		expect(tournamentView?.champion?.tid).toBe(state.championTid);
+		expect(tournamentView?.qualifiers).toHaveLength(8);
+		expect(tournamentView?.groups).toHaveLength(2);
+		expect(tournamentView?.knockoutRounds).toHaveLength(2);
+		expect(tournamentView?.pastWinners).toHaveLength(completedSeasons.length);
+		const cupTiedPlayers = (await idb.cache.players.getAll()).filter(
+			(player) => player.worldCupTie?.season === state.season,
+		);
+		expect(cupTiedPlayers.length).toBeGreaterThan(0);
 
 		const latestResults = results.filter(
 			(result) => result.season === state.season,
@@ -475,6 +495,31 @@ describe("a 2-country, 2-tier World over several seasons", () => {
 					`${season} ${type}`,
 				);
 			}
+			assert.strictEqual(
+				events.filter(
+					(event) =>
+						event.season === season &&
+						event.text?.includes("qualified for the Champions League"),
+				).length,
+				8,
+				`${season} Champions League qualifiers`,
+			);
+			assert(
+				events.some(
+					(event) =>
+						event.season === season &&
+						event.text?.includes("Champions League group stage"),
+				),
+				`${season} Champions League group eliminations`,
+			);
+			assert(
+				events.some(
+					(event) =>
+						event.season === season &&
+						event.text?.includes("are World champions"),
+				),
+				`${season} Champions League champion`,
+			);
 		}
 	});
 

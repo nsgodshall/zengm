@@ -9,6 +9,7 @@ import {
 	getChampionsLeagueKnockoutWinner,
 	getChampionsLeaguePrize,
 	getChampionsLeagueQualifiers,
+	isChampionsLeagueCupTied,
 } from "./championsLeague.ts";
 import { validateChampionsLeagueState } from "./championsLeagueSchedule.ts";
 
@@ -134,6 +135,23 @@ describe("Champions League groups", () => {
 });
 
 describe("Champions League knockout and coefficients", () => {
+	test("cup-ties only a player who changed clubs during the same tournament", () => {
+		const cupTie = {
+			season: 2030,
+			competition: "championsLeague" as const,
+			tid: 4,
+		};
+		expect(isChampionsLeagueCupTied({ cupTie, season: 2030, tid: 4 })).toBe(
+			false,
+		);
+		expect(isChampionsLeagueCupTied({ cupTie, season: 2030, tid: 9 })).toBe(
+			true,
+		);
+		expect(isChampionsLeagueCupTied({ cupTie, season: 2031, tid: 9 })).toBe(
+			false,
+		);
+	});
+
 	test("keeps tournament awards modest and rewards progress", () => {
 		expect(getChampionsLeaguePrize("entry")).toBe(1000);
 		expect(getChampionsLeaguePrize("draw")).toBeLessThan(

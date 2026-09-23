@@ -399,9 +399,12 @@ type GameTeam = {
 	[key: string]: any;
 };
 
+export type WorldGameCompetition = "championsLeague" | "promotionPlayoff";
+
 export type Game = {
 	att: number;
 	clutchPlays?: string[];
+	competition?: WorldGameCompetition;
 	day?: number; // Only optional for legacy
 	finals?: boolean;
 	forceWin?: number; // If defined, it's the number of iterations that were used to force the win/tie
@@ -749,6 +752,19 @@ export type GameAttributesLeague = {
 		homePts: number;
 		awayPts: number;
 		winnerTid?: number;
+	}[];
+	championsLeagueHistory?: {
+		season: number;
+		qualifiers: {
+			tid: number;
+			countryId: number;
+			domesticPosition: number;
+			countryCoefficient: number;
+			seed: number;
+		}[];
+		groups: number[][];
+		prizeMoneyByTid: Record<number, number>;
+		championTid: number;
 	}[];
 	championsLeagueState?: {
 		season: number;
@@ -1383,6 +1399,13 @@ export type MinimalPlayerRatings = {
 };
 
 export type PlayerWithoutKey<PlayerRatings = MinimalPlayerRatings> = {
+	// A player who appeared for a club in a World tournament cannot appear for
+	// another club in that tournament during the same season.
+	worldCupTie?: {
+		season: number;
+		competition: "championsLeague";
+		tid: number;
+	};
 	// The most recent World development season. This is overwritten every
 	// preseason, keeping the development model observable without accumulating
 	// another season-by-season history table.
@@ -1851,6 +1874,7 @@ export type ReleasedPlayer = ReleasedPlayerWithoutKey & {
 export type ScheduleGameWithoutKey = {
 	gid?: number;
 	awayTid: number;
+	competition?: WorldGameCompetition;
 	homeTid: number;
 	forceWin?: number | "tie"; // either awayTid or homeTid, if defined
 	finals?: boolean; // Used for easily checking neutralSite "finals" setting

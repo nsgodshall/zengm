@@ -508,6 +508,7 @@ const play = async (
 					) {
 						found = true;
 						(result as any).forceWin = i + 1;
+						(result as GameResults).competition = game.competition;
 						results.push(result);
 						break;
 					}
@@ -563,6 +564,7 @@ const play = async (
 					doPlayByPlay,
 					neutralSite,
 				});
+				(result as GameResults).competition = game.competition;
 				results.push(result);
 			}
 		}
@@ -617,7 +619,16 @@ const play = async (
 				tids.add(matchup.awayTid);
 			}
 
-			const teams = await loadTeams(Array.from(tids), conditions); // Play games
+			const championsLeagueTids = new Set(
+				schedule
+					.filter((game) => game.competition === "championsLeague")
+					.flatMap((game) => [game.homeTid, game.awayTid]),
+			);
+			const teams = await loadTeams(
+				Array.from(tids),
+				conditions,
+				championsLeagueTids,
+			); // Play games
 
 			await cbSimGames(schedule, teams, dayOver);
 		}
